@@ -385,17 +385,20 @@ impl Default for CouchDbOptions {
 
 impl CouchDbOptions {
     /// Create new options with defaults
+    #[inline]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Create options with custom server URL
+    #[inline]
     pub fn with_server(mut self, url: impl Into<String>) -> Self {
         self.server_url = url.into();
         self
     }
 
     /// Set database name
+    #[inline]
     pub fn with_database(mut self, name: impl Into<String>) -> Self {
         self.database_name = name.into();
         self
@@ -409,7 +412,15 @@ impl CouchDbOptions {
     }
 
     /// Set batch size
+    #[inline]
     pub fn with_batch_size(mut self, size: usize) -> Self {
+        self.batch_size = size;
+        self
+    }
+
+    /// Set batch size (alias for with_batch_size)
+    #[inline]
+    pub fn batch_size(mut self, size: usize) -> Self {
         self.batch_size = size;
         self
     }

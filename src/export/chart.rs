@@ -56,6 +56,8 @@ pub struct ChartBuilder {
     pub ma_period: usize,
     /// Show grid lines
     pub show_grid: bool,
+    /// Line width for tick charts
+    pub line_width: u32,
 }
 
 impl Default for ChartBuilder {
@@ -75,6 +77,7 @@ impl Default for ChartBuilder {
             show_moving_average: true,
             ma_period: 20,
             show_grid: true,
+            line_width: 1,
         }
     }
 }
@@ -171,6 +174,12 @@ impl ChartBuilder {
     /// Set moving average period
     pub fn ma_period(mut self, period: usize) -> Self {
         self.ma_period = period;
+        self
+    }
+
+    /// Set line width for tick charts
+    pub fn line_width(mut self, width: u32) -> Self {
+        self.line_width = width;
         self
     }
 

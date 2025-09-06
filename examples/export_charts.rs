@@ -58,10 +58,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let custom_builder = ChartBuilder::new()
         .title("Market Data - Custom Styled Chart")
         .dimensions(1200, 800)
-        .background_color((240, 248, 255).into())  // Alice blue background
-        .grid_color((200, 200, 200).into())
+        .background_color((240, 248, 255))  // Alice blue background
+        .grid_color((200, 200, 200))
         .show_volume(true)
-        .candlestick_colors((0, 128, 0).into(), (255, 0, 0).into());  // Green up, red down
+        .candlestick_colors((0, 128, 0), (255, 0, 0));  // Green up, red down
 
     let custom_chart_file = "custom_styled_candlestick.png";
     to_png_ohlc_with_builder(&ohlc_data, custom_chart_file, custom_builder)?;
