@@ -31,6 +31,10 @@ pub mod config;
 pub mod generator;
 pub mod types;
 
+// Environment configuration module (conditional on feature flag)
+#[cfg(feature = "dotenvy")]
+pub mod env;
+
 // Export module (conditional on feature flags)
 #[cfg(any(feature = "csv_export", feature = "json_export", feature = "couchdb"))]
 pub mod export;

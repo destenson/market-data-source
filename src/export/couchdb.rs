@@ -35,6 +35,37 @@ impl CouchDbExporter {
             batch_size: 1000,
         }
     }
+    
+    /// Create a new CouchDB exporter from environment variables
+    #[cfg(feature = "dotenvy")]
+    pub fn from_env() -> Self {
+        // Load .env file if it exists
+        let _ = dotenvy::dotenv();
+        
+        let server_url = std::env::var("COUCHDB_URL")
+            .unwrap_or_else(|_| "http://localhost:5984".to_string());
+        let database_name = std::env::var("COUCHDB_DATABASE")
+            .unwrap_or_else(|_| "market_data".to_string());
+        
+        let mut exporter = Self::new(server_url, database_name);
+        
+        // Set authentication if available
+        if let (Ok(username), Ok(password)) = (
+            std::env::var("COUCHDB_USERNAME"),
+            std::env::var("COUCHDB_PASSWORD")
+        ) {
+            exporter = exporter.with_auth(username, password);
+        }
+        
+        // Set batch size if available
+        if let Ok(batch_size) = std::env::var("EXPORT_BATCH_SIZE") {
+            if let Ok(size) = batch_size.parse() {
+                exporter = exporter.with_batch_size(size);
+            }
+        }
+        
+        exporter
+    }
 
     /// Set authentication credentials
     pub fn with_auth(mut self, username: impl Into<String>, password: impl Into<String>) -> Self {
@@ -350,6 +381,16 @@ mod tests {
         assert_eq!(exporter.server_url, "http://localhost:5984");
         assert_eq!(exporter.database_name, "test_db");
         assert_eq!(exporter.batch_size, 1000);
+    }
+    
+    #[test]
+    #[cfg(feature = "dotenvy")]
+    fn test_couchdb_exporter_from_env() {
+        // This test just verifies the from_env method exists and works
+        // We don't test actual env var loading since that depends on runtime environment
+        let exporter = CouchDbExporter::from_env();
+        assert!(exporter.server_url.len() > 0);
+        assert!(exporter.database_name.len() > 0);
     }
 
     #[test]

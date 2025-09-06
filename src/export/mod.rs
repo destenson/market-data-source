@@ -92,3 +92,15 @@ pub fn to_couchdb_ticks(data: &[Tick], server_url: &str, database: &str) -> Expo
     let exporter = CouchDbExporter::new(server_url, database);
     exporter.export_ticks(data, "")
 }
+
+/// Convenience function to export OHLC data to CouchDB using environment variables
+#[cfg(all(feature = "couchdb", feature = "dotenvy"))]
+pub fn to_couchdb_ohlc_env(data: &[OHLC]) -> ExportResult<()> {
+    CouchDbExporter::from_env().export_ohlc(data, "")
+}
+
+/// Convenience function to export tick data to CouchDB using environment variables
+#[cfg(all(feature = "couchdb", feature = "dotenvy"))]
+pub fn to_couchdb_ticks_env(data: &[Tick]) -> ExportResult<()> {
+    CouchDbExporter::from_env().export_ticks(data, "")
+}
