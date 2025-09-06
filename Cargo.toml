@@ -8,6 +8,8 @@ std = []
 api-emulator = []
 api-emulator-yfinance = ["api-emulator"]
 api-emulator-tdameritrade = ["api-emulator"]
+simd_support = ["rand/simd_support"]
+std_math = ["rand_distr/std_math"]
 # api-emulator-alpha-vantage = ["api-emulator"]
 # api-emulator-iex-cloud = ["api-emulator"]
 # api-emulator-twelve-data = ["api-emulator"]
@@ -26,3 +28,15 @@ api-emulator-tdameritrade = ["api-emulator"]
 # - "tokio": { version = "1.0", optional = true }
 
 [dependencies]
+rand = "0.8.5"
+rand_distr = "0.4.3"
+
+
+[[bin]]
+name = "market-data"
+path = "src/main.rs"
+
+[lib]
+name = "market_data_source"
+path = "src/lib.rs"
+crate-type = ["rlib", "cdylib"]
