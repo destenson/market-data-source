@@ -109,14 +109,18 @@ impl ChartBuilder {
             return Err("Cannot create chart from empty data".into());
         }
 
-        // Create image backend and save directly
-        let root = BitMapBackend::new(output_path.as_ref(), (self.width, self.height))
-            .into_drawing_area();
-        root.fill(&self.background_color)?;
+        // Create buffer for bitmap
+        let mut buffer = vec![0u8; (self.width * self.height * 3) as usize];
+        
+        {
+            let root = BitMapBackend::with_buffer(&mut buffer, (self.width, self.height))
+                .into_drawing_area();
+            root.fill(&self.background_color)?;
 
         // Calculate the layout - if showing volume, split the chart
         let (upper, lower) = if self.show_volume {
-            root.split_evenly((2, 1))
+            let areas = root.split_evenly((2, 1));
+            (areas[0].clone(), areas[1].clone())
         } else {
             let areas = root.split_evenly((1, 1));
             (areas[0].clone(), areas[0].clone())
@@ -242,7 +246,14 @@ impl ChartBuilder {
             }
         }
 
-        root.present()?;
+            root.present()?;
+        }
+        
+        // Save buffer as PNG using image crate
+        let img = image::RgbImage::from_raw(self.width, self.height, buffer)
+            .ok_or("Failed to create image from buffer")?;
+        img.save(output_path.as_ref())?;
+        
         Ok(())
     }
 
@@ -256,10 +267,13 @@ impl ChartBuilder {
             return Err("Cannot create chart from empty data".into());
         }
 
-        // Create image backend and save directly
-        let root = BitMapBackend::new(output_path.as_ref(), (self.width, self.height))
-            .into_drawing_area();
-        root.fill(&self.background_color)?;
+        // Create buffer for bitmap
+        let mut buffer = vec![0u8; (self.width * self.height * 3) as usize];
+        
+        {
+            let root = BitMapBackend::with_buffer(&mut buffer, (self.width, self.height))
+                .into_drawing_area();
+            root.fill(&self.background_color)?;
 
         // Find price range
         let min_price = data.iter()
@@ -328,7 +342,14 @@ impl ChartBuilder {
             .border_style(&BLACK)
             .draw()?;
 
-        root.present()?;
+            root.present()?;
+        }
+        
+        // Save buffer as PNG using image crate
+        let img = image::RgbImage::from_raw(self.width, self.height, buffer)
+            .ok_or("Failed to create image from buffer")?;
+        img.save(output_path.as_ref())?;
+        
         Ok(())
     }
 

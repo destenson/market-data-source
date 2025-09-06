@@ -3,9 +3,8 @@
 #[cfg(feature = "png_export")]
 mod png_export_tests {
     use market_data_source::{
-        MarketDataGenerator, GeneratorConfig, ConfigBuilder,
+        MarketDataGenerator, GeneratorConfig,
         export::{ChartBuilder, ChartExporter, to_png_ohlc, to_png_ticks},
-        types::TimeInterval,
     };
     use std::fs;
     use tempfile::tempdir;
@@ -13,7 +12,7 @@ mod png_export_tests {
     #[test]
     fn test_export_candlestick_chart() {
         // Generate test data
-        let config = GeneratorConfig::quick_scalp();
+        let config = GeneratorConfig::volatile();
 
         let mut generator = MarketDataGenerator::with_config(config).unwrap();
         let ohlc_data = generator.generate_series(50);
@@ -44,7 +43,7 @@ mod png_export_tests {
     #[test]
     fn test_export_line_chart() {
         // Generate test data
-        let config = GeneratorConfig::quick_scalp();
+        let config = GeneratorConfig::volatile();
 
         let mut generator = MarketDataGenerator::with_config(config).unwrap();
         let tick_data = generator.generate_ticks(100);
@@ -71,7 +70,7 @@ mod png_export_tests {
     #[test]
     fn test_custom_chart_configuration() {
         // Generate test data
-        let config = GeneratorConfig::intraday();
+        let config = GeneratorConfig::stable();
 
         let mut generator = MarketDataGenerator::with_config(config).unwrap();
         let ohlc_data = generator.generate_series(30);
@@ -83,7 +82,7 @@ mod png_export_tests {
             .show_volume(true)
             .show_moving_average(true)
             .ma_period(10)
-            .show_grid(true);
+;
 
         // Create temporary directory for output
         let temp_dir = tempdir().unwrap();
@@ -103,7 +102,7 @@ mod png_export_tests {
     #[test]
     fn test_chart_without_volume() {
         // Generate test data
-        let config = GeneratorConfig::swing_trading();
+        let config = GeneratorConfig::bull_market();
 
         let mut generator = MarketDataGenerator::with_config(config).unwrap();
         let ohlc_data = generator.generate_series(24);
@@ -132,7 +131,7 @@ mod png_export_tests {
     #[test]
     fn test_chart_without_moving_average() {
         // Generate test data
-        let config = GeneratorConfig::position_trading();
+        let config = GeneratorConfig::bear_market();
 
         let mut generator = MarketDataGenerator::with_config(config).unwrap();
         let ohlc_data = generator.generate_series(40);
@@ -160,7 +159,7 @@ mod png_export_tests {
     #[test]
     fn test_large_dataset_performance() {
         // Generate large dataset
-        let config = GeneratorConfig::quick_scalp();
+        let config = GeneratorConfig::volatile();
 
         let mut generator = MarketDataGenerator::with_config(config).unwrap();
         let ohlc_data = generator.generate_series(1000);
@@ -213,7 +212,7 @@ mod png_export_tests {
     #[test]
     fn test_minimal_data_chart() {
         // Test with minimal data (just 2 points)
-        let config = GeneratorConfig::position_trading();
+        let config = GeneratorConfig::bear_market();
 
         let mut generator = MarketDataGenerator::with_config(config).unwrap();
         let ohlc_data = generator.generate_series(2);
