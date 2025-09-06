@@ -2,8 +2,12 @@
 
 use std::fmt;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Represents an OHLC (Open, High, Low, Close) candle
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct OHLC {
     /// Opening price of the period
     pub open: f64,
@@ -62,6 +66,7 @@ impl OHLC {
 
 /// Represents a single tick of market data
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Tick {
     /// Price of the tick
     pub price: f64,
@@ -109,6 +114,8 @@ impl Tick {
 
 /// Represents volume in the market
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct Volume {
     value: u64,
 }
@@ -138,22 +145,31 @@ impl fmt::Display for Volume {
 
 /// Time intervals for candle periods
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum TimeInterval {
     /// One minute
+    #[cfg_attr(feature = "serde", serde(rename = "1m"))]
     OneMinute,
     /// Five minutes
+    #[cfg_attr(feature = "serde", serde(rename = "5m"))]
     FiveMinutes,
     /// Fifteen minutes
+    #[cfg_attr(feature = "serde", serde(rename = "15m"))]
     FifteenMinutes,
     /// Thirty minutes
+    #[cfg_attr(feature = "serde", serde(rename = "30m"))]
     ThirtyMinutes,
     /// One hour
+    #[cfg_attr(feature = "serde", serde(rename = "1h"))]
     OneHour,
     /// Four hours
+    #[cfg_attr(feature = "serde", serde(rename = "4h"))]
     FourHours,
     /// One day
+    #[cfg_attr(feature = "serde", serde(rename = "1d"))]
     OneDay,
     /// Custom interval in seconds
+    #[cfg_attr(feature = "serde", serde(rename = "custom"))]
     Custom(u32),
 }
 
@@ -267,5 +283,62 @@ mod tests {
         assert_eq!(vol.value(), 1500);
         assert_eq!(vol.as_f64(), 1500.0);
         assert_eq!(format!("{}", vol), "1500");
+    }
+
+    #[cfg(feature = "serde")]
+    mod serde_tests {
+        use super::*;
+        use serde_json;
+
+        #[test]
+        fn test_ohlc_serialization() {
+            let ohlc = OHLC::new(100.0, 105.0, 99.0, 103.0, 1000, 1234567890);
+            
+            // Serialize to JSON
+            let json = serde_json::to_string(&ohlc).unwrap();
+            
+            // Deserialize back
+            let deserialized: OHLC = serde_json::from_str(&json).unwrap();
+            
+            assert_eq!(ohlc, deserialized);
+        }
+
+        #[test]
+        fn test_tick_serialization() {
+            let tick = Tick::with_spread(100.5, 500, 1234567890, 100.4, 100.6);
+            
+            let json = serde_json::to_string(&tick).unwrap();
+            let deserialized: Tick = serde_json::from_str(&json).unwrap();
+            
+            assert_eq!(tick, deserialized);
+        }
+
+        #[test]
+        fn test_volume_serialization() {
+            let volume = Volume::new(1500);
+            
+            let json = serde_json::to_string(&volume).unwrap();
+            assert_eq!(json, "1500"); // Should serialize as transparent
+            
+            let deserialized: Volume = serde_json::from_str(&json).unwrap();
+            assert_eq!(volume, deserialized);
+        }
+
+        #[test]
+        fn test_time_interval_serialization() {
+            // Test standard intervals
+            let interval = TimeInterval::OneMinute;
+            let json = serde_json::to_string(&interval).unwrap();
+            assert_eq!(json, r#""1m""#);
+            
+            let deserialized: TimeInterval = serde_json::from_str(&json).unwrap();
+            assert_eq!(interval, deserialized);
+            
+            // Test custom interval
+            let custom = TimeInterval::Custom(120);
+            let json = serde_json::to_string(&custom).unwrap();
+            let deserialized: TimeInterval = serde_json::from_str(&json).unwrap();
+            assert_eq!(custom, deserialized);
+        }
     }
 }

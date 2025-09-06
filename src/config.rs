@@ -3,8 +3,34 @@
 use crate::types::TimeInterval;
 use std::fmt;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize, Serializer, Deserializer};
+
+#[cfg(feature = "serde")]
+fn serialize_f64_inf<S>(value: &f64, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    if value.is_infinite() {
+        serializer.serialize_none()
+    } else {
+        serializer.serialize_f64(*value)
+    }
+}
+
+#[cfg(feature = "serde")]
+fn deserialize_f64_inf<'de, D>(deserializer: D) -> Result<f64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let opt: Option<f64> = Option::deserialize(deserializer)?;
+    Ok(opt.unwrap_or(f64::INFINITY))
+}
+
 /// Direction of market trend
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum TrendDirection {
     /// Upward trend (bullish)
     Bullish,
@@ -16,12 +42,15 @@ pub enum TrendDirection {
 
 /// Configuration for market data generation
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct GeneratorConfig {
     /// Starting price for generation
     pub starting_price: f64,
     /// Minimum price boundary
     pub min_price: f64,
     /// Maximum price boundary
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_f64_inf"))]
+    #[cfg_attr(feature = "serde", serde(deserialize_with = "deserialize_f64_inf"))]
     pub max_price: f64,
     /// Trend direction
     pub trend_direction: TrendDirection,
@@ -320,5 +349,69 @@ mod tests {
         let bear = GeneratorConfig::bear_market();
         assert_eq!(bear.trend_direction, TrendDirection::Bearish);
         assert!(bear.validate().is_ok());
+    }
+
+    #[cfg(feature = "serde")]
+    mod serde_tests {
+        use super::*;
+        use serde_json;
+
+        #[test]
+        fn test_trend_direction_serialization() {
+            let trend = TrendDirection::Bullish;
+            let json = serde_json::to_string(&trend).unwrap();
+            assert_eq!(json, r#""bullish""#);
+            
+            let deserialized: TrendDirection = serde_json::from_str(&json).unwrap();
+            assert_eq!(trend, deserialized);
+        }
+
+        #[test]
+        fn test_generator_config_serialization() {
+            let config = GeneratorConfig::builder()
+                .starting_price(50.0)
+                .price_range(10.0, 200.0)
+                .trend(TrendDirection::Bullish, 0.01)
+                .volatility(0.03)
+                .num_points(500)
+                .seed(42)
+                .base_volume(100000)
+                .volume_volatility(0.3)
+                .time_interval(TimeInterval::FiveMinutes)
+                .build()
+                .unwrap();
+
+            // Serialize to JSON
+            let json = serde_json::to_string(&config).unwrap();
+            
+            // Deserialize back
+            let deserialized: GeneratorConfig = serde_json::from_str(&json).unwrap();
+            
+            // Check key fields match
+            assert_eq!(config.starting_price, deserialized.starting_price);
+            assert_eq!(config.min_price, deserialized.min_price);
+            assert_eq!(config.max_price, deserialized.max_price);
+            assert_eq!(config.trend_direction, deserialized.trend_direction);
+            assert_eq!(config.trend_strength, deserialized.trend_strength);
+            assert_eq!(config.volatility, deserialized.volatility);
+            assert_eq!(config.num_points, deserialized.num_points);
+            assert_eq!(config.seed, deserialized.seed);
+            assert_eq!(config.base_volume, deserialized.base_volume);
+            assert_eq!(config.time_interval, deserialized.time_interval);
+        }
+
+        #[test]
+        fn test_config_json_format() {
+            let config = GeneratorConfig::default();
+            let json = serde_json::to_string_pretty(&config).unwrap();
+            
+            // Verify JSON can be parsed back
+            let _: GeneratorConfig = serde_json::from_str(&json).unwrap();
+            
+            // JSON should contain expected fields
+            assert!(json.contains("starting_price"));
+            assert!(json.contains("trend_direction"));
+            assert!(json.contains("volatility"));
+        }
     }
 }
