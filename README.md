@@ -25,8 +25,26 @@ To use Market Data Source in your Rust project, add the following dependency to 
 
 ```toml
 [dependencies]
-market-data-source = { version = "0.1.0", features = ["csv_export", "json_export", "couchdb", "serde"] }
+market-data-source = { version = "0.1.0", features = ["csv_export", "json_export", "couchdb", "dotenvy", "serde"] }
 ```
+
+### Environment Variables
+
+Market Data Source supports configuration through environment variables. Copy `.env.example` to `.env` and configure your settings:
+
+```bash
+cp .env.example .env
+# Edit .env with your actual values
+```
+
+Key environment variables:
+- `COUCHDB_URL`: CouchDB server URL (default: http://localhost:5984)
+- `COUCHDB_USERNAME` / `COUCHDB_PASSWORD`: Optional authentication
+- `COUCHDB_DATABASE`: Database name (default: market_data)
+- `EXPORT_BATCH_SIZE`: Batch size for bulk operations (default: 1000)
+- API keys for future data providers (Alpha Vantage, Polygon, Finnhub, etc.)
+
+See `.env.example` for the complete list of available environment variables.
 
 ## Usage
 
@@ -113,10 +131,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut generator = MarketDataGenerator::default();
     let ohlc_data = generator.generate_ohlc(100);
     
-    // Create CouchDB exporter
+    // Method 1: Create CouchDB exporter with explicit configuration
     let couchdb_exporter = CouchDbExporter::new("http://localhost:5984", "market_data")
         .with_auth("admin", "password")  // Optional authentication
         .with_batch_size(500);           // Configure batch size for bulk operations
+    
+    // Method 2: Create CouchDB exporter from environment variables
+    // Reads COUCHDB_URL, COUCHDB_USERNAME, COUCHDB_PASSWORD, etc. from .env
+    #[cfg(feature = "dotenvy")]
+    let couchdb_exporter = CouchDbExporter::from_env();
     
     // Export to CouchDB
     couchdb_exporter.export_ohlc(&ohlc_data, "")?;
@@ -140,6 +163,13 @@ use market_data_source::export::{to_csv_ohlc, to_json_ohlc, to_couchdb_ohlc};
 to_csv_ohlc(&ohlc_data, "data.csv")?;
 to_json_ohlc(&ohlc_data, "data.json")?;
 to_couchdb_ohlc(&ohlc_data, "http://localhost:5984", "market_db")?;
+
+// Or use environment variables for CouchDB
+#[cfg(all(feature = "couchdb", feature = "dotenvy"))]
+use market_data_source::export::{to_couchdb_ohlc_env, to_couchdb_ticks_env};
+
+#[cfg(all(feature = "couchdb", feature = "dotenvy"))]
+to_couchdb_ohlc_env(&ohlc_data)?;  // Uses COUCHDB_URL, COUCHDB_DATABASE from .env
 ```
 
 ## Current Status

@@ -1,1 +1,4 @@
-/target
+# Rust build artifacts
+target/
+**/.env
+**/*.local.*
