@@ -24,23 +24,50 @@ market-data-source = "0.1.0"
 
 ## Usage
 
-Here's a simple example of how to use Market Data Source to fetch market data:
+Here's a simple example of how to use Market Data Source to generate synthetic market data:
 
 ```rust
-use market_data_source::MarketData;
+use market_data_source::{MarketDataGenerator, GeneratorConfig};
 
 fn main() {
-    let market_data = MarketData::new();
-
-    // Fetch real-time market data
-    let real_time_data = market_data.fetch_real_time_data("AAPL");
-    println!("Real-time data: {:?}", real_time_data);
-
-    // Fetch historical market data
-    let historical_data = market_data.fetch_historical_data("AAPL", "2022-01-01", "2022-01-31");
-    println!("Historical data: {:?}", historical_data);
+    // Create a generator with default configuration
+    let mut generator = MarketDataGenerator::new();
+    
+    // Generate 10 OHLC candles
+    let candles = generator.generate_series(10);
+    
+    for candle in &candles[..3] {
+        println!("{:?}", candle);
+    }
+    
+    // Create a generator with custom configuration
+    let config = GeneratorConfig::builder()
+        .starting_price(100.0)
+        .volatility(0.02)  // 2% volatility
+        .trend_strength(0.001)  // Slight upward trend
+        .seed(42)  // For reproducible results
+        .build();
+    
+    let mut custom_generator = MarketDataGenerator::with_config(config);
+    let custom_candles = custom_generator.generate_series(5);
 }
 ```
+
+## Current Status
+
+✅ **v0.1.0 Foundation Complete**
+- Library structure implemented
+- Core data types (OHLC, Tick, Volume)
+- Market data generator with configurable parameters
+- Random walk with drift algorithm
+- Builder pattern for configuration
+- 27 unit tests passing
+- Working examples
+
+🚧 **In Development**
+- Additional generation algorithms
+- More sophisticated market patterns
+- API emulation features
 
 ## Contributing
 
