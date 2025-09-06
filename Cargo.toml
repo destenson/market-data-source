@@ -5,11 +5,13 @@ edition = "2024"
 
 [features]
 std = []
+alloc = ["serde?/alloc"]
 api-emulator = []
 api-emulator-yfinance = ["api-emulator"]
 api-emulator-tdameritrade = ["api-emulator"]
 simd_support = ["rand/simd_support"]
 std_math = ["rand_distr/std_math"]
+serde = ["dep:serde"]
 # api-emulator-alpha-vantage = ["api-emulator"]
 # api-emulator-iex-cloud = ["api-emulator"]
 # api-emulator-twelve-data = ["api-emulator"]
@@ -30,6 +32,7 @@ std_math = ["rand_distr/std_math"]
 [dependencies]
 rand = "0.8.5"
 rand_distr = "0.4.3"
+serde = { version = "1.0.219", features = ["derive"], optional = true }
 
 
 [lib]
