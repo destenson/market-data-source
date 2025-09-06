@@ -3,11 +3,17 @@
 //! This example demonstrates how to export market data to CSV format.
 //! It covers both OHLC candles and tick data, with different configuration options.
 
-use market_data_source::{
-    MarketDataGenerator, ConfigBuilder, TrendDirection,
-    export::{to_csv_ohlc, to_csv_ticks}
-};
+use market_data_source::{MarketDataGenerator, ConfigBuilder, TrendDirection};
 
+#[cfg(feature = "csv_export")]
+use market_data_source::export::{to_csv_ohlc, to_csv_ticks};
+
+#[cfg(not(feature = "csv_export"))]
+fn main() {
+    eprintln!("Error: 'csv_export' feature is not enabled. Please enable it in Cargo.toml to run this example.");
+}
+
+#[cfg(feature = "csv_export")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Market Data Source - CSV Export Example");
     println!("=======================================");
