@@ -31,10 +31,18 @@ pub mod config;
 pub mod generator;
 pub mod types;
 
+// Export module (conditional on feature flag)
+#[cfg(feature = "csv_export")]
+pub mod export;
+
 // Re-export main types for convenience
 pub use config::{GeneratorConfig, ConfigBuilder, TrendDirection};
 pub use generator::MarketDataGenerator;
 pub use types::{OHLC, Tick, TimeInterval, Volume};
+
+// Re-export export functionality when feature is enabled
+#[cfg(feature = "csv_export")]
+pub use export::{to_csv_ohlc, to_csv_ticks};
 
 // Module for algorithms (internal for now)
 mod algorithms;

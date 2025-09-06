@@ -1,10 +1,10 @@
 //! Main market data generator
 
-use rand::{Rng, SeedableRng};
+use rand::SeedableRng;
 use rand::rngs::StdRng;
 use crate::algorithms::RandomWalkGenerator;
 use crate::config::GeneratorConfig;
-use crate::types::{OHLC, Tick, Volume};
+use crate::types::{OHLC, Tick};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Main market data generator
@@ -153,6 +153,64 @@ impl MarketDataGenerator {
         
         Ok(())
     }
+
+    /// Generate OHLC data and export to CSV file
+    #[cfg(feature = "csv_export")]
+    pub fn generate_to_csv_ohlc<P: AsRef<std::path::Path>>(
+        &mut self,
+        count: usize,
+        path: P,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let data = self.generate_series(count);
+        crate::export::to_csv_ohlc(&data, path)?;
+        Ok(())
+    }
+
+    /// Generate tick data and export to CSV file
+    #[cfg(feature = "csv_export")]
+    pub fn generate_to_csv_ticks<P: AsRef<std::path::Path>>(
+        &mut self,
+        count: usize,
+        path: P,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let data = self.generate_ticks(count);
+        crate::export::to_csv_ticks(&data, path)?;
+        Ok(())
+    }
+
+    /// Stream generate OHLC data directly to CSV file (memory efficient for large datasets)
+    #[cfg(feature = "csv_export")]
+    pub fn stream_generate_to_csv_ohlc<P: AsRef<std::path::Path>>(
+        &mut self,
+        count: usize,
+        path: P,
+    ) -> Result<usize, Box<dyn std::error::Error>> {
+        use crate::export::csv::CsvExporter;
+        
+        let exporter = CsvExporter::default();
+        
+        // Create an iterator that generates candles on-the-fly
+        let iter = (0..count).map(|_| self.generate_candle());
+        
+        exporter.stream_ohlc(iter, path)
+    }
+
+    /// Stream generate tick data directly to CSV file (memory efficient for large datasets)
+    #[cfg(feature = "csv_export")]
+    pub fn stream_generate_to_csv_ticks<P: AsRef<std::path::Path>>(
+        &mut self,
+        count: usize,
+        path: P,
+    ) -> Result<usize, Box<dyn std::error::Error>> {
+        use crate::export::csv::CsvExporter;
+        
+        let exporter = CsvExporter::default();
+        
+        // Create an iterator that generates ticks on-the-fly
+        let iter = (0..count).map(|_| self.generate_tick());
+        
+        exporter.stream_ticks(iter, path)
+    }
 }
 
 impl Default for MarketDataGenerator {
@@ -164,7 +222,7 @@ impl Default for MarketDataGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{ConfigBuilder, TrendDirection};
+    use crate::config::ConfigBuilder;
 
     #[test]
     fn test_generator_creation() {

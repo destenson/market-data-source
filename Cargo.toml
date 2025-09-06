@@ -47,6 +47,9 @@ serde = { version = "1.0.219", features = ["derive"], optional = true }
 serde_json = { version = "1.0.143", optional = true }
 
 
+[dev-dependencies]
+tempfile = "3.8"
+
 [lib]
 name = "market_data_source"
 path = "src/lib.rs"
