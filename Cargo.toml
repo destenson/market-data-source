@@ -63,6 +63,7 @@ tokio = { version = "1.47.1", features = ["rt", "macros"], optional = true }
 
 [dev-dependencies]
 tempfile = "3.8"
+serde_json = "1.0.143"
 
 [lib]
 name = "market_data_source"
