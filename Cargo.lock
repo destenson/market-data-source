@@ -820,6 +820,7 @@ dependencies = [
  "num-traits",
  "plotters-backend",
  "plotters-bitmap",
+ "plotters-svg",
  "wasm-bindgen",
  "web-sys",
 ]
@@ -835,6 +836,15 @@ name = "plotters-bitmap"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72ce181e3f6bf82d6c1dc569103ca7b1bd964c60ba03d7e6cdfbb3e3eb7f7405"
+dependencies = [
+ "plotters-backend",
+]
+
+[[package]]
+name = "plotters-svg"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51bae2ac328883f7acdfea3d66a7c35751187f870bc81f94563733a154d7a670"
 dependencies = [
  "plotters-backend",
 ]
