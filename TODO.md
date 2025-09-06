@@ -3,22 +3,28 @@
 ## 🔍 Current Implementation Status
 
 ### Recently Completed (December 2024 - January 2025)
-- **13 PRPs Completed**: All foundational PRPs (01-10) plus serialization (11), CSV export (12), and JSON export (13)
+- **14 PRPs Completed**: All foundational PRPs (01-10) plus serialization (11), CSV export (12), JSON export (13), and PNG chart export (15)
 - **Export Module**: Fully functional with trait-based design supporting multiple formats
-- **Feature Flags**: Proper separation of optional dependencies (csv_export, json_export)
-- **Integration Tests**: Comprehensive test coverage for CSV and JSON exports
+- **Feature Flags**: Proper separation of optional dependencies (csv_export, json_export, png_export)
+- **Integration Tests**: Comprehensive test coverage for CSV, JSON, and PNG exports
+- **PNG Chart Generation**: Full candlestick and line chart support with customizable styling
 
 ### Active PRPs (Not Yet Implemented)
-- **PRP-14**: CouchDB Export - NoSQL database integration
-- **PRP-15**: PNG Chart Export - Visual chart generation  
+- **PRP-14**: CouchDB Export - NoSQL database integration ⚠️ **BLOCKED** by dependency issue
 - **PRP-16**: Export Module Structure - Unified architecture
 - **PRP-17**: Export Examples - Usage demonstrations
 - **PRP-18**: Export Integration Tests - Comprehensive testing
 
-### Code Quality Notes
+### Recently Completed PRPs
+- **PRP-15**: PNG Chart Export - ✅ **COMPLETED** - Visual chart generation with candlestick and line charts
+
+### Code Quality Notes & Technical Debt
 - **No TODO/FIXME comments found** in codebase (clean implementation)
-- **Unused placeholder**: `_config` variable in lib.rs test (line 166)
+- **Dead Code**: Unused methods `current_price()` and `set_price()` in RandomWalkGenerator (src/algorithms/random_walk.rs:101-108)
+- **String Errors**: 3 functions returning `Result<_, String>` should use proper error types
+- **Unwrap Usage**: 74 `unwrap()`/`expect()` calls in src/ (mostly in tests, but some in production code)
 - **Internal module**: algorithms module marked as internal "for now" (potential for public API)
+- **Font Rendering**: PNG chart tests fail in headless environments due to font rendering limitations
 
 ## 🎯 KILLER FEATURE: Market Data Generation
 
@@ -56,20 +62,24 @@ The primary focus of v0.1.0 is providing best-in-class synthetic market data gen
 - [x] **Serialization**: Full serde support for all data types
 - [x] **CSV Export**: Export OHLC and tick data to CSV files
 - [x] **JSON Export**: Export data as JSON or JSON Lines format
+- [x] **PNG Chart Export**: Generate candlestick and line charts with volume and moving averages
 
 ## 🎯 Immediate Priorities (Next Sprint)
 
 ### High Priority - Complete Export Infrastructure
-1. [ ] **Execute PRP-14**: Implement CouchDB export functionality
-2. [ ] **Execute PRP-15**: Add PNG chart generation capabilities
+1. ⚠️ **Skip PRP-14**: CouchDB export blocked by dependency issue (packed_simd_2 requires nightly Rust)
+2. ✅ **Execute PRP-15**: PNG chart generation capabilities - **COMPLETED**
 3. [ ] **Execute PRP-16**: Refactor export module structure
 4. [ ] **Execute PRP-17**: Create comprehensive export examples
 5. [ ] **Execute PRP-18**: Add integration tests for all exporters
 
-### Critical Bug Fixes & Improvements
-1. [ ] **Error Handling**: Replace String errors with proper error enum
-2. [ ] **Public API**: Consider making algorithms module public
-3. [ ] **Documentation**: Update README with CSV/JSON export examples
+### Critical Bug Fixes & Improvements  
+1. [ ] **Error Handling**: Replace String errors with proper error enum (3 functions affected)
+2. [ ] **Dead Code Cleanup**: Remove unused `current_price()` and `set_price()` methods 
+3. [ ] **Unwrap Reduction**: Replace unwrap() calls in production code with proper error handling
+4. [ ] **CouchDB Dependency**: Update to couch_rs 0.10+ or remove problematic dependency
+5. [ ] **Public API**: Consider making algorithms module public
+6. [ ] **Font Rendering**: Fix PNG chart tests for headless environments
 
 ## 🚀 Next Priority - Enhanced Realism
 
@@ -99,12 +109,14 @@ The primary focus of v0.1.0 is providing best-in-class synthetic market data gen
 ### ✅ Completed Export Formats
 - [x] **CSV Export**: Write OHLC and tick data to CSV files (PRP-12 completed)
 - [x] **JSON Export**: Export as standard JSON or JSON Lines format (PRP-13 completed)
+- [x] **PNG Chart Export**: Visual chart generation with candlestick and line charts (PRP-15 completed)
 
 ### Pending Export Formats
-- [ ] **CouchDB Export**: NoSQL database integration (PRP-14 created)
-- [ ] **PNG Chart Export**: Visual chart generation (PRP-15 created)
+- ⚠️ **CouchDB Export**: NoSQL database integration (PRP-14 blocked by dependency issue)
 - [ ] **Parquet Support**: Efficient columnar storage
 - [ ] **DataFrame Integration**: Direct pandas/polars support
+- [ ] **Excel Export**: XLSX format support
+- [ ] **SQLite Export**: Embedded database support
 
 ### Export Infrastructure (PRPs 16-18 created)
 - [ ] **Module Structure**: Unified export module architecture (PRP-16)
