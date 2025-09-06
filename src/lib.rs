@@ -31,8 +31,8 @@ pub mod config;
 pub mod generator;
 pub mod types;
 
-// Export module (conditional on feature flag)
-#[cfg(feature = "csv_export")]
+// Export module (conditional on feature flags)
+#[cfg(any(feature = "csv_export", feature = "json_export"))]
 pub mod export;
 
 // Re-export main types for convenience

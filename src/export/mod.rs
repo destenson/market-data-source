@@ -9,6 +9,12 @@ pub mod csv;
 #[cfg(feature = "csv_export")]
 pub use self::csv::{CsvExporter, CsvOptions};
 
+#[cfg(feature = "json_export")]
+pub mod json;
+
+#[cfg(feature = "json_export")]
+pub use self::json::{JsonExporter, JsonOptions};
+
 use crate::types::{OHLC, Tick};
 use std::error::Error;
 use std::path::Path;
@@ -36,5 +42,33 @@ pub fn to_csv_ohlc<P: AsRef<Path>>(data: &[OHLC], path: P) -> ExportResult<()> {
 #[cfg(feature = "csv_export")]
 pub fn to_csv_ticks<P: AsRef<Path>>(data: &[Tick], path: P) -> ExportResult<()> {
     let exporter = CsvExporter::default();
+    exporter.export_ticks(data, path)
+}
+
+/// Convenience function to export OHLC data to JSON
+#[cfg(feature = "json_export")]
+pub fn to_json_ohlc<P: AsRef<Path>>(data: &[OHLC], path: P) -> ExportResult<()> {
+    let exporter = JsonExporter::default();
+    exporter.export_ohlc(data, path)
+}
+
+/// Convenience function to export tick data to JSON
+#[cfg(feature = "json_export")]
+pub fn to_json_ticks<P: AsRef<Path>>(data: &[Tick], path: P) -> ExportResult<()> {
+    let exporter = JsonExporter::default();
+    exporter.export_ticks(data, path)
+}
+
+/// Convenience function to export OHLC data to JSON Lines format
+#[cfg(feature = "json_export")]
+pub fn to_jsonl_ohlc<P: AsRef<Path>>(data: &[OHLC], path: P) -> ExportResult<()> {
+    let exporter = JsonExporter::with_options(JsonOptions::json_lines());
+    exporter.export_ohlc(data, path)
+}
+
+/// Convenience function to export tick data to JSON Lines format
+#[cfg(feature = "json_export")]
+pub fn to_jsonl_ticks<P: AsRef<Path>>(data: &[Tick], path: P) -> ExportResult<()> {
+    let exporter = JsonExporter::with_options(JsonOptions::json_lines());
     exporter.export_ticks(data, path)
 }
