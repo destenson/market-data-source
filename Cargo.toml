@@ -1,0 +1,28 @@
+[package]
+name = "market-data-source"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+std = []
+api-emulator = []
+api-emulator-yfinance = ["api-emulator"]
+api-emulator-tdameritrade = ["api-emulator"]
+# api-emulator-alpha-vantage = ["api-emulator"]
+# api-emulator-iex-cloud = ["api-emulator"]
+# api-emulator-twelve-data = ["api-emulator"]
+# api-emulator-finnhub = ["api-emulator"]
+# api-emulator-coin-gecko = ["api-emulator"]
+# api-emulator-coin-market-cap = ["api-emulator"]
+# api-emulator-crypto-compare = ["api-emulator"]
+# api-emulator-binance = ["api-emulator"]
+# api-emulator-kraken = ["api-emulator"]
+# api-emulator-coinbase = ["api-emulator"]
+# api-emulator-bitstamp = ["api-emulator"]
+# api-emulator-bitfinex = ["api-emulator"]
+# Optional features can be defined here
+# For example:
+# - "serde": "1.0"
+# - "tokio": { version = "1.0", optional = true }
+
+[dependencies]
