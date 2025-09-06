@@ -36,7 +36,7 @@ pub mod types;
 pub mod env;
 
 // Export module (conditional on feature flags)
-#[cfg(any(feature = "csv_export", feature = "json_export", feature = "couchdb"))]
+#[cfg(any(feature = "csv_export", feature = "json_export", feature = "couchdb", feature = "png_export"))]
 pub mod export;
 
 // Re-export main types for convenience
