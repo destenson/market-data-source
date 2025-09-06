@@ -15,6 +15,7 @@ Another key feature is realistic data generation, enabling users to simulate mar
   - CSV export for data analysis
   - JSON and JSON Lines export
   - CouchDB integration for NoSQL storage
+  - PNG chart generation for data visualization
 - Deterministic generation with seed support
 - Streaming generation for large datasets
 - Extensible architecture for adding new algorithms
@@ -25,7 +26,7 @@ To use Market Data Source in your Rust project, add the following dependency to 
 
 ```toml
 [dependencies]
-market-data-source = { version = "0.1.0", features = ["csv_export", "json_export", "couchdb", "dotenvy", "serde"] }
+market-data-source = { version = "0.1.0", features = ["csv_export", "json_export", "png_export", "couchdb", "dotenvy", "serde"] }
 ```
 
 ### Environment Variables
@@ -172,6 +173,50 @@ use market_data_source::export::{to_couchdb_ohlc_env, to_couchdb_ticks_env};
 to_couchdb_ohlc_env(&ohlc_data)?;  // Uses COUCHDB_URL, COUCHDB_DATABASE from .env
 ```
 
+#### PNG Chart Export
+
+Generate visual charts from your market data:
+
+```rust
+use market_data_source::{MarketDataGenerator, GeneratorConfig, export::{ChartBuilder, ChartExporter}};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generator = MarketDataGenerator::new();
+    let ohlc_data = generator.generate_series(100);
+    
+    // Create candlestick chart with default settings
+    let exporter = ChartExporter::new();
+    exporter.export_ohlc(&ohlc_data, "candlestick_chart.png")?;
+    
+    // Create chart with custom styling
+    let custom_chart = ChartBuilder::new()
+        .dimensions(1920, 1080)
+        .title("My Market Data")
+        .show_volume(true)
+        .show_moving_average(true)
+        .ma_period(20);
+    
+    let custom_exporter = ChartExporter::with_builder(custom_chart);
+    custom_exporter.export_ohlc(&ohlc_data, "custom_chart.png")?;
+    
+    // Generate line chart from tick data
+    let tick_data = generator.generate_ticks(500);
+    exporter.export_ticks(&tick_data, "line_chart.png")?;
+    
+    Ok(())
+}
+```
+
+You can also use the convenience functions:
+
+```rust
+use market_data_source::export::{to_png_ohlc, to_png_ticks};
+
+// Quick PNG export
+to_png_ohlc(&ohlc_data, "chart.png")?;
+to_png_ticks(&tick_data, "ticks.png")?;
+```
+
 ## Current Status
 
 ✅ **v0.1.0 Foundation Complete**
@@ -184,6 +229,7 @@ to_couchdb_ohlc_env(&ohlc_data)?;  // Uses COUCHDB_URL, COUCHDB_DATABASE from .e
   - CSV export functionality with streaming support
   - JSON and JSON Lines export
   - CouchDB integration with bulk operations and views
+  - PNG chart generation with candlestick and line charts
 - Serde serialization support
 - 45+ tests passing (unit tests + integration tests)
 - Working examples
