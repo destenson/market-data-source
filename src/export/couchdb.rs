@@ -5,10 +5,10 @@
 
 use crate::export::{DataExporter, ExportResult};
 use crate::types::{OHLC, Tick};
-use couch_rs::{Client, Database, document::TypedCouchDocument, error::CouchError};
+use couch_rs::{Client, database::Database, document::TypedCouchDocument, error::CouchError};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use std::collections::HashMap;
+use std::borrow::Cow;
 
 /// CouchDB exporter for market data
 pub struct CouchDbExporter {
@@ -61,7 +61,7 @@ impl CouchDbExporter {
         let db = match client.db(&self.database_name).await {
             Ok(db) => db,
             Err(_) => {
-                client.create_db(&self.database_name).await?;
+                client.make_db(&self.database_name).await?;
                 client.db(&self.database_name).await?
             }
         };
@@ -74,14 +74,13 @@ impl CouchDbExporter {
         let db = self.get_database().await?;
         
         // Convert OHLC data to documents
-        let documents: Vec<OhlcDocument> = data.iter()
+        let mut documents: Vec<OhlcDocument> = data.iter()
             .map(|ohlc| OhlcDocument::from_ohlc(ohlc, "MARKET"))
             .collect();
 
         // Bulk insert in batches
-        for chunk in documents.chunks(self.batch_size) {
-            let docs: Vec<_> = chunk.iter().map(|d| d as &dyn TypedCouchDocument).collect();
-            db.bulk_docs(&docs).await?;
+        for chunk in documents.chunks_mut(self.batch_size) {
+            db.bulk_docs(chunk).await?;
         }
 
         // Create or update design document with views
@@ -95,14 +94,13 @@ impl CouchDbExporter {
         let db = self.get_database().await?;
         
         // Convert tick data to documents
-        let documents: Vec<TickDocument> = data.iter()
+        let mut documents: Vec<TickDocument> = data.iter()
             .map(|tick| TickDocument::from_tick(tick, "MARKET"))
             .collect();
 
         // Bulk insert in batches
-        for chunk in documents.chunks(self.batch_size) {
-            let docs: Vec<_> = chunk.iter().map(|d| d as &dyn TypedCouchDocument).collect();
-            db.bulk_docs(&docs).await?;
+        for chunk in documents.chunks_mut(self.batch_size) {
+            db.bulk_docs(chunk).await?;
         }
 
         // Create or update design document with views
@@ -135,17 +133,18 @@ impl CouchDbExporter {
         });
 
         // Try to update or create the design document
-        match db.save(design_doc.clone()).await {
+        let mut doc = design_doc.clone();
+        match db.save(&mut doc).await {
             Ok(_) => Ok(()),
             Err(_) => {
                 // If save fails, try to update existing document
-                match db.get("_design/market_data").await {
+                match db.get::<serde_json::Value>("_design/market_data").await {
                     Ok(mut existing) => {
                         existing["views"] = design_doc["views"].clone();
-                        db.save(existing).await?;
+                        db.save(&mut existing).await?;
                         Ok(())
                     },
-                    Err(_) => Err(CouchError::new("Failed to create design document".to_string(), ""))
+                    Err(e) => Err(e)
                 }
             }
         }
@@ -197,26 +196,29 @@ impl OhlcDocument {
             high: ohlc.high,
             low: ohlc.low,
             close: ohlc.close,
-            volume: ohlc.volume,
+            volume: ohlc.volume.as_f64(),
         }
     }
 }
 
 impl TypedCouchDocument for OhlcDocument {
-    fn get_id(&self) -> String {
-        self.id.clone()
+    fn get_id(&self) -> Cow<'_, str> {
+        Cow::Borrowed(&self.id)
     }
 
-    fn get_rev(&self) -> Option<String> {
-        self.rev.clone()
+    fn get_rev(&self) -> Cow<'_, str> {
+        match &self.rev {
+            Some(rev) => Cow::Borrowed(rev),
+            None => Cow::Borrowed(""),
+        }
     }
 
-    fn set_id(&mut self, id: String) {
-        self.id = id;
+    fn set_id(&mut self, id: &str) {
+        self.id = id.to_string();
     }
 
-    fn set_rev(&mut self, rev: String) {
-        self.rev = Some(rev);
+    fn set_rev(&mut self, rev: &str) {
+        self.rev = Some(rev.to_string());
     }
 
     fn merge_ids(&mut self, other: &Self) {
@@ -251,28 +253,31 @@ impl TickDocument {
             symbol: symbol.to_string(),
             timestamp: tick.timestamp,
             price: tick.price,
-            bid: tick.bid,
-            ask: tick.ask,
-            volume: tick.volume,
+            bid: tick.bid.unwrap_or(tick.price),
+            ask: tick.ask.unwrap_or(tick.price),
+            volume: tick.volume.as_f64(),
         }
     }
 }
 
 impl TypedCouchDocument for TickDocument {
-    fn get_id(&self) -> String {
-        self.id.clone()
+    fn get_id(&self) -> Cow<'_, str> {
+        Cow::Borrowed(&self.id)
     }
 
-    fn get_rev(&self) -> Option<String> {
-        self.rev.clone()
+    fn get_rev(&self) -> Cow<'_, str> {
+        match &self.rev {
+            Some(rev) => Cow::Borrowed(rev),
+            None => Cow::Borrowed(""),
+        }
     }
 
-    fn set_id(&mut self, id: String) {
-        self.id = id;
+    fn set_id(&mut self, id: &str) {
+        self.id = id.to_string();
     }
 
-    fn set_rev(&mut self, rev: String) {
-        self.rev = Some(rev);
+    fn set_rev(&mut self, rev: &str) {
+        self.rev = Some(rev.to_string());
     }
 
     fn merge_ids(&mut self, other: &Self) {
@@ -364,13 +369,14 @@ mod tests {
 
     #[test]
     fn test_ohlc_document_from_ohlc() {
+        use crate::types::Volume;
         let ohlc = OHLC {
             timestamp: 1234567890,
             open: 100.0,
             high: 110.0,
             low: 95.0,
             close: 105.0,
-            volume: 1000.0,
+            volume: Volume::new(1000),
         };
         
         let doc = OhlcDocument::from_ohlc(&ohlc, "TEST");
@@ -386,12 +392,13 @@ mod tests {
 
     #[test]
     fn test_tick_document_from_tick() {
+        use crate::types::Volume;
         let tick = Tick {
             timestamp: 1234567890,
             price: 100.0,
-            bid: 99.5,
-            ask: 100.5,
-            volume: 100.0,
+            bid: Some(99.5),
+            ask: Some(100.5),
+            volume: Volume::new(100),
         };
         
         let doc = TickDocument::from_tick(&tick, "TEST");

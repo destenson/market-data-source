@@ -32,7 +32,7 @@ pub mod generator;
 pub mod types;
 
 // Export module (conditional on feature flags)
-#[cfg(any(feature = "csv_export", feature = "json_export"))]
+#[cfg(any(feature = "csv_export", feature = "json_export", feature = "couchdb"))]
 pub mod export;
 
 // Re-export main types for convenience

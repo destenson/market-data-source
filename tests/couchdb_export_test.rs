@@ -12,39 +12,45 @@ mod couchdb_export_tests {
 
     /// Generate test OHLC data
     fn generate_test_ohlc_data(count: usize) -> Vec<OHLC> {
-        let config = GeneratorConfig::default()
-            .with_symbol("TEST")
-            .with_initial_price(100.0)
-            .with_volatility(0.02)
-            .with_time_interval(TimeInterval::OneMinute)
-            .with_seed(Some(12345));
+        let config = GeneratorConfig {
+            starting_price: 100.0,
+            volatility: 0.02,
+            time_interval: TimeInterval::OneMinute,
+            seed: Some(12345),
+            ..GeneratorConfig::default()
+        };
 
-        let mut generator = MarketDataGenerator::new(config);
-        generator.generate_ohlc(count)
+        let mut generator = MarketDataGenerator::with_config(config).expect("Failed to create generator");
+        generator.generate_series(count)
     }
 
     /// Generate test tick data
     fn generate_test_tick_data(count: usize) -> Vec<Tick> {
-        let config = GeneratorConfig::default()
-            .with_symbol("TEST")
-            .with_initial_price(100.0)
-            .with_volatility(0.02)
-            .with_seed(Some(12345));
+        let config = GeneratorConfig {
+            starting_price: 100.0,
+            volatility: 0.02,
+            seed: Some(12345),
+            ..GeneratorConfig::default()
+        };
 
-        let mut generator = MarketDataGenerator::new(config);
-        generator.generate_ticks(count)
+        let mut generator = MarketDataGenerator::with_config(config).expect("Failed to create generator");
+        let mut ticks = Vec::new();
+        for _ in 0..count {
+            ticks.push(generator.generate_tick());
+        }
+        ticks
     }
 
     #[test]
     fn test_couchdb_exporter_creation() {
-        let exporter = CouchDbExporter::new("http://localhost:5984", "test_db");
+        let _exporter = CouchDbExporter::new("http://localhost:5984", "test_db");
         // Basic creation test - doesn't require actual CouchDB connection
         assert!(true, "CouchDB exporter created successfully");
     }
 
     #[test]
     fn test_couchdb_exporter_with_options() {
-        let exporter = CouchDbExporter::new("http://localhost:5984", "test_db")
+        let _exporter = CouchDbExporter::new("http://localhost:5984", "test_db")
             .with_auth("admin", "password")
             .with_batch_size(500);
         // Options test - doesn't require actual CouchDB connection
