@@ -2,3 +2,8 @@
 target/
 **/.env
 **/*.local.*
+**/*.png
+**/*.svg
+**/*.csv
+**/*.json
+
