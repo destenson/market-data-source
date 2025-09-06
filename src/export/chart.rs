@@ -8,6 +8,23 @@ use plotters::prelude::*;
 use std::error::Error;
 use std::path::Path;
 
+/// Trait for converting various color formats to RGBColor
+pub trait ToRgbColor {
+    fn to_rgb(self) -> RGBColor;
+}
+
+impl ToRgbColor for RGBColor {
+    fn to_rgb(self) -> RGBColor {
+        self
+    }
+}
+
+impl ToRgbColor for (u8, u8, u8) {
+    fn to_rgb(self) -> RGBColor {
+        RGBColor(self.0, self.1, self.2)
+    }
+}
+
 /// Chart builder for configuring and generating market data charts
 #[derive(Debug, Clone)]
 pub struct ChartBuilder {
@@ -75,34 +92,61 @@ impl ChartBuilder {
         self
     }
 
+    /// Set chart width
+    pub fn width(mut self, width: u32) -> Self {
+        self.width = width;
+        self
+    }
+
+    /// Set chart height
+    pub fn height(mut self, height: u32) -> Self {
+        self.height = height;
+        self
+    }
+
     /// Set chart title
     pub fn title(mut self, title: impl Into<String>) -> Self {
         self.title = title.into();
         self
     }
 
-    /// Set background color
-    pub fn background_color(mut self, color: impl Into<RGBColor>) -> Self {
-        self.background_color = color.into();
+    /// Set background color (accepts RGBColor or (u8, u8, u8) tuple)
+    pub fn background_color<C>(mut self, color: C) -> Self 
+    where 
+        C: ToRgbColor
+    {
+        self.background_color = color.to_rgb();
         self
     }
 
     /// Set grid color
-    pub fn grid_color(mut self, color: impl Into<RGBColor>) -> Self {
-        self.grid_color = color.into();
+    pub fn grid_color<C: ToRgbColor>(mut self, color: C) -> Self {
+        self.grid_color = color.to_rgb();
         self
     }
 
     /// Set SMA color
-    pub fn sma_color(mut self, color: impl Into<RGBColor>) -> Self {
-        self.ma_color = color.into();
+    pub fn sma_color<C: ToRgbColor>(mut self, color: C) -> Self {
+        self.ma_color = color.to_rgb();
+        self
+    }
+
+    /// Set text color
+    pub fn text_color<C: ToRgbColor>(mut self, color: C) -> Self {
+        self.text_color = color.to_rgb();
+        self
+    }
+
+    /// Set line color (alias for ma_color for tick charts)
+    pub fn line_color<C: ToRgbColor>(mut self, color: C) -> Self {
+        self.ma_color = color.to_rgb();
         self
     }
 
     /// Set candlestick colors
-    pub fn candlestick_colors(mut self, bullish: impl Into<RGBColor>, bearish: impl Into<RGBColor>) -> Self {
-        self.bullish_color = bullish.into();
-        self.bearish_color = bearish.into();
+    pub fn candlestick_colors<B: ToRgbColor, R: ToRgbColor>(mut self, bullish: B, bearish: R) -> Self {
+        self.bullish_color = bullish.to_rgb();
+        self.bearish_color = bearish.to_rgb();
         self
     }
 
