@@ -11,7 +11,10 @@ Another key feature is realistic data generation, enabling users to simulate mar
 - Configurable synthetic market data generation
 - Support for OHLC candles and tick data
 - Random walk with drift algorithm
-- CSV export functionality for data analysis
+- Multiple export formats:
+  - CSV export for data analysis
+  - JSON and JSON Lines export
+  - CouchDB integration for NoSQL storage
 - Deterministic generation with seed support
 - Streaming generation for large datasets
 - Extensible architecture for adding new algorithms
@@ -22,7 +25,7 @@ To use Market Data Source in your Rust project, add the following dependency to 
 
 ```toml
 [dependencies]
-market-data-source = { version = "0.1.0", features = ["csv_export", "serde"] }
+market-data-source = { version = "0.1.0", features = ["csv_export", "json_export", "couchdb", "serde"] }
 ```
 
 ## Usage
@@ -56,33 +59,87 @@ fn main() {
 }
 ```
 
-### CSV Export
+### Data Export
+
+Market Data Source supports multiple export formats for different use cases:
+
+#### CSV Export
 
 Export generated data to CSV files for analysis in Excel, pandas, or other tools:
 
 ```rust
-use market_data_source::{MarketDataGenerator, ConfigBuilder};
+use market_data_source::{MarketDataGenerator, GeneratorConfig, export::CsvExporter, export::DataExporter};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = ConfigBuilder::new()
-        .starting_price(100.0)
-        .volatility(0.02)
-        .seed(42)
-        .build()?;
+    let config = GeneratorConfig::default()
+        .with_initial_price(100.0)
+        .with_volatility(0.02);
     
-    let mut generator = MarketDataGenerator::with_config(config)?;
+    let mut generator = MarketDataGenerator::new(config);
+    let ohlc_data = generator.generate_ohlc(100);
     
-    // Generate and export OHLC data to CSV
-    generator.generate_to_csv_ohlc(100, "market_data.csv")?;
-    
-    // For large datasets, use streaming to save memory
-    generator.stream_generate_to_csv_ohlc(10000, "large_dataset.csv")?;
-    
-    // Export tick data
-    generator.generate_to_csv_ticks(1000, "tick_data.csv")?;
+    // Export OHLC data to CSV
+    let csv_exporter = CsvExporter::default();
+    csv_exporter.export_ohlc(&ohlc_data, "market_data.csv")?;
     
     Ok(())
 }
+```
+
+#### JSON Export
+
+Export data in JSON or JSON Lines format:
+
+```rust
+use market_data_source::{export::JsonExporter, export::JsonOptions, export::DataExporter};
+
+// Standard JSON format
+let json_exporter = JsonExporter::default();
+json_exporter.export_ohlc(&ohlc_data, "market_data.json")?;
+
+// JSON Lines format (one JSON object per line)
+let jsonl_exporter = JsonExporter::with_options(JsonOptions::json_lines());
+jsonl_exporter.export_ohlc(&ohlc_data, "market_data.jsonl")?;
+```
+
+#### CouchDB Export
+
+Export data directly to CouchDB for NoSQL storage and replication:
+
+```rust
+use market_data_source::{export::CouchDbExporter, export::DataExporter};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut generator = MarketDataGenerator::default();
+    let ohlc_data = generator.generate_ohlc(100);
+    
+    // Create CouchDB exporter
+    let couchdb_exporter = CouchDbExporter::new("http://localhost:5984", "market_data")
+        .with_auth("admin", "password")  // Optional authentication
+        .with_batch_size(500);           // Configure batch size for bulk operations
+    
+    // Export to CouchDB
+    couchdb_exporter.export_ohlc(&ohlc_data, "")?;
+    
+    // The data is now stored in CouchDB with views for querying:
+    // - by_timestamp: Query data by timestamp
+    // - by_symbol_and_timestamp: Query by symbol and timestamp
+    // - ohlc_by_date_range: Query OHLC data within a date range
+    // - ticks_by_date_range: Query tick data within a date range
+    
+    Ok(())
+}
+```
+
+For convenience, you can also use the helper functions:
+
+```rust
+use market_data_source::export::{to_csv_ohlc, to_json_ohlc, to_couchdb_ohlc};
+
+// Quick export to different formats
+to_csv_ohlc(&ohlc_data, "data.csv")?;
+to_json_ohlc(&ohlc_data, "data.json")?;
+to_couchdb_ohlc(&ohlc_data, "http://localhost:5984", "market_db")?;
 ```
 
 ## Current Status
@@ -93,7 +150,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 - Market data generator with configurable parameters
 - Random walk with drift algorithm
 - Builder pattern for configuration
-- CSV export functionality with streaming support
+- Multiple export formats:
+  - CSV export functionality with streaming support
+  - JSON and JSON Lines export
+  - CouchDB integration with bulk operations and views
 - Serde serialization support
 - 45+ tests passing (unit tests + integration tests)
 - Working examples
