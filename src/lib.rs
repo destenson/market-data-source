@@ -1,51 +1,51 @@
 //! # Market Data Source
 //!
 //! A Rust library for generating realistic synthetic market data with unparalleled configurability.
-//!
+//! 
 //! ## Features
-//!
-//! - Configurable price generation with trend and volatility control
-//! - Multiple time intervals (1min, 5min, 1hr, daily, etc.)
-//! - OHLC (Open, High, Low, Close) candle generation
+//! 
+//! - Configurable market data generation with statistical controls
+//! - Support for OHLC candles and tick data
+//! - Random walk with drift algorithm
+//! - Builder pattern for easy configuration
 //! - Deterministic generation with seed support
-//! - Statistical validation of generated data
 //!
 //! ## Quick Start
 //!
-//! ```rust,no_run
+//! ```no_run
 //! use market_data_source::{MarketDataGenerator, GeneratorConfig};
 //!
-//! // Create a generator with default configuration
+//! // Create a generator with default config
 //! let mut generator = MarketDataGenerator::new();
-//!
+//! 
 //! // Generate a series of OHLC candles
 //! let candles = generator.generate_series(100);
-//!
+//! 
 //! for candle in &candles[..5] {
 //!     println!("{:?}", candle);
 //! }
 //! ```
 
-pub mod types;
+// Public modules
 pub mod config;
 pub mod generator;
-pub mod algorithms;
+pub mod types;
 
 // Re-export main types for convenience
-pub use types::{OHLC, Tick, TimeInterval, Volume};
 pub use config::{GeneratorConfig, ConfigBuilder, TrendDirection};
 pub use generator::MarketDataGenerator;
+pub use types::{OHLC, Tick, TimeInterval, Volume};
 
-/// Library version
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+// Module for algorithms (internal for now)
+mod algorithms;
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_library_exports() {
-        // Verify that main types are accessible
-        let _ = VERSION;
+    fn library_imports_work() {
+        // Basic smoke test that library structure works
+        let _config = GeneratorConfig::default();
     }
 }

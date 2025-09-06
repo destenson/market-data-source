@@ -1,5 +1,5 @@
-//! Algorithms for generating market data.
+//! Market data generation algorithms
 
 pub mod random_walk;
 
-pub use random_walk::{RandomWalkGenerator, generate_ohlc_from_prices};
+pub use random_walk::RandomWalkGenerator;

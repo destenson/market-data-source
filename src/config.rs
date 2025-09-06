@@ -1,56 +1,43 @@
-//! Configuration structures for market data generation.
+//! Configuration structures for market data generation
 
 use crate::types::TimeInterval;
+use std::fmt;
 
-/// Direction of the price trend.
+/// Direction of market trend
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TrendDirection {
-    /// Upward price movement
+    /// Upward trend (bullish)
     Bullish,
-    /// Downward price movement
+    /// Downward trend (bearish)
     Bearish,
-    /// No clear direction
+    /// No clear trend (sideways/ranging)
     Sideways,
-    /// Custom trend with specific drift percentage
-    Custom(f64),
 }
 
-impl TrendDirection {
-    /// Returns the drift rate for this trend direction.
-    pub fn drift_rate(&self) -> f64 {
-        match self {
-            Self::Bullish => 0.0005,    // 0.05% per period
-            Self::Bearish => -0.0005,   // -0.05% per period
-            Self::Sideways => 0.0,       // No drift
-            Self::Custom(rate) => *rate,
-        }
-    }
-}
-
-/// Configuration for market data generation.
+/// Configuration for market data generation
 #[derive(Debug, Clone)]
 pub struct GeneratorConfig {
     /// Starting price for generation
     pub starting_price: f64,
-    /// Minimum price bound (use 0.0 for no lower bound)
+    /// Minimum price boundary
     pub min_price: f64,
-    /// Maximum price bound (use f64::INFINITY for no upper bound)
+    /// Maximum price boundary
     pub max_price: f64,
-    /// Trend direction and strength
+    /// Trend direction
     pub trend_direction: TrendDirection,
-    /// Trend strength (multiplier for drift rate)
+    /// Trend strength as percentage per period (e.g., 0.01 = 1% per period)
     pub trend_strength: f64,
     /// Volatility (standard deviation of price changes)
     pub volatility: f64,
-    /// Time interval for each candle
+    /// Time interval for each data point
     pub time_interval: TimeInterval,
     /// Number of data points to generate
     pub num_points: usize,
-    /// Optional random seed for reproducibility
+    /// Random seed for reproducibility
     pub seed: Option<u64>,
-    /// Average volume per period
-    pub avg_volume: u64,
-    /// Volume volatility (standard deviation as percentage of average)
+    /// Base volume for generation
+    pub base_volume: u64,
+    /// Volume volatility (standard deviation)
     pub volume_volatility: f64,
 }
 
@@ -58,223 +45,197 @@ impl Default for GeneratorConfig {
     fn default() -> Self {
         Self {
             starting_price: 100.0,
-            min_price: 0.0,
+            min_price: 1.0,
             max_price: f64::INFINITY,
             trend_direction: TrendDirection::Sideways,
-            trend_strength: 1.0,
-            volatility: 0.02,  // 2% standard deviation
+            trend_strength: 0.0,
+            volatility: 0.02, // 2% volatility
             time_interval: TimeInterval::OneMinute,
             num_points: 100,
             seed: None,
-            avg_volume: 10000,
-            volume_volatility: 0.3,  // 30% volume variation
+            base_volume: 100000,
+            volume_volatility: 0.3, // 30% volume volatility
         }
     }
 }
 
 impl GeneratorConfig {
-    /// Creates a new configuration with default values.
+    /// Creates a new configuration with default values
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Creates a configuration builder.
+    /// Creates a builder for fluent configuration
     pub fn builder() -> ConfigBuilder {
         ConfigBuilder::new()
     }
 
-    /// Validates the configuration parameters.
-    ///
-    /// # Errors
-    /// Returns an error if any parameters are invalid.
-    pub fn validate(&self) -> Result<(), String> {
+    /// Validates the configuration
+    pub fn validate(&self) -> Result<(), ConfigError> {
         if self.starting_price <= 0.0 {
-            return Err("Starting price must be positive".to_string());
+            return Err(ConfigError::InvalidPrice("Starting price must be positive".into()));
         }
-
-        if self.min_price < 0.0 {
-            return Err("Minimum price cannot be negative".to_string());
+        if self.min_price <= 0.0 {
+            return Err(ConfigError::InvalidPrice("Minimum price must be positive".into()));
         }
-
-        if self.max_price <= self.min_price {
-            return Err("Maximum price must be greater than minimum price".to_string());
+        if self.min_price >= self.max_price {
+            return Err(ConfigError::InvalidPrice("Minimum price must be less than maximum price".into()));
         }
-
-        if self.starting_price < self.min_price || self.starting_price > self.max_price {
-            return Err("Starting price must be within min/max bounds".to_string());
-        }
-
         if self.volatility < 0.0 {
-            return Err("Volatility cannot be negative".to_string());
+            return Err(ConfigError::InvalidVolatility("Volatility must be non-negative".into()));
         }
-
-        if self.trend_strength < 0.0 {
-            return Err("Trend strength cannot be negative".to_string());
+        if self.trend_strength < -1.0 || self.trend_strength > 1.0 {
+            return Err(ConfigError::InvalidTrend("Trend strength must be between -100% and +100%".into()));
         }
-
         if self.num_points == 0 {
-            return Err("Number of points must be positive".to_string());
+            return Err(ConfigError::InvalidParameter("Number of points must be positive".into()));
         }
-
-        if self.avg_volume == 0 {
-            return Err("Average volume must be positive".to_string());
+        if self.base_volume == 0 {
+            return Err(ConfigError::InvalidParameter("Base volume must be positive".into()));
         }
-
-        if self.volume_volatility < 0.0 || self.volume_volatility > 1.0 {
-            return Err("Volume volatility must be between 0 and 1".to_string());
+        if self.volume_volatility < 0.0 {
+            return Err(ConfigError::InvalidVolatility("Volume volatility must be non-negative".into()));
         }
-
         Ok(())
-    }
-
-    /// Returns the effective drift rate combining trend direction and strength.
-    pub fn effective_drift(&self) -> f64 {
-        self.trend_direction.drift_rate() * self.trend_strength
     }
 }
 
-/// Builder for GeneratorConfig with fluent API.
+/// Builder for GeneratorConfig with fluent API
 pub struct ConfigBuilder {
     config: GeneratorConfig,
 }
 
 impl ConfigBuilder {
-    /// Creates a new configuration builder with default values.
+    /// Creates a new builder with default configuration
     pub fn new() -> Self {
         Self {
             config: GeneratorConfig::default(),
         }
     }
 
-    /// Sets the starting price.
+    /// Sets the starting price
     pub fn starting_price(mut self, price: f64) -> Self {
         self.config.starting_price = price;
         self
     }
 
-    /// Sets the minimum price bound.
-    pub fn min_price(mut self, price: f64) -> Self {
-        self.config.min_price = price;
-        self
-    }
-
-    /// Sets the maximum price bound.
-    pub fn max_price(mut self, price: f64) -> Self {
-        self.config.max_price = price;
-        self
-    }
-
-    /// Sets the price bounds.
-    pub fn price_bounds(mut self, min: f64, max: f64) -> Self {
+    /// Sets the price boundaries
+    pub fn price_range(mut self, min: f64, max: f64) -> Self {
         self.config.min_price = min;
         self.config.max_price = max;
         self
     }
 
-    /// Sets the trend direction.
-    pub fn trend_direction(mut self, direction: TrendDirection) -> Self {
+    /// Sets the trend direction and strength
+    pub fn trend(mut self, direction: TrendDirection, strength: f64) -> Self {
         self.config.trend_direction = direction;
-        self
-    }
-
-    /// Sets the trend strength multiplier.
-    pub fn trend_strength(mut self, strength: f64) -> Self {
         self.config.trend_strength = strength;
         self
     }
 
-    /// Sets the volatility (standard deviation).
+    /// Sets the volatility
     pub fn volatility(mut self, volatility: f64) -> Self {
         self.config.volatility = volatility;
         self
     }
 
-    /// Sets the time interval for candles.
+    /// Sets the time interval
     pub fn time_interval(mut self, interval: TimeInterval) -> Self {
         self.config.time_interval = interval;
         self
     }
 
-    /// Sets the number of points to generate.
-    pub fn num_points(mut self, count: usize) -> Self {
-        self.config.num_points = count;
+    /// Sets the number of points to generate
+    pub fn num_points(mut self, num: usize) -> Self {
+        self.config.num_points = num;
         self
     }
 
-    /// Sets the random seed for reproducibility.
+    /// Sets the random seed for reproducibility
     pub fn seed(mut self, seed: u64) -> Self {
         self.config.seed = Some(seed);
         self
     }
 
-    /// Sets the average volume per period.
-    pub fn avg_volume(mut self, volume: u64) -> Self {
-        self.config.avg_volume = volume;
+    /// Sets the base volume
+    pub fn base_volume(mut self, volume: u64) -> Self {
+        self.config.base_volume = volume;
         self
     }
 
-    /// Sets the volume volatility.
+    /// Sets the volume volatility
     pub fn volume_volatility(mut self, volatility: f64) -> Self {
         self.config.volume_volatility = volatility;
         self
     }
 
-    /// Builds the configuration, validating all parameters.
-    ///
-    /// # Panics
-    /// Panics if validation fails. Use `try_build()` for non-panicking version.
-    pub fn build(self) -> GeneratorConfig {
-        self.config.validate().expect("Invalid configuration");
-        self.config
-    }
-
-    /// Attempts to build the configuration, returning an error if validation fails.
-    pub fn try_build(self) -> Result<GeneratorConfig, String> {
+    /// Builds the configuration, validating all parameters
+    pub fn build(self) -> Result<GeneratorConfig, ConfigError> {
         self.config.validate()?;
         Ok(self.config)
     }
 }
 
-impl Default for ConfigBuilder {
-    fn default() -> Self {
-        Self::new()
+/// Error type for configuration validation
+#[derive(Debug, Clone)]
+pub enum ConfigError {
+    InvalidPrice(String),
+    InvalidVolatility(String),
+    InvalidTrend(String),
+    InvalidParameter(String),
+}
+
+impl fmt::Display for ConfigError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ConfigError::InvalidPrice(msg) => write!(f, "Invalid price configuration: {}", msg),
+            ConfigError::InvalidVolatility(msg) => write!(f, "Invalid volatility configuration: {}", msg),
+            ConfigError::InvalidTrend(msg) => write!(f, "Invalid trend configuration: {}", msg),
+            ConfigError::InvalidParameter(msg) => write!(f, "Invalid parameter: {}", msg),
+        }
     }
 }
 
-/// Preset configurations for common scenarios.
+impl std::error::Error for ConfigError {}
+
+/// Preset configurations for common scenarios
 impl GeneratorConfig {
-    /// Creates a configuration for volatile market conditions.
+    /// Creates a configuration for a volatile market
     pub fn volatile() -> Self {
-        Self::builder()
-            .volatility(0.05)  // 5% volatility
-            .volume_volatility(0.5)
-            .build()
+        Self {
+            volatility: 0.05, // 5% volatility
+            volume_volatility: 0.5, // 50% volume volatility
+            ..Self::default()
+        }
     }
 
-    /// Creates a configuration for stable market conditions.
+    /// Creates a configuration for a stable market
     pub fn stable() -> Self {
-        Self::builder()
-            .volatility(0.005)  // 0.5% volatility
-            .volume_volatility(0.1)
-            .build()
+        Self {
+            volatility: 0.005, // 0.5% volatility
+            volume_volatility: 0.1, // 10% volume volatility
+            ..Self::default()
+        }
     }
 
-    /// Creates a configuration for a strong uptrend.
+    /// Creates a configuration for a trending bull market
     pub fn bull_market() -> Self {
-        Self::builder()
-            .trend_direction(TrendDirection::Bullish)
-            .trend_strength(2.0)
-            .volatility(0.015)
-            .build()
+        Self {
+            trend_direction: TrendDirection::Bullish,
+            trend_strength: 0.002, // 0.2% per period
+            volatility: 0.02,
+            ..Self::default()
+        }
     }
 
-    /// Creates a configuration for a strong downtrend.
+    /// Creates a configuration for a trending bear market
     pub fn bear_market() -> Self {
-        Self::builder()
-            .trend_direction(TrendDirection::Bearish)
-            .trend_strength(2.0)
-            .volatility(0.02)
-            .build()
+        Self {
+            trend_direction: TrendDirection::Bearish,
+            trend_strength: 0.002, // 0.2% per period
+            volatility: 0.03, // Slightly higher volatility in bear markets
+            ..Self::default()
+        }
     }
 }
 
@@ -286,7 +247,8 @@ mod tests {
     fn test_default_config() {
         let config = GeneratorConfig::default();
         assert_eq!(config.starting_price, 100.0);
-        assert_eq!(config.volatility, 0.02);
+        assert_eq!(config.min_price, 1.0);
+        assert_eq!(config.trend_direction, TrendDirection::Sideways);
         assert!(config.validate().is_ok());
     }
 
@@ -294,70 +256,69 @@ mod tests {
     fn test_config_builder() {
         let config = GeneratorConfig::builder()
             .starting_price(50.0)
+            .price_range(10.0, 200.0)
+            .trend(TrendDirection::Bullish, 0.01)
             .volatility(0.03)
-            .trend_direction(TrendDirection::Bullish)
+            .num_points(500)
             .seed(42)
-            .build();
+            .build()
+            .unwrap();
 
         assert_eq!(config.starting_price, 50.0);
-        assert_eq!(config.volatility, 0.03);
+        assert_eq!(config.min_price, 10.0);
+        assert_eq!(config.max_price, 200.0);
         assert_eq!(config.trend_direction, TrendDirection::Bullish);
+        assert_eq!(config.trend_strength, 0.01);
+        assert_eq!(config.volatility, 0.03);
+        assert_eq!(config.num_points, 500);
         assert_eq!(config.seed, Some(42));
     }
 
     #[test]
     fn test_config_validation() {
         // Invalid starting price
-        let result = GeneratorConfig::builder()
-            .starting_price(-10.0)
-            .try_build();
-        assert!(result.is_err());
+        let mut config = GeneratorConfig::default();
+        config.starting_price = -10.0;
+        assert!(config.validate().is_err());
 
-        // Invalid price bounds
-        let result = GeneratorConfig::builder()
-            .min_price(100.0)
-            .max_price(50.0)
-            .try_build();
-        assert!(result.is_err());
+        // Invalid price range
+        config = GeneratorConfig::default();
+        config.min_price = 100.0;
+        config.max_price = 50.0;
+        assert!(config.validate().is_err());
 
         // Invalid volatility
-        let result = GeneratorConfig::builder()
-            .volatility(-0.1)
-            .try_build();
-        assert!(result.is_err());
-    }
+        config = GeneratorConfig::default();
+        config.volatility = -0.1;
+        assert!(config.validate().is_err());
 
-    #[test]
-    fn test_trend_direction() {
-        assert_eq!(TrendDirection::Bullish.drift_rate(), 0.0005);
-        assert_eq!(TrendDirection::Bearish.drift_rate(), -0.0005);
-        assert_eq!(TrendDirection::Sideways.drift_rate(), 0.0);
-        assert_eq!(TrendDirection::Custom(0.001).drift_rate(), 0.001);
+        // Invalid trend strength
+        config = GeneratorConfig::default();
+        config.trend_strength = 1.5;
+        assert!(config.validate().is_err());
+
+        // Zero points
+        config = GeneratorConfig::default();
+        config.num_points = 0;
+        assert!(config.validate().is_err());
     }
 
     #[test]
     fn test_preset_configs() {
         let volatile = GeneratorConfig::volatile();
         assert_eq!(volatile.volatility, 0.05);
+        assert!(volatile.validate().is_ok());
 
         let stable = GeneratorConfig::stable();
         assert_eq!(stable.volatility, 0.005);
+        assert!(stable.validate().is_ok());
 
         let bull = GeneratorConfig::bull_market();
         assert_eq!(bull.trend_direction, TrendDirection::Bullish);
-        assert_eq!(bull.trend_strength, 2.0);
+        assert!(bull.validate().is_ok());
 
         let bear = GeneratorConfig::bear_market();
         assert_eq!(bear.trend_direction, TrendDirection::Bearish);
-    }
-
-    #[test]
-    fn test_effective_drift() {
-        let config = GeneratorConfig::builder()
-            .trend_direction(TrendDirection::Bullish)
-            .trend_strength(3.0)
-            .build();
-        
-        assert_eq!(config.effective_drift(), 0.0015); // 0.0005 * 3.0
+        assert!(bear.validate().is_ok());
     }
 }

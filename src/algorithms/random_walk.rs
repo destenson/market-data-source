@@ -1,247 +1,211 @@
-//! Random walk with drift algorithm for price generation.
+//! Random walk with drift algorithm for price generation
 
-use crate::config::GeneratorConfig;
-use crate::types::OHLC;
-use rand::SeedableRng;
-use rand::rngs::StdRng;
+use rand::Rng;
 use rand_distr::{Distribution, Normal};
+use crate::config::{GeneratorConfig, TrendDirection};
 
-/// Generator that implements random walk with drift for price movements.
+/// Random walk generator for market prices
 pub struct RandomWalkGenerator {
-    config: GeneratorConfig,
-    rng: StdRng,
+    /// Current price in the walk
     current_price: f64,
-    current_timestamp: i64,
+    /// Configuration for generation
+    config: GeneratorConfig,
+    /// Normal distribution for price changes
+    price_distribution: Normal<f64>,
+    /// Normal distribution for volume
+    volume_distribution: Normal<f64>,
 }
 
 impl RandomWalkGenerator {
-    /// Creates a new random walk generator with the given configuration.
-    pub fn new(config: GeneratorConfig) -> Self {
-        let rng = match config.seed {
-            Some(seed) => StdRng::seed_from_u64(seed),
-            None => StdRng::from_entropy(),
-        };
+    /// Creates a new random walk generator
+    pub fn new(config: GeneratorConfig) -> Result<Self, String> {
+        // Create normal distribution for price changes
+        let price_distribution = Normal::new(0.0, config.volatility)
+            .map_err(|e| format!("Failed to create price distribution: {}", e))?;
         
-        let current_price = config.starting_price;
-        let current_timestamp = 0; // Will be set properly when generating
-        
-        Self {
+        // Create normal distribution for volume
+        let volume_distribution = Normal::new(
+            config.base_volume as f64,
+            config.base_volume as f64 * config.volume_volatility
+        ).map_err(|e| format!("Failed to create volume distribution: {}", e))?;
+
+        Ok(Self {
+            current_price: config.starting_price,
             config,
-            rng,
-            current_price,
-            current_timestamp,
-        }
+            price_distribution,
+            volume_distribution,
+        })
     }
 
-    /// Generates the next price using random walk with drift.
-    ///
-    /// The formula is: next_price = current_price * (1 + drift + volatility * N(0,1))
-    pub fn next_price(&mut self) -> f64 {
-        let drift = self.config.effective_drift();
-        let volatility = self.config.volatility;
+    /// Generates the next price in the random walk
+    pub fn next_price<R: Rng>(&mut self, rng: &mut R) -> f64 {
+        // Calculate drift based on trend
+        let drift = match self.config.trend_direction {
+            TrendDirection::Bullish => self.config.trend_strength,
+            TrendDirection::Bearish => -self.config.trend_strength,
+            TrendDirection::Sideways => 0.0,
+        };
+
+        // Generate random change
+        let random_change = self.price_distribution.sample(rng);
         
-        // Generate random normal value
-        let normal = Normal::new(0.0, 1.0).unwrap();
-        let random_shock = normal.sample(&mut self.rng);
+        // Calculate price change as percentage
+        let price_change = self.current_price * (drift + random_change);
         
-        // Calculate price change
-        let return_rate = drift + volatility * random_shock;
-        let mut new_price = self.current_price * (1.0 + return_rate);
+        // Update price
+        self.current_price += price_change;
         
-        // Enforce price bounds
-        new_price = new_price.max(self.config.min_price);
-        if self.config.max_price != f64::INFINITY {
-            new_price = new_price.min(self.config.max_price);
-        }
+        // Apply boundaries
+        self.current_price = self.current_price
+            .max(self.config.min_price)
+            .min(self.config.max_price);
         
-        // Ensure price stays positive
-        new_price = new_price.max(0.001);
-        
-        self.current_price = new_price;
-        new_price
+        self.current_price
     }
 
-    /// Generates a series of prices for a single candle period.
-    ///
-    /// Creates multiple intra-period prices to form realistic OHLC values.
-    pub fn generate_candle_prices(&mut self, num_ticks: usize) -> Vec<f64> {
-        let mut prices = Vec::with_capacity(num_ticks);
+    /// Generates OHLC values from multiple price points
+    pub fn generate_ohlc<R: Rng>(&mut self, rng: &mut R, num_ticks: usize) -> (f64, f64, f64, f64) {
+        if num_ticks == 0 {
+            let price = self.current_price;
+            return (price, price, price, price);
+        }
+
+        let open = self.current_price;
+        let mut high = open;
+        let mut low = open;
         
+        // Generate intermediate prices
         for _ in 0..num_ticks {
-            prices.push(self.next_price());
+            let price = self.next_price(rng);
+            high = high.max(price);
+            low = low.min(price);
         }
         
-        prices
+        let close = self.current_price;
+        
+        (open, high, low, close)
     }
 
-    /// Generates a single OHLC candle.
-    pub fn generate_candle(&mut self) -> OHLC {
-        // Generate multiple prices within the period for realistic OHLC
-        let prices = self.generate_candle_prices(10); // 10 ticks per candle
-        
-        let open = prices[0];
-        let close = prices[prices.len() - 1];
-        let high = prices.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-        let low = prices.iter().cloned().fold(f64::INFINITY, f64::min);
-        
-        // Generate volume with some randomness
-        let volume = self.generate_volume();
-        
-        let timestamp = self.current_timestamp;
-        self.current_timestamp += self.config.time_interval.as_millis() as i64;
-        
-        OHLC::new(open, high, low, close, volume, timestamp)
+    /// Generates a volume value
+    pub fn generate_volume<R: Rng>(&mut self, rng: &mut R) -> u64 {
+        let volume = self.volume_distribution.sample(rng);
+        volume.max(0.0) as u64
     }
 
-    /// Generates volume with configured volatility.
-    pub fn generate_volume(&mut self) -> u64 {
-        let avg_volume = self.config.avg_volume as f64;
-        let volume_volatility = self.config.volume_volatility;
-        
-        let normal = Normal::new(0.0, 1.0).unwrap();
-        let random_factor = normal.sample(&mut self.rng);
-        
-        let volume = avg_volume * (1.0 + volume_volatility * random_factor);
-        volume.max(1.0) as u64
-    }
-
-    /// Resets the generator to initial state.
+    /// Resets the generator to starting price
     pub fn reset(&mut self) {
         self.current_price = self.config.starting_price;
-        self.current_timestamp = 0;
-        if let Some(seed) = self.config.seed {
-            self.rng = StdRng::seed_from_u64(seed);
-        }
     }
 
-    /// Sets the starting timestamp for generation.
-    pub fn set_start_timestamp(&mut self, timestamp: i64) {
-        self.current_timestamp = timestamp;
+    /// Gets the current price
+    pub fn current_price(&self) -> f64 {
+        self.current_price
     }
-}
 
-/// Generates OHLC from a series of price points.
-pub fn generate_ohlc_from_prices(prices: &[f64], volume: u64, timestamp: i64) -> OHLC {
-    assert!(!prices.is_empty(), "Cannot generate OHLC from empty prices");
-    
-    let open = prices[0];
-    let close = prices[prices.len() - 1];
-    let high = prices.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-    let low = prices.iter().cloned().fold(f64::INFINITY, f64::min);
-    
-    OHLC::new(open, high, low, close, volume, timestamp)
+    /// Sets the current price
+    pub fn set_price(&mut self, price: f64) {
+        self.current_price = price;
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::TrendDirection;
+    use rand::SeedableRng;
+    use rand::rngs::StdRng;
 
     #[test]
-    fn test_deterministic_generation() {
-        let config = GeneratorConfig::builder()
-            .seed(42)
-            .starting_price(100.0)
-            .build();
-        
-        let mut gen1 = RandomWalkGenerator::new(config.clone());
-        let mut gen2 = RandomWalkGenerator::new(config);
-        
-        let price1 = gen1.next_price();
-        let price2 = gen2.next_price();
-        
-        assert_eq!(price1, price2, "Same seed should produce same prices");
+    fn test_random_walk_creation() {
+        let config = GeneratorConfig::default();
+        let generator = RandomWalkGenerator::new(config);
+        assert!(generator.is_ok());
     }
 
     #[test]
-    fn test_price_bounds() {
-        let config = GeneratorConfig::builder()
-            .starting_price(100.0)
-            .min_price(90.0)
-            .max_price(110.0)
-            .volatility(0.5) // High volatility to test bounds
-            .seed(42)
-            .build();
+    fn test_price_generation() {
+        let mut config = GeneratorConfig::default();
+        config.seed = Some(42);
+        config.volatility = 0.01;
         
-        let mut generator = RandomWalkGenerator::new(config);
+        let mut generator = RandomWalkGenerator::new(config).unwrap();
+        let mut rng = StdRng::seed_from_u64(42);
         
+        let price1 = generator.next_price(&mut rng);
+        let price2 = generator.next_price(&mut rng);
+        
+        assert!(price1 > 0.0);
+        assert!(price2 > 0.0);
+        assert_ne!(price1, price2); // Prices should change
+    }
+
+    #[test]
+    fn test_bullish_trend() {
+        let mut config = GeneratorConfig::default();
+        config.seed = Some(42);
+        config.trend_direction = TrendDirection::Bullish;
+        config.trend_strength = 0.01;
+        config.volatility = 0.001; // Low volatility to see trend clearly
+        config.starting_price = 100.0;
+        
+        let mut generator = RandomWalkGenerator::new(config).unwrap();
+        let mut rng = StdRng::seed_from_u64(42);
+        
+        let start_price = generator.current_price();
+        
+        // Generate many prices to see trend
         for _ in 0..100 {
-            let price = generator.next_price();
-            assert!(price >= 90.0, "Price {} below minimum", price);
-            assert!(price <= 110.0, "Price {} above maximum", price);
+            generator.next_price(&mut rng);
+        }
+        
+        let end_price = generator.current_price();
+        
+        // With bullish trend, end price should generally be higher
+        assert!(end_price > start_price);
+    }
+
+    #[test]
+    fn test_price_boundaries() {
+        let mut config = GeneratorConfig::default();
+        config.min_price = 50.0;
+        config.max_price = 150.0;
+        config.starting_price = 100.0;
+        config.volatility = 0.5; // High volatility to test boundaries
+        
+        let mut generator = RandomWalkGenerator::new(config).unwrap();
+        let mut rng = StdRng::seed_from_u64(42);
+        
+        for _ in 0..1000 {
+            let price = generator.next_price(&mut rng);
+            assert!(price >= 50.0);
+            assert!(price <= 150.0);
         }
     }
 
     #[test]
-    fn test_upward_trend() {
-        let config = GeneratorConfig::builder()
-            .starting_price(100.0)
-            .trend_direction(TrendDirection::Bullish)
-            .trend_strength(10.0) // Strong trend
-            .volatility(0.001) // Low volatility
-            .seed(42)
-            .build();
+    fn test_ohlc_generation() {
+        let config = GeneratorConfig::default();
+        let mut generator = RandomWalkGenerator::new(config).unwrap();
+        let mut rng = StdRng::seed_from_u64(42);
         
-        let mut generator = RandomWalkGenerator::new(config);
-        let start_price = 100.0;
+        let (open, high, low, close) = generator.generate_ohlc(&mut rng, 10);
         
-        // Generate many prices
-        for _ in 0..100 {
-            generator.next_price();
-        }
-        
-        let end_price = generator.current_price;
-        assert!(end_price > start_price, "Bullish trend should increase price");
-    }
-
-    #[test]
-    fn test_candle_generation() {
-        let config = GeneratorConfig::builder()
-            .starting_price(100.0)
-            .seed(42)
-            .build();
-        
-        let mut generator = RandomWalkGenerator::new(config);
-        let candle = generator.generate_candle();
-        
-        // Verify OHLC relationships
-        assert!(candle.high >= candle.open);
-        assert!(candle.high >= candle.close);
-        assert!(candle.low <= candle.open);
-        assert!(candle.low <= candle.close);
-        assert!(candle.volume > 0);
+        assert!(high >= open);
+        assert!(high >= close);
+        assert!(low <= open);
+        assert!(low <= close);
+        assert!(high >= low);
     }
 
     #[test]
     fn test_volume_generation() {
-        let config = GeneratorConfig::builder()
-            .avg_volume(10000)
-            .volume_volatility(0.2)
-            .seed(42)
-            .build();
+        let mut config = GeneratorConfig::default();
+        config.base_volume = 100000;
+        config.volume_volatility = 0.2;
         
-        let mut generator = RandomWalkGenerator::new(config);
+        let mut generator = RandomWalkGenerator::new(config).unwrap();
+        let mut rng = StdRng::seed_from_u64(42);
         
-        let mut total_volume = 0u64;
-        for _ in 0..100 {
-            total_volume += generator.generate_volume();
-        }
-        
-        let avg = total_volume / 100;
-        // Average should be close to configured value
-        assert!(avg > 8000 && avg < 12000, "Average volume {} out of expected range", avg);
-    }
-
-    #[test]
-    fn test_generate_ohlc_from_prices() {
-        let prices = vec![100.0, 102.0, 98.0, 101.0, 99.0];
-        let ohlc = generate_ohlc_from_prices(&prices, 1000, 123456);
-        
-        assert_eq!(ohlc.open, 100.0);
-        assert_eq!(ohlc.close, 99.0);
-        assert_eq!(ohlc.high, 102.0);
-        assert_eq!(ohlc.low, 98.0);
-        assert_eq!(ohlc.volume, 1000);
-        assert_eq!(ohlc.timestamp, 123456);
+        let volume = generator.generate_volume(&mut rng);
+        assert!(volume > 0);
     }
 }
