@@ -172,7 +172,7 @@ The primary focus of v0.1.0 is providing best-in-class synthetic market data gen
 ### Code Quality
 - [ ] **Error Handling**: Replace String errors with proper error types
 - [ ] **Async Support**: Async generation for streaming use cases
-- [ ] **Serialization**: Add serde support for all types
+- [x] **Serialization**: Add serde support for all types (COMPLETE - with JSON support)
 - [ ] **Feature Flags**: Optional dependencies (e.g., csv, parquet)
 - [ ] **CI/CD Pipeline**: GitHub Actions for testing and releases
 
