@@ -2,6 +2,29 @@
 //!
 //! This module provides functionality to export generated market data to different
 //! file formats for analysis and integration with external tools.
+//!
+//! ## Supported Export Formats
+//!
+//! - **CSV**: Comma-separated values format
+//! - **JSON**: Standard JSON and JSON Lines formats
+//! - **CouchDB**: NoSQL database storage
+//! - **PNG**: Chart visualization as PNG images
+//!
+//! ## Usage
+//!
+//! ```no_run
+//! use market_data_source::{MarketDataGenerator, export::{ExportFormat, ExportOptions}};
+//!
+//! let mut generator = MarketDataGenerator::new();
+//! let data = generator.generate_series(100);
+//!
+//! // Export to CSV
+//! market_data_source::export::to_csv_ohlc(&data, "data.csv")?;
+//!
+//! // Export to JSON
+//! market_data_source::export::to_json_ohlc(&data, "data.json")?;
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
 
 #[cfg(feature = "csv_export")]
 pub mod csv;
@@ -27,12 +50,106 @@ pub mod chart;
 #[cfg(feature = "png_export")]
 pub use self::chart::{ChartBuilder, ChartExporter};
 
-use crate::types::{OHLC, Tick};
-use std::error::Error;
-use std::path::Path;
+pub mod error;
 
-/// Result type for export operations
-pub type ExportResult<T> = Result<T, Box<dyn Error>>;
+pub use error::{ExportError, ExportResult};
+
+use crate::types::{OHLC, Tick};
+use error::{ExportError, ExportResult};
+use std::fmt;
+use std::path::Path;
+use std::io::Write;
+
+/// Supported export formats
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExportFormat {
+    /// CSV (Comma-Separated Values) format
+    Csv,
+    /// JSON format
+    Json,
+    /// JSON Lines format (one JSON object per line)
+    JsonLines,
+    /// CouchDB database
+    CouchDb,
+    /// PNG chart image
+    Png,
+}
+
+impl fmt::Display for ExportFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ExportFormat::Csv => write!(f, "CSV"),
+            ExportFormat::Json => write!(f, "JSON"),
+            ExportFormat::JsonLines => write!(f, "JSON Lines"),
+            ExportFormat::CouchDb => write!(f, "CouchDB"),
+            ExportFormat::Png => write!(f, "PNG"),
+        }
+    }
+}
+
+/// Options for export operations
+#[derive(Debug, Clone)]
+pub struct ExportOptions {
+    /// Include headers in export (applicable to CSV)
+    pub include_headers: bool,
+    /// Pretty print JSON output
+    pub pretty_json: bool,
+    /// Custom delimiter for CSV (default: comma)
+    pub csv_delimiter: u8,
+    /// Include timestamp in output
+    pub include_timestamp: bool,
+    /// Maximum number of records to export (None for all)
+    pub max_records: Option<usize>,
+}
+
+impl Default for ExportOptions {
+    fn default() -> Self {
+        Self {
+            include_headers: true,
+            pretty_json: false,
+            csv_delimiter: b',',
+            include_timestamp: true,
+            max_records: None,
+        }
+    }
+}
+
+impl ExportOptions {
+    /// Create new export options with defaults
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set whether to include headers
+    pub fn include_headers(mut self, include: bool) -> Self {
+        self.include_headers = include;
+        self
+    }
+
+    /// Set whether to pretty print JSON
+    pub fn pretty_json(mut self, pretty: bool) -> Self {
+        self.pretty_json = pretty;
+        self
+    }
+
+    /// Set CSV delimiter
+    pub fn csv_delimiter(mut self, delimiter: u8) -> Self {
+        self.csv_delimiter = delimiter;
+        self
+    }
+
+    /// Set whether to include timestamp
+    pub fn include_timestamp(mut self, include: bool) -> Self {
+        self.include_timestamp = include;
+        self
+    }
+
+    /// Set maximum number of records to export
+    pub fn max_records(mut self, max: Option<usize>) -> Self {
+        self.max_records = max;
+        self
+    }
+}
 
 /// Common trait for data exporters
 pub trait DataExporter {
@@ -41,6 +158,12 @@ pub trait DataExporter {
     
     /// Export tick data to a file
     fn export_ticks<P: AsRef<Path>>(&self, data: &[Tick], path: P) -> ExportResult<()>;
+    
+    /// Export OHLC data to a writer
+    fn export_ohlc_to_writer<W: Write>(&self, data: &[OHLC], writer: W) -> ExportResult<()>;
+    
+    /// Export tick data to a writer
+    fn export_ticks_to_writer<W: Write>(&self, data: &[Tick], writer: W) -> ExportResult<()>;
 }
 
 /// Convenience function to export OHLC data to CSV
