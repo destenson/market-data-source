@@ -15,6 +15,12 @@ pub mod json;
 #[cfg(feature = "json_export")]
 pub use self::json::{JsonExporter, JsonOptions};
 
+#[cfg(feature = "couchdb")]
+pub mod couchdb;
+
+#[cfg(feature = "couchdb")]
+pub use self::couchdb::{CouchDbExporter, CouchDbOptions};
+
 use crate::types::{OHLC, Tick};
 use std::error::Error;
 use std::path::Path;
@@ -71,4 +77,18 @@ pub fn to_jsonl_ohlc<P: AsRef<Path>>(data: &[OHLC], path: P) -> ExportResult<()>
 pub fn to_jsonl_ticks<P: AsRef<Path>>(data: &[Tick], path: P) -> ExportResult<()> {
     let exporter = JsonExporter::with_options(JsonOptions::json_lines());
     exporter.export_ticks(data, path)
+}
+
+/// Convenience function to export OHLC data to CouchDB
+#[cfg(feature = "couchdb")]
+pub fn to_couchdb_ohlc(data: &[OHLC], server_url: &str, database: &str) -> ExportResult<()> {
+    let exporter = CouchDbExporter::new(server_url, database);
+    exporter.export_ohlc(data, "")
+}
+
+/// Convenience function to export tick data to CouchDB
+#[cfg(feature = "couchdb")]
+pub fn to_couchdb_ticks(data: &[Tick], server_url: &str, database: &str) -> ExportResult<()> {
+    let exporter = CouchDbExporter::new(server_url, database);
+    exporter.export_ticks(data, "")
 }
