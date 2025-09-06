@@ -81,6 +81,31 @@ impl ChartBuilder {
         self
     }
 
+    /// Set background color
+    pub fn background_color(mut self, color: impl Into<RGBColor>) -> Self {
+        self.background_color = color.into();
+        self
+    }
+
+    /// Set grid color
+    pub fn grid_color(mut self, color: impl Into<RGBColor>) -> Self {
+        self.grid_color = color.into();
+        self
+    }
+
+    /// Set SMA color
+    pub fn sma_color(mut self, color: impl Into<RGBColor>) -> Self {
+        self.ma_color = color.into();
+        self
+    }
+
+    /// Set candlestick colors
+    pub fn candlestick_colors(mut self, bullish: impl Into<RGBColor>, bearish: impl Into<RGBColor>) -> Self {
+        self.bullish_color = bullish.into();
+        self.bearish_color = bearish.into();
+        self
+    }
+
     /// Set whether to show volume subplot
     pub fn show_volume(mut self, show: bool) -> Self {
         self.show_volume = show;
@@ -90,6 +115,12 @@ impl ChartBuilder {
     /// Set whether to show moving average
     pub fn show_moving_average(mut self, show: bool) -> Self {
         self.show_moving_average = show;
+        self
+    }
+
+    pub fn show_sma(mut self, period: usize) -> Self {
+        self.show_moving_average = true;
+        self.ma_period = period;
         self
     }
 

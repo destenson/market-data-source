@@ -1,6 +1,6 @@
 //! Basic example of using the market-data-source library
 
-use market_data_source::{MarketDataGenerator, GeneratorConfig};
+use market_data_source::MarketDataGenerator;
 
 fn main() {
     println!("Market Data Source - Basic Example");

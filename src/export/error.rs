@@ -50,12 +50,14 @@ impl From<std::io::Error> for ExportError {
     }
 }
 
+#[cfg(feature = "csv_export")]
 impl From<csv::Error> for ExportError {
     fn from(err: csv::Error) -> Self {
         ExportError::Serialization(err.to_string())
     }
 }
 
+#[cfg(feature = "json_export")]
 impl From<serde_json::Error> for ExportError {
     fn from(err: serde_json::Error) -> Self {
         ExportError::Serialization(err.to_string())

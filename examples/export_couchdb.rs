@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = ConfigBuilder::new()
         .starting_price(180.0)
         .volatility(0.02)
-        .trend(TrendDirection::Upward)
+        .trend(TrendDirection::Bullish, 0.001)
         .seed(654)
         .build()?;
     

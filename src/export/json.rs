@@ -124,6 +124,46 @@ impl JsonExporter {
 
         Ok(())
     }
+
+    /// Write OHLC data using JSON Lines format to a writer
+    fn write_ohlc_jsonl<W: Write>(&self, data: &[OHLC], mut writer: W) -> ExportResult<()> {
+        for ohlc in data {
+            serde_json::to_writer(&mut writer, ohlc)?;
+            writeln!(&mut writer)?;
+        }
+        writer.flush()?;
+        Ok(())
+    }
+
+    /// Write tick data using JSON Lines format to a writer
+    fn write_ticks_jsonl<W: Write>(&self, data: &[Tick], mut writer: W) -> ExportResult<()> {
+        for tick in data {
+            serde_json::to_writer(&mut writer, tick)?;
+            writeln!(&mut writer)?;
+        }
+        writer.flush()?;
+        Ok(())
+    }
+
+    /// Write OHLC data as standard JSON array to a writer
+    fn write_ohlc_array<W: Write>(&self, data: &[OHLC], writer: W) -> ExportResult<()> {
+        if self.options.pretty {
+            serde_json::to_writer_pretty(writer, data)?;
+        } else {
+            serde_json::to_writer(writer, data)?;
+        }
+        Ok(())
+    }
+
+    /// Write tick data as standard JSON array to a writer
+    fn write_ticks_array<W: Write>(&self, data: &[Tick], writer: W) -> ExportResult<()> {
+        if self.options.pretty {
+            serde_json::to_writer_pretty(writer, data)?;
+        } else {
+            serde_json::to_writer(writer, data)?;
+        }
+        Ok(())
+    }
 }
 
 impl Default for JsonExporter {
@@ -146,6 +186,22 @@ impl DataExporter for JsonExporter {
             self.export_ticks_jsonl(data, path)
         } else {
             self.export_ticks_array(data, path)
+        }
+    }
+    
+    fn export_ohlc_to_writer<W: Write>(&self, data: &[OHLC], writer: W) -> ExportResult<()> {
+        if self.options.json_lines {
+            self.write_ohlc_jsonl(data, writer)
+        } else {
+            self.write_ohlc_array(data, writer)
+        }
+    }
+    
+    fn export_ticks_to_writer<W: Write>(&self, data: &[Tick], writer: W) -> ExportResult<()> {
+        if self.options.json_lines {
+            self.write_ticks_jsonl(data, writer)
+        } else {
+            self.write_ticks_array(data, writer)
         }
     }
 }

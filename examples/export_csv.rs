@@ -22,8 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = ConfigBuilder::new()
         .starting_price(150.0)
         .volatility(0.025)
-        .trend(TrendDirection::Upward)
-        .drift(0.001)
+        .trend(TrendDirection::Bullish, 0.001)
         .seed(42)  // For reproducible results
         .build()?;
     
@@ -145,8 +144,10 @@ fn format_ohlc(ohlc: &market_data_source::OHLC) -> String {
 
 // Helper function to format tick data for display
 fn format_tick(tick: &market_data_source::Tick) -> String {
+    let bid_str = tick.bid.map(|b| format!("{:.2}", b)).unwrap_or_else(|| "N/A".to_string());
+    let ask_str = tick.ask.map(|a| format!("{:.2}", a)).unwrap_or_else(|| "N/A".to_string());
     format!(
-        "Price:{:.2} Vol:{} Bid:{:.2} Ask:{:.2}",
-        tick.price, tick.volume, tick.bid, tick.ask
+        "Price:{:.2} Vol:{} Bid:{} Ask:{}",
+        tick.price, tick.volume, bid_str, ask_str
     )
 }

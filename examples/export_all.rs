@@ -16,8 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = ConfigBuilder::new()
         .starting_price(250.0)
         .volatility(0.03)
-        .trend(TrendDirection::Volatile)
-        .drift(0.001)
+        .trend(TrendDirection::Bullish, 0.001)
         .seed(777)  // Lucky number for reproducible results
         .build()?;
     
@@ -32,8 +31,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   ✓ Generated {} ticks", tick_data.len());
     
     // Track successful exports
-    let mut successful_exports = Vec::new();
-    let mut failed_exports = Vec::new();
+    let mut successful_exports: Vec<&str> = Vec::new();
+    let mut failed_exports: Vec<&str> = Vec::new();
     
     // Export 1: CSV Format
     println!("\n📄 Exporting to CSV format...");
@@ -268,7 +267,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         use market_data_source::export::json::{JsonExporter, JsonOptions};
         use market_data_source::export::DataExporter;
         
-        let pretty_exporter = JsonExporter::with_options(JsonOptions::default().pretty());
+        let pretty_exporter = JsonExporter::with_options(JsonOptions::pretty());
         match pretty_exporter.export_ohlc(&ohlc_data[..5], "pretty_sample.json") {
             Ok(_) => {
                 println!("   ✅ Created pretty-formatted JSON sample");
@@ -285,7 +284,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n⏱️ Performance comparison across formats...");
     
     let perf_data = generator.generate_series(500);
-    let mut timings = Vec::new();
+    let mut timings: Vec<(&str, std::time::Duration)> = Vec::new();
     
     // Time CSV export
     #[cfg(feature = "csv_export")]

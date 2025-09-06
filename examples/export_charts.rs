@@ -19,8 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = ConfigBuilder::new()
         .starting_price(120.0)
         .volatility(0.025)
-        .trend(TrendDirection::Upward)
-        .drift(0.002)
+        .trend(TrendDirection::Bullish, 0.002)
         .seed(321)  // For reproducible results
         .build()?;
     
@@ -54,17 +53,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n3. Creating custom styled candlestick chart...");
     
     use market_data_source::export::{to_png_ohlc_with_builder, ChartExporter};
-    
+    use plotters::prelude::RGBColor;
     // Create custom chart builder with styling
     let custom_builder = ChartBuilder::new()
         .title("Market Data - Custom Styled Chart")
-        .width(1200)
-        .height(800)
-        .background_color((240, 248, 255))  // Alice blue background
-        .grid_color((200, 200, 200))
+        .dimensions(1200, 800)
+        .background_color((240, 248, 255).into())  // Alice blue background
+        .grid_color((200, 200, 200).into())
         .show_volume(true)
-        .candlestick_colors((0, 128, 0), (255, 0, 0));  // Green up, red down
-    
+        .candlestick_colors((0, 128, 0).into(), (255, 0, 0).into());  // Green up, red down
+
     let custom_chart_file = "custom_styled_candlestick.png";
     to_png_ohlc_with_builder(&ohlc_data, custom_chart_file, custom_builder)?;
     println!("   ✓ Created custom styled chart: {}", custom_chart_file);
@@ -77,8 +75,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let ma_builder = ChartBuilder::new()
         .title("OHLC with Moving Averages")
-        .width(1000)
-        .height(600)
+        .dimensions(1000, 600)
         .show_volume(true)
         .show_sma(20)   // 20-period simple moving average
         .sma_color((255, 165, 0));  // Orange color for SMA
@@ -92,8 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let hires_builder = ChartBuilder::new()
         .title("High Resolution Market Data Chart")
-        .width(1920)
-        .height(1080)
+        .dimensions(1920, 1080)
         .background_color((255, 255, 255))  // White background
         .grid_color((230, 230, 230))
         .show_volume(true)
@@ -109,8 +105,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let dark_builder = ChartBuilder::new()
         .title("Dark Theme Market Chart")
-        .width(1000)
-        .height(700)
+        .dimensions(1000, 700)
         .background_color((30, 30, 30))     // Dark background
         .text_color((255, 255, 255))        // White text
         .grid_color((70, 70, 70))           // Dark gray grid
@@ -128,8 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let tick_builder = ChartBuilder::new()
         .title("Tick Price Movement")
-        .width(1000)
-        .height(500)
+        .dimensions(1000, 500)
         .background_color((248, 248, 255))  // Ghost white
         .line_color((72, 61, 139))          // Dark slate blue
         .line_width(2);
@@ -149,8 +143,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Short term chart
     let short_builder = ChartBuilder::new()
         .title("Short Term (20 periods)")
-        .width(800)
-        .height(400)
+        .dimensions(800, 400)
         .show_volume(true);
     
     let short_chart_file = "short_term_chart.png";
@@ -159,8 +152,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Long term chart  
     let long_builder = ChartBuilder::new()
         .title("Long Term (100 periods)")
-        .width(800)
-        .height(400)
+        .dimensions(800, 400)
         .show_volume(true)
         .show_sma(20);
     
@@ -174,8 +166,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let exporter_builder = ChartBuilder::new()
         .title("Direct Exporter Usage")
-        .width(900)
-        .height(600)
+        .dimensions(900, 600)
         .show_volume(true);
     
     let chart_exporter = ChartExporter::with_builder(exporter_builder);

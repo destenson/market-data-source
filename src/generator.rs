@@ -192,7 +192,7 @@ impl MarketDataGenerator {
         // Create an iterator that generates candles on-the-fly
         let iter = (0..count).map(|_| self.generate_candle());
         
-        exporter.stream_ohlc(iter, path)
+        Ok(exporter.stream_ohlc(iter, path)?)
     }
 
     /// Stream generate tick data directly to CSV file (memory efficient for large datasets)
@@ -209,7 +209,7 @@ impl MarketDataGenerator {
         // Create an iterator that generates ticks on-the-fly
         let iter = (0..count).map(|_| self.generate_tick());
         
-        exporter.stream_ticks(iter, path)
+        Ok(exporter.stream_ticks(iter, path)?)
     }
 }
 

@@ -264,6 +264,14 @@ impl DataExporter for CsvExporter {
         let file = File::create(path)?;
         self.write_ticks(data, file)
     }
+    
+    fn export_ohlc_to_writer<W: Write>(&self, data: &[OHLC], writer: W) -> ExportResult<()> {
+        self.write_ohlc(data, writer)
+    }
+    
+    fn export_ticks_to_writer<W: Write>(&self, data: &[Tick], writer: W) -> ExportResult<()> {
+        self.write_ticks(data, writer)
+    }
 }
 
 #[cfg(test)]

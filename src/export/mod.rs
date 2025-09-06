@@ -55,7 +55,6 @@ pub mod error;
 pub use error::{ExportError, ExportResult};
 
 use crate::types::{OHLC, Tick};
-use error::{ExportError, ExportResult};
 use std::fmt;
 use std::path::Path;
 use std::io::Write;
@@ -238,14 +237,18 @@ pub fn to_couchdb_ticks_env(data: &[Tick]) -> ExportResult<()> {
 #[cfg(feature = "png_export")]
 pub fn to_png_ohlc<P: AsRef<Path>>(data: &[OHLC], path: P) -> ExportResult<()> {
     let exporter = ChartExporter::default();
-    exporter.export_ohlc(data, path)
+    exporter.export_ohlc(data, path).map_err(|e| {
+        ExportError::Chart(format!("Failed to export OHLC chart: {e}"))
+    })
 }
 
 /// Convenience function to export tick data as a line chart PNG
 #[cfg(feature = "png_export")]
 pub fn to_png_ticks<P: AsRef<Path>>(data: &[Tick], path: P) -> ExportResult<()> {
     let exporter = ChartExporter::default();
-    exporter.export_ticks(data, path)
+    exporter.export_ticks(data, path).map_err(|e| {
+        ExportError::Chart(format!("Failed to export tick chart: {e}"))
+    })
 }
 
 /// Convenience function to export OHLC data as a candlestick chart PNG with custom builder
@@ -256,7 +259,9 @@ pub fn to_png_ohlc_with_builder<P: AsRef<Path>>(
     builder: ChartBuilder,
 ) -> ExportResult<()> {
     let exporter = ChartExporter::with_builder(builder);
-    exporter.export_ohlc(data, path)
+    exporter.export_ohlc(data, path).map_err(|e| {
+        ExportError::Chart(format!("Failed to export OHLC chart: {e}"))
+    })
 }
 
 /// Convenience function to export tick data as a line chart PNG with custom builder
@@ -267,5 +272,7 @@ pub fn to_png_ticks_with_builder<P: AsRef<Path>>(
     builder: ChartBuilder,
 ) -> ExportResult<()> {
     let exporter = ChartExporter::with_builder(builder);
-    exporter.export_ticks(data, path)
+    exporter.export_ticks(data, path).map_err(|e| {
+        ExportError::Chart(format!("Failed to export tick chart: {e}"))
+    })
 }

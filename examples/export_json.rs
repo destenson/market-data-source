@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = ConfigBuilder::new()
         .starting_price(200.0)
         .volatility(0.03)
-        .trend(TrendDirection::Sideways)
+        .trend(TrendDirection::Sideways, 0.0)
         .seed(456)  // For reproducible results
         .build()?;
     
@@ -76,7 +76,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     use market_data_source::export::DataExporter;
     
     // Create pretty-printed JSON exporter
-    let pretty_options = JsonOptions::default().pretty();
+    let pretty_options = JsonOptions::pretty();
     let pretty_exporter = JsonExporter::with_options(pretty_options);
     
     // Generate small dataset for pretty printing
@@ -88,7 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Example 6: Compact JSON (no pretty printing)
     println!("\n6. Compact JSON export...");
     
-    let compact_options = JsonOptions::default().compact();
+    let compact_options = JsonOptions::default(); // Compact by default (no pretty printing)
     let compact_exporter = JsonExporter::with_options(compact_options);
     
     let compact_file = "compact_formatted.json";
@@ -99,16 +99,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n7. Verifying exported JSON data...");
     
     // Read back the JSON file to verify it's valid
-    let json_content = std::fs::read_to_string(json_ohlc_file)?;
-    let parsed: serde_json::Value = serde_json::from_str(&json_content)?;
-    
-    if let Some(array) = parsed.as_array() {
-        println!("   ✓ Successfully parsed JSON file with {} records", array.len());
+    #[cfg(feature = "json_export")]
+    {
+        let json_content = std::fs::read_to_string(json_ohlc_file)?;
+        let parsed: serde_json::Value = serde_json::from_str(&json_content)?;
         
-        // Show first record structure
-        if let Some(first_record) = array.first() {
-            println!("   Sample record structure: {}", 
-                serde_json::to_string_pretty(first_record)?);
+        if let Some(array) = parsed.as_array() {
+            println!("   ✓ Successfully parsed JSON file with {} records", array.len());
+            
+            // Show first record structure
+            if let Some(first_record) = array.first() {
+                println!("   Sample record structure: {}", 
+                    serde_json::to_string_pretty(first_record)?);
+            }
         }
     }
     
