@@ -58,6 +58,8 @@ pub struct ChartBuilder {
     pub show_grid: bool,
     /// Line width for tick charts
     pub line_width: u32,
+    /// Font family name
+    pub font_family: String,
 }
 
 impl Default for ChartBuilder {
@@ -78,6 +80,13 @@ impl Default for ChartBuilder {
             ma_period: 20,
             show_grid: true,
             line_width: 1,
+            font_family: if cfg!(target_os = "windows") {
+                "Arial".to_string()
+            } else if cfg!(target_os = "macos") {
+                "Helvetica".to_string()  
+            } else {
+                "sans-serif".to_string()
+            },
         }
     }
 }
@@ -183,6 +192,13 @@ impl ChartBuilder {
         self
     }
 
+    /// Set font family
+    pub fn font_family(mut self, font: impl Into<String>) -> Self {
+        self.font_family = font.into();
+        self
+    }
+
+
     /// Generate a candlestick chart from OHLC data
     pub fn draw_candlestick_chart<P: AsRef<Path>>(
         &self,
@@ -219,9 +235,9 @@ impl ChartBuilder {
             .fold(f64::NEG_INFINITY, f64::max);
         let price_margin = (max_price - min_price) * 0.1;
 
-        // Build the price chart
+        // Build the price chart with TTF font support
         let mut price_chart = plotters::chart::ChartBuilder::on(&upper)
-            .caption(&self.title, ("sans-serif", 40).into_font().color(&self.text_color))
+            .caption(&self.title, (self.font_family.as_str(), 40).into_font().color(&self.text_color))
             .margin(10)
             .x_label_area_size(30)
             .y_label_area_size(60)
@@ -235,7 +251,7 @@ impl ChartBuilder {
                 .configure_mesh()
                 .x_desc("Time")
                 .y_desc("Price")
-                .label_style(("sans-serif", 15).into_font().color(&self.text_color))
+                .label_style((self.font_family.as_str(), 15).into_font().color(&self.text_color))
                 .axis_style(&self.grid_color)
                 .draw()?;
         }
@@ -282,7 +298,7 @@ impl ChartBuilder {
                 .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], &self.ma_color));
                 
                 price_chart.configure_series_labels()
-                    .label_font(("sans-serif", 15).into_font().color(&self.text_color))
+                    .label_font((self.font_family.as_str(), 15).into_font().color(&self.text_color))
                     .background_style(&WHITE.mix(0.8))
                     .border_style(&BLACK)
                     .draw()?;
@@ -309,7 +325,7 @@ impl ChartBuilder {
                     .configure_mesh()
                     .x_desc("Time")
                     .y_desc("Volume")
-                    .label_style(("sans-serif", 15).into_font().color(&self.text_color))
+                    .label_style((self.font_family.as_str(), 15).into_font().color(&self.text_color))
                     .axis_style(&self.grid_color)
                     .draw()?;
             }
@@ -368,9 +384,9 @@ impl ChartBuilder {
             .fold(f64::NEG_INFINITY, f64::max);
         let price_margin = (max_price - min_price) * 0.1;
 
-        // Build the chart
+        // Build the chart with TTF font support
         let mut chart = plotters::chart::ChartBuilder::on(&root)
-            .caption(&self.title, ("sans-serif", 40).into_font().color(&self.text_color))
+            .caption(&self.title, (self.font_family.as_str(), 40).into_font().color(&self.text_color))
             .margin(10)
             .x_label_area_size(30)
             .y_label_area_size(60)
@@ -384,7 +400,7 @@ impl ChartBuilder {
                 .configure_mesh()
                 .x_desc("Time")
                 .y_desc("Price")
-                .label_style(("sans-serif", 15).into_font().color(&self.text_color))
+                .label_style((self.font_family.as_str(), 15).into_font().color(&self.text_color))
                 .axis_style(&self.grid_color)
                 .draw()?;
         }
@@ -420,8 +436,9 @@ impl ChartBuilder {
             .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], &self.bullish_color));
         }
 
+        //
         chart.configure_series_labels()
-            .label_font(("sans-serif", 15).into_font().color(&self.text_color))
+            .label_font((self.font_family.as_str(), 15).into_font().color(&self.text_color))
             .background_style(&WHITE.mix(0.8))
             .border_style(&BLACK)
             .draw()?;
