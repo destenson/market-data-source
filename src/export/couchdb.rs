@@ -80,6 +80,17 @@ impl CouchDbExporter {
         self
     }
 
+    /// Create a new CouchDB exporter with options
+    pub fn new_with_options(server_url: impl Into<String>, database_name: impl Into<String>, options: CouchDbOptions) -> Self {
+        Self {
+            server_url: server_url.into(),
+            database_name: database_name.into(),
+            username: options.username,
+            password: options.password,
+            batch_size: options.batch_size,
+        }
+    }
+
     /// Connect to CouchDB and get database handle
     async fn get_database(&self) -> Result<Database, CouchError> {
         let client = if let (Some(username), Some(password)) = (&self.username, &self.password) {
@@ -194,6 +205,34 @@ impl DataExporter for CouchDbExporter {
         // Create a runtime for synchronous execution
         let rt = tokio::runtime::Runtime::new()?;
         rt.block_on(self.export_ticks_async(data))
+    }
+
+    fn export_ohlc_to_writer<W: std::io::Write>(&self, data: &[OHLC], mut writer: W) -> ExportResult<()> {
+        // Convert OHLC data to JSON and write to the writer
+        let documents: Vec<OhlcDocument> = data.iter()
+            .map(|ohlc| OhlcDocument::from_ohlc(ohlc, "MARKET"))
+            .collect();
+        
+        for doc in documents {
+            let json = serde_json::to_string(&doc)?;
+            writeln!(writer, "{}", json)?;
+        }
+        
+        Ok(())
+    }
+
+    fn export_ticks_to_writer<W: std::io::Write>(&self, data: &[Tick], mut writer: W) -> ExportResult<()> {
+        // Convert tick data to JSON and write to the writer
+        let documents: Vec<TickDocument> = data.iter()
+            .map(|tick| TickDocument::from_tick(tick, "MARKET"))
+            .collect();
+        
+        for doc in documents {
+            let json = serde_json::to_string(&doc)?;
+            writeln!(writer, "{}", json)?;
+        }
+        
+        Ok(())
     }
 }
 
@@ -345,6 +384,11 @@ impl Default for CouchDbOptions {
 }
 
 impl CouchDbOptions {
+    /// Create new options with defaults
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// Create options with custom server URL
     pub fn with_server(mut self, url: impl Into<String>) -> Self {
         self.server_url = url.into();
@@ -367,6 +411,30 @@ impl CouchDbOptions {
     /// Set batch size
     pub fn with_batch_size(mut self, size: usize) -> Self {
         self.batch_size = size;
+        self
+    }
+
+    /// Set timeout (placeholder - for API compatibility)
+    pub fn timeout_seconds(mut self, _timeout: u64) -> Self {
+        // This is just for compatibility with the example
+        self
+    }
+
+    /// Set auto create database (placeholder - for API compatibility)
+    pub fn auto_create_database(mut self, _auto_create: bool) -> Self {
+        // This is just for compatibility with the example
+        self
+    }
+
+    /// Set username
+    pub fn username(mut self, username: impl Into<String>) -> Self {
+        self.username = Some(username.into());
+        self
+    }
+
+    /// Set password  
+    pub fn password(mut self, password: impl Into<String>) -> Self {
+        self.password = Some(password.into());
         self
     }
 }
