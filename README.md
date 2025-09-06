@@ -52,9 +52,9 @@ See `.env.example` for the complete list of available environment variables.
 Here's a simple example of how to use Market Data Source to generate synthetic market data:
 
 ```rust
-use market_data_source::{MarketDataGenerator, GeneratorConfig};
+use market_data_source::{MarketDataGenerator, ConfigBuilder, TrendDirection};
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a generator with default configuration
     let mut generator = MarketDataGenerator::new();
     
@@ -66,15 +66,17 @@ fn main() {
     }
     
     // Create a generator with custom configuration
-    let config = GeneratorConfig::builder()
+    let config = ConfigBuilder::new()
         .starting_price(100.0)
         .volatility(0.02)  // 2% volatility
-        .trend_strength(0.001)  // Slight upward trend
+        .trend(TrendDirection::Bullish, 0.001)  // Slight upward trend
         .seed(42)  // For reproducible results
-        .build();
+        .build()?;
     
-    let mut custom_generator = MarketDataGenerator::with_config(config);
+    let mut custom_generator = MarketDataGenerator::with_config(config)?;
     let custom_candles = custom_generator.generate_series(5);
+    
+    Ok(())
 }
 ```
 
@@ -87,19 +89,30 @@ Market Data Source supports multiple export formats for different use cases:
 Export generated data to CSV files for analysis in Excel, pandas, or other tools:
 
 ```rust
-use market_data_source::{MarketDataGenerator, GeneratorConfig, export::CsvExporter, export::DataExporter};
+use market_data_source::{MarketDataGenerator, ConfigBuilder, TrendDirection};
+use market_data_source::export::{to_csv_ohlc, to_csv_ticks};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = GeneratorConfig::default()
-        .with_initial_price(100.0)
-        .with_volatility(0.02);
+    let config = ConfigBuilder::new()
+        .starting_price(100.0)
+        .volatility(0.02)
+        .trend(TrendDirection::Bullish, 0.001)
+        .build()?;
     
-    let mut generator = MarketDataGenerator::new(config);
-    let ohlc_data = generator.generate_ohlc(100);
+    let mut generator = MarketDataGenerator::with_config(config)?;
+    let ohlc_data = generator.generate_series(100);
     
-    // Export OHLC data to CSV
-    let csv_exporter = CsvExporter::default();
-    csv_exporter.export_ohlc(&ohlc_data, "market_data.csv")?;
+    // Export OHLC data to CSV using convenience function
+    to_csv_ohlc(&ohlc_data, "market_data.csv")?;
+    
+    // Or use the exporter directly for custom options
+    use market_data_source::export::csv::CsvExporter;
+    use market_data_source::export::DataExporter;
+    
+    let csv_exporter = CsvExporter::new()
+        .delimiter(b';')  // Use semicolon delimiter
+        .include_headers(true);
+    csv_exporter.export_ohlc(&ohlc_data, "market_data_custom.csv")?;
     
     Ok(())
 }
@@ -110,15 +123,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 Export data in JSON or JSON Lines format:
 
 ```rust
-use market_data_source::{export::JsonExporter, export::JsonOptions, export::DataExporter};
+use market_data_source::export::{to_json_ohlc, to_jsonl_ohlc};
 
-// Standard JSON format
-let json_exporter = JsonExporter::default();
-json_exporter.export_ohlc(&ohlc_data, "market_data.json")?;
+// Standard JSON format using convenience function
+to_json_ohlc(&ohlc_data, "market_data.json")?;
 
 // JSON Lines format (one JSON object per line)
+to_jsonl_ohlc(&ohlc_data, "market_data.jsonl")?;
+
+// Or use the exporter directly for custom options
+use market_data_source::export::json::{JsonExporter, JsonOptions};
+use market_data_source::export::DataExporter;
+
+// Pretty-printed JSON
+let json_exporter = JsonExporter::with_options(JsonOptions::pretty());
+json_exporter.export_ohlc(&ohlc_data, "pretty_data.json")?;
+
+// JSON Lines format
 let jsonl_exporter = JsonExporter::with_options(JsonOptions::json_lines());
-jsonl_exporter.export_ohlc(&ohlc_data, "market_data.jsonl")?;
+jsonl_exporter.export_ohlc(&ohlc_data, "streaming_data.jsonl")?;
 ```
 
 #### CouchDB Export
@@ -126,95 +149,61 @@ jsonl_exporter.export_ohlc(&ohlc_data, "market_data.jsonl")?;
 Export data directly to CouchDB for NoSQL storage and replication:
 
 ```rust
-use market_data_source::{export::CouchDbExporter, export::DataExporter};
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut generator = MarketDataGenerator::default();
-    let ohlc_data = generator.generate_ohlc(100);
-    
-    // Method 1: Create CouchDB exporter with explicit configuration
-    let couchdb_exporter = CouchDbExporter::new("http://localhost:5984", "market_data")
-        .with_auth("admin", "password")  // Optional authentication
-        .with_batch_size(500);           // Configure batch size for bulk operations
-    
-    // Method 2: Create CouchDB exporter from environment variables
-    // Reads COUCHDB_URL, COUCHDB_USERNAME, COUCHDB_PASSWORD, etc. from .env
-    #[cfg(feature = "dotenvy")]
-    let couchdb_exporter = CouchDbExporter::from_env();
-    
-    // Export to CouchDB
-    couchdb_exporter.export_ohlc(&ohlc_data, "")?;
-    
-    // The data is now stored in CouchDB with views for querying:
-    // - by_timestamp: Query data by timestamp
-    // - by_symbol_and_timestamp: Query by symbol and timestamp
-    // - ohlc_by_date_range: Query OHLC data within a date range
-    // - ticks_by_date_range: Query tick data within a date range
-    
-    Ok(())
-}
-```
-
-For convenience, you can also use the helper functions:
-
-```rust
-use market_data_source::export::{to_csv_ohlc, to_json_ohlc, to_couchdb_ohlc};
-
-// Quick export to different formats
-to_csv_ohlc(&ohlc_data, "data.csv")?;
-to_json_ohlc(&ohlc_data, "data.json")?;
-to_couchdb_ohlc(&ohlc_data, "http://localhost:5984", "market_db")?;
-
-// Or use environment variables for CouchDB
-#[cfg(all(feature = "couchdb", feature = "dotenvy"))]
-use market_data_source::export::{to_couchdb_ohlc_env, to_couchdb_ticks_env};
-
-#[cfg(all(feature = "couchdb", feature = "dotenvy"))]
-to_couchdb_ohlc_env(&ohlc_data)?;  // Uses COUCHDB_URL, COUCHDB_DATABASE from .env
-```
-
-#### PNG Chart Export
-
-Generate visual charts from your market data:
-
-```rust
-use market_data_source::{MarketDataGenerator, GeneratorConfig, export::{ChartBuilder, ChartExporter}};
+use market_data_source::export::{to_couchdb_ohlc, to_couchdb_ticks};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut generator = MarketDataGenerator::new();
     let ohlc_data = generator.generate_series(100);
     
-    // Create candlestick chart with default settings
-    let exporter = ChartExporter::new();
-    exporter.export_ohlc(&ohlc_data, "candlestick_chart.png")?;
+    // Export using convenience functions
+    to_couchdb_ohlc(&ohlc_data, "http://localhost:5984", "market_data")?;
     
-    // Create chart with custom styling
-    let custom_chart = ChartBuilder::new()
-        .dimensions(1920, 1080)
-        .title("My Market Data")
-        .show_volume(true)
-        .show_moving_average(true)
-        .ma_period(20);
+    // Or use environment variables (requires dotenvy feature)
+    #[cfg(all(feature = "couchdb", feature = "dotenvy"))]
+    {
+        use market_data_source::export::{to_couchdb_ohlc_env, to_couchdb_ticks_env};
+        to_couchdb_ohlc_env(&ohlc_data)?;
+    }
     
-    let custom_exporter = ChartExporter::with_builder(custom_chart);
-    custom_exporter.export_ohlc(&ohlc_data, "custom_chart.png")?;
+    // For custom options, use the exporter directly
+    use market_data_source::export::couchdb::{CouchDbExporter, CouchDbOptions};
+    use market_data_source::export::DataExporter;
     
-    // Generate line chart from tick data
-    let tick_data = generator.generate_ticks(500);
-    exporter.export_ticks(&tick_data, "line_chart.png")?;
+    let options = CouchDbOptions::new()
+        .timeout_seconds(30)
+        .batch_size(100)
+        .auto_create_database(true);
+        
+    let couchdb_exporter = CouchDbExporter::new_with_options(
+        "http://localhost:5984", 
+        "market_data", 
+        options
+    );
+    couchdb_exporter.export_ohlc(&ohlc_data, "")?;
     
     Ok(())
 }
 ```
 
-You can also use the convenience functions:
+### Running Examples
 
-```rust
-use market_data_source::export::{to_png_ohlc, to_png_ticks};
+The library includes comprehensive examples for all export formats:
 
-// Quick PNG export
-to_png_ohlc(&ohlc_data, "chart.png")?;
-to_png_ticks(&tick_data, "ticks.png")?;
+```bash
+# CSV export example
+cargo run --example export_csv --features csv_export
+
+# JSON export example  
+cargo run --example export_json --features json_export
+
+# CouchDB export example (requires CouchDB running)
+cargo run --example export_couchdb --features couchdb
+
+# PNG chart export example
+cargo run --example export_charts --features png_export
+
+# All export formats example
+cargo run --example export_all --all-features
 ```
 
 ## Current Status
@@ -225,14 +214,15 @@ to_png_ticks(&tick_data, "ticks.png")?;
 - Market data generator with configurable parameters
 - Random walk with drift algorithm
 - Builder pattern for configuration
-- Multiple export formats:
-  - CSV export functionality with streaming support
-  - JSON and JSON Lines export
-  - CouchDB integration with bulk operations and views
-  - PNG chart generation with candlestick and line charts
+- Comprehensive export infrastructure:
+  - CSV export with streaming support and custom options
+  - JSON and JSON Lines export with pretty printing
+  - CouchDB integration with bulk operations
+  - PNG chart generation with candlestick charts, line charts, volume bars, and moving averages
+- Proper error handling with structured error types
 - Serde serialization support
-- 45+ tests passing (unit tests + integration tests)
-- Working examples
+- 54+ tests passing (unit tests + integration tests + comprehensive export tests)
+- Complete example suite demonstrating all export formats
 
 🚧 **In Development**
 - Additional generation algorithms
