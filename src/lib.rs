@@ -55,6 +55,10 @@ mod algorithms;
 #[cfg(feature = "python")]
 mod python;
 
+// Server module (conditional on feature flag)
+#[cfg(feature = "api-server")]
+pub mod server;
+
 #[cfg(test)]
 mod tests {
     use super::*;
