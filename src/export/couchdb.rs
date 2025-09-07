@@ -6,6 +6,7 @@
 use crate::export::{DataExporter, ExportResult};
 use crate::types::{OHLC, Tick};
 use couch_rs::{Client, database::Database, document::TypedCouchDocument, error::CouchError};
+use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::borrow::Cow;
@@ -262,10 +263,10 @@ impl OhlcDocument {
             doc_type: "ohlc".to_string(),
             symbol: symbol.to_string(),
             timestamp: ohlc.timestamp,
-            open: ohlc.open,
-            high: ohlc.high,
-            low: ohlc.low,
-            close: ohlc.close,
+            open: ohlc.open.to_f64().unwrap_or(0.0),
+            high: ohlc.high.to_f64().unwrap_or(0.0),
+            low: ohlc.low.to_f64().unwrap_or(0.0),
+            close: ohlc.close.to_f64().unwrap_or(0.0),
             volume: ohlc.volume.as_f64(),
         }
     }
@@ -322,9 +323,9 @@ impl TickDocument {
             doc_type: "tick".to_string(),
             symbol: symbol.to_string(),
             timestamp: tick.timestamp,
-            price: tick.price,
-            bid: tick.bid.unwrap_or(tick.price),
-            ask: tick.ask.unwrap_or(tick.price),
+            price: tick.price.to_f64().unwrap_or(0.0),
+            bid: tick.bid.unwrap_or(tick.price).to_f64().unwrap_or(0.0),
+            ask: tick.ask.unwrap_or(tick.price).to_f64().unwrap_or(0.0),
             volume: tick.volume.as_f64(),
         }
     }
@@ -426,13 +427,13 @@ impl CouchDbOptions {
     }
 
     /// Set timeout (placeholder - for API compatibility)
-    pub fn timeout_seconds(mut self, _timeout: u64) -> Self {
+    pub fn timeout_seconds(self, _timeout: u64) -> Self {
         // This is just for compatibility with the example
         self
     }
 
     /// Set auto create database (placeholder - for API compatibility)
-    pub fn auto_create_database(mut self, _auto_create: bool) -> Self {
+    pub fn auto_create_database(self, _auto_create: bool) -> Self {
         // This is just for compatibility with the example
         self
     }

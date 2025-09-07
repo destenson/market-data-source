@@ -18,7 +18,7 @@ where
     if *value >= max_decimal {
         serializer.serialize_none()
     } else {
-        value.serialize(serializer)
+        Serialize::serialize(value, serializer)
     }
 }
 

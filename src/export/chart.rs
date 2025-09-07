@@ -5,6 +5,7 @@
 
 use crate::types::{OHLC, Tick};
 use plotters::prelude::*;
+use rust_decimal::prelude::ToPrimitive;
 use std::error::Error;
 use std::path::Path;
 
@@ -228,10 +229,10 @@ impl ChartBuilder {
 
         // Find price range
         let min_price = data.iter()
-            .map(|ohlc| ohlc.low)
+            .map(|ohlc| ohlc.low.to_f64().unwrap_or(0.0))
             .fold(f64::INFINITY, f64::min);
         let max_price = data.iter()
-            .map(|ohlc| ohlc.high)
+            .map(|ohlc| ohlc.high.to_f64().unwrap_or(0.0))
             .fold(f64::NEG_INFINITY, f64::max);
         let price_margin = (max_price - min_price) * 0.1;
 
@@ -268,15 +269,15 @@ impl ChartBuilder {
 
             // Draw the high-low line (wick)
             price_chart.draw_series(LineSeries::new(
-                vec![(x, ohlc.low), (x, ohlc.high)],
+                vec![(x, ohlc.low.to_f64().unwrap_or(0.0)), (x, ohlc.high.to_f64().unwrap_or(0.0))],
                 &color,
             ))?;
 
             // Draw the open-close rectangle (body)
             let (body_bottom, body_top) = if ohlc.close >= ohlc.open {
-                (ohlc.open, ohlc.close)
+                (ohlc.open.to_f64().unwrap_or(0.0), ohlc.close.to_f64().unwrap_or(0.0))
             } else {
-                (ohlc.close, ohlc.open)
+                (ohlc.close.to_f64().unwrap_or(0.0), ohlc.open.to_f64().unwrap_or(0.0))
             };
 
             price_chart.draw_series(std::iter::once(Rectangle::new([
@@ -377,10 +378,10 @@ impl ChartBuilder {
 
         // Find price range
         let min_price = data.iter()
-            .map(|tick| tick.price)
+            .map(|tick| tick.price.to_f64().unwrap_or(0.0))
             .fold(f64::INFINITY, f64::min);
         let max_price = data.iter()
-            .map(|tick| tick.price)
+            .map(|tick| tick.price.to_f64().unwrap_or(0.0))
             .fold(f64::NEG_INFINITY, f64::max);
         let price_margin = (max_price - min_price) * 0.1;
 
@@ -408,7 +409,7 @@ impl ChartBuilder {
         // Draw the price line
         chart.draw_series(LineSeries::new(
             data.iter().enumerate()
-                .map(|(idx, tick)| (idx as f64, tick.price)),
+                .map(|(idx, tick)| (idx as f64, tick.price.to_f64().unwrap_or(0.0))),
             &self.ma_color,
         ))?
         .label("Price")
@@ -420,7 +421,7 @@ impl ChartBuilder {
             // Draw bid line
             chart.draw_series(LineSeries::new(
                 data.iter().enumerate()
-                    .filter_map(|(idx, tick)| tick.bid.map(|bid| (idx as f64, bid))),
+                    .filter_map(|(idx, tick)| tick.bid.map(|bid| (idx as f64, bid.to_f64().unwrap_or(0.0)))),
                 &self.bearish_color,
             ))?
             .label("Bid")
@@ -429,7 +430,7 @@ impl ChartBuilder {
             // Draw ask line
             chart.draw_series(LineSeries::new(
                 data.iter().enumerate()
-                    .filter_map(|(idx, tick)| tick.ask.map(|ask| (idx as f64, ask))),
+                    .filter_map(|(idx, tick)| tick.ask.map(|ask| (idx as f64, ask.to_f64().unwrap_or(0.0)))),
                 &self.bullish_color,
             ))?
             .label("Ask")
@@ -464,7 +465,7 @@ impl ChartBuilder {
         for i in (self.ma_period - 1)..data.len() {
             let sum: f64 = data[(i + 1 - self.ma_period)..(i + 1)]
                 .iter()
-                .map(|ohlc| ohlc.close)
+                .map(|ohlc| ohlc.close.to_f64().unwrap_or(0.0))
                 .sum();
             sma_values.push(sum / self.ma_period as f64);
         }

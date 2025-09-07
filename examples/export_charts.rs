@@ -17,9 +17,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Create a generator with trending data for interesting charts
     let config = ConfigBuilder::new()
-        .starting_price(120.0)
-        .volatility(0.025)
-        .trend(TrendDirection::Bullish, 0.002)
+        .starting_price_f64(120.0)
+        .volatility_f64(0.025)
+        .trend_f64(TrendDirection::Bullish, 0.002)
         .seed(321)  // For reproducible results
         .build()?;
     

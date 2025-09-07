@@ -28,9 +28,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Create a generator with sample data
     let config = ConfigBuilder::new()
-        .starting_price(180.0)
-        .volatility(0.02)
-        .trend(TrendDirection::Bullish, 0.001)
+        .starting_price_f64(180.0)
+        .volatility_f64(0.02)
+        .trend_f64(TrendDirection::Bullish, 0.001)
         .seed(654)
         .build()?;
     

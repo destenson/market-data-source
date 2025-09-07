@@ -20,9 +20,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Create a generator with custom configuration
     let config = ConfigBuilder::new()
-        .starting_price(150.0)
-        .volatility(0.025)
-        .trend(TrendDirection::Bullish, 0.001)
+        .starting_price_f64(150.0)
+        .volatility_f64(0.025)
+        .trend_f64(TrendDirection::Bullish, 0.001)
         .seed(42)  // For reproducible results
         .build()?;
     
@@ -69,8 +69,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Reset generator for consistent results
     let config_direct = ConfigBuilder::new()
-        .starting_price(100.0)
-        .volatility(0.02)
+        .starting_price_f64(100.0)
+        .volatility_f64(0.02)
         .seed(123)
         .build()?;
     
