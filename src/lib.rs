@@ -48,7 +48,7 @@ pub use types::{OHLC, Tick, TimeInterval, Volume};
 #[cfg(feature = "csv_export")]
 pub use export::{to_csv_ohlc, to_csv_ticks};
 
-// Module for algorithms (internal for now)
+// Module for algorithms (internal implementation details)
 mod algorithms;
 
 // Python bindings module (conditional on feature flag)

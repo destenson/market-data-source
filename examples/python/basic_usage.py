@@ -22,7 +22,7 @@ def main():
         initial_price=100.0,
         volatility=0.02,
         trend=0.0001,
-        volume_base=1000000.0,
+        volume_base=1000000,  # Integer, not float
         interval="1m",
         seed=42  # For reproducible results
     )
@@ -34,7 +34,7 @@ def main():
     print(f"Generated {len(ohlc_data)} OHLC bars")
     print("\nFirst 3 bars:")
     for i, bar in enumerate(ohlc_data[:3], 1):
-        dt = datetime.fromtimestamp(bar['timestamp'])
+        dt = datetime.fromtimestamp(bar['timestamp'] / 1000)  # Convert from milliseconds
         print(f"  Bar {i} ({dt.strftime('%Y-%m-%d %H:%M:%S')}):")
         print(f"    Open:  ${bar['open']:.2f}")
         print(f"    High:  ${bar['high']:.2f}")
@@ -44,26 +44,26 @@ def main():
     
     # Generate tick data
     print("\n2. Generating tick data...")
-    tick_data = generator.generate_ticks(5, spread=0.01)
+    tick_data = generator.generate_ticks(5)  # No spread parameter
     
     print(f"Generated {len(tick_data)} ticks")
     print("\nFirst 3 ticks:")
     for i, tick in enumerate(tick_data[:3], 1):
-        dt = datetime.fromtimestamp(tick['timestamp'])
+        dt = datetime.fromtimestamp(tick['timestamp'] / 1000)  # Convert from milliseconds
         print(f"  Tick {i} ({dt.strftime('%H:%M:%S')}):")
         print(f"    Bid: ${tick['bid']:.2f}, Ask: ${tick['ask']:.2f}, Spread: ${tick['spread']:.4f}")
     
     # Export data to files
     print("\n3. Exporting data to files...")
     generator.to_csv("output/basic_data.csv", count=100)
-    print("  ✓ Exported to CSV: output/basic_data.csv")
+    print("  [OK] Exported to CSV: output/basic_data.csv")
     
     generator.to_json("output/basic_data.json", count=100)
-    print("  ✓ Exported to JSON: output/basic_data.json")
+    print("  [OK] Exported to JSON: output/basic_data.json")
     
     generator.to_png("output/basic_chart.png", count=100, 
                      width=1200, height=800, title="Basic Market Data")
-    print("  ✓ Exported to PNG: output/basic_chart.png")
+    print("  [OK] Exported to PNG: output/basic_chart.png")
     
     # Using preset configurations
     print("\n4. Using preset configurations...")
@@ -88,8 +88,8 @@ def main():
     config = generator.config
     print(f"  Initial price: ${config.initial_price:.2f}")
     print(f"  Volatility: {config.volatility:.4f}")
-    print(f"  Trend: {config.trend:.6f}")
-    print(f"  Interval: {config.interval}")
+    print(f"  Trend strength: {config.trend_strength:.6f}")
+    print(f"  Time interval: {config.time_interval}")
     
     # Reset and change seed
     print("\n6. Resetting generator...")
@@ -98,7 +98,7 @@ def main():
     new_data = generator.generate_series(5)
     print(f"  Generated {len(new_data)} bars after reset with new seed")
     
-    print("\n✅ Example completed successfully!")
+    print("\n[SUCCESS] Example completed successfully!")
 
 
 if __name__ == "__main__":

@@ -196,13 +196,13 @@ impl CouchDbExporter {
 
 // Synchronous implementation for DataExporter trait
 impl DataExporter for CouchDbExporter {
-    fn export_ohlc<P: AsRef<Path>>(&self, data: &[OHLC], _path: P) -> ExportResult<()> {
+    fn export_ohlc<P: AsRef<Path>>(&self, data: &[OHLC], path: P) -> ExportResult<()> {
         // Create a runtime for synchronous execution
         let rt = tokio::runtime::Runtime::new()?;
         rt.block_on(self.export_ohlc_async(data))
     }
 
-    fn export_ticks<P: AsRef<Path>>(&self, data: &[Tick], _path: P) -> ExportResult<()> {
+    fn export_ticks<P: AsRef<Path>>(&self, data: &[Tick], path: P) -> ExportResult<()> {
         // Create a runtime for synchronous execution
         let rt = tokio::runtime::Runtime::new()?;
         rt.block_on(self.export_ticks_async(data))
@@ -426,15 +426,17 @@ impl CouchDbOptions {
         self
     }
 
-    /// Set timeout (placeholder - for API compatibility)
-    pub fn timeout_seconds(self, _timeout: u64) -> Self {
-        // This is just for compatibility with the example
+    /// Set timeout in seconds for CouchDB operations
+    pub fn timeout_seconds(self, timeout: u64) -> Self {
+        // Timeout configuration reserved for future implementation
+        // Currently accepts but doesn't use the parameter
         self
     }
 
-    /// Set auto create database (placeholder - for API compatibility)
-    pub fn auto_create_database(self, _auto_create: bool) -> Self {
-        // This is just for compatibility with the example
+    /// Set whether to automatically create the database if it doesn't exist
+    pub fn auto_create_database(self, auto_create: bool) -> Self {
+        // Auto-create configuration reserved for future implementation
+        // Currently accepts but doesn't use the parameter
         self
     }
 

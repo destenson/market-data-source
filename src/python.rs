@@ -294,6 +294,16 @@ impl PyMarketDataGenerator {
         }
     }
     
+    /// Set a new seed for the random number generator
+    fn set_seed(&mut self, seed: u64) -> PyResult<()> {
+        // Recreate generator with same config but new seed
+        let mut config = self.generator.config().clone();
+        config.seed = Some(seed);
+        self.generator = MarketDataGenerator::with_config(config)
+            .map_err(|e| PyValueError::new_err(format!("Failed to set seed: {}", e)))?;
+        Ok(())
+    }
+    
     /// Reset generator with new config
     fn reset(&mut self) -> PyResult<()> {
         let config = self.generator.config().clone();
