@@ -57,6 +57,7 @@ image = { version = "0.25.8", optional = true }
 plotters = { version = "0.3", default-features = false, features = ["line_series", "histogram"], optional = true }
 rand = "0.8.5"
 rand_distr = "0.4.3"
+rust_decimal = { version = "1.37.2", features = ["serde"] }
 serde = { version = "1.0.219", features = ["derive"], optional = true }
 serde_json = { version = "1.0.143", optional = true }
 tokio = { version = "1.47.1", features = ["rt", "macros"], optional = true }
