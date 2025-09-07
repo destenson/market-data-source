@@ -268,6 +268,7 @@ impl RollingStatistics {
 }
 
 /// Provides return distribution analysis
+#[derive(Default)]
 pub struct ReturnDistribution {
     returns: Vec<Decimal>,
 }
@@ -275,9 +276,7 @@ pub struct ReturnDistribution {
 impl ReturnDistribution {
     /// Creates a new return distribution analyzer
     pub fn new() -> Self {
-        Self {
-            returns: Vec::new(),
-        }
+        Self::default()
     }
 
     /// Adds returns from OHLC data
