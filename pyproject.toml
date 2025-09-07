@@ -53,6 +53,7 @@ Issues = "https://github.com/destenson/market-data-source/issues"
 [tool.maturin]
 features = ["python", "synthetic"]
 module-name = "market_data_source"
+manifest-path = "market-data-source-python/Cargo.toml"
 
 # Feature variants for different capabilities
 [tool.maturin.feature-set]
