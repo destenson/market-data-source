@@ -2,22 +2,20 @@
 
 use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
-use pyo3::types::{PyDict, PyString};
-use rust_decimal::prelude::*;
+use pyo3::types::PyDict;
 
-use market_data_source::{
+use ::market_data_source::{
     MarketDataGenerator, GeneratorConfig, ConfigBuilder, OHLC, Tick, TimeInterval,
-    export::{DataExporter, CsvExporter, JsonExporter, json::JsonOptions, chart::{ChartExporter, ChartBuilder}}
 };
 
 // Helper function to convert OHLC to Python dict
 fn ohlc_to_dict(ohlc: OHLC, py: Python<'_>) -> PyResult<Bound<'_, PyDict>> {
     let dict = PyDict::new(py);
     dict.set_item("timestamp", ohlc.timestamp)?;
-    dict.set_item("open", ohlc.open.to_f64().unwrap_or(0.0))?;
-    dict.set_item("high", ohlc.high.to_f64().unwrap_or(0.0))?;
-    dict.set_item("low", ohlc.low.to_f64().unwrap_or(0.0))?;
-    dict.set_item("close", ohlc.close.to_f64().unwrap_or(0.0))?;
+    dict.set_item("open", ohlc.open.to_string().parse::<f64>().unwrap_or(0.0))?;
+    dict.set_item("high", ohlc.high.to_string().parse::<f64>().unwrap_or(0.0))?;
+    dict.set_item("low", ohlc.low.to_string().parse::<f64>().unwrap_or(0.0))?;
+    dict.set_item("close", ohlc.close.to_string().parse::<f64>().unwrap_or(0.0))?;
     dict.set_item("volume", ohlc.volume.value())?;
     Ok(dict)
 }
@@ -26,16 +24,16 @@ fn ohlc_to_dict(ohlc: OHLC, py: Python<'_>) -> PyResult<Bound<'_, PyDict>> {
 fn tick_to_dict(tick: Tick, py: Python<'_>) -> PyResult<Bound<'_, PyDict>> {
     let dict = PyDict::new(py);
     dict.set_item("timestamp", tick.timestamp)?;
-    dict.set_item("price", tick.price.to_f64().unwrap_or(0.0))?;
+    dict.set_item("price", tick.price.to_string().parse::<f64>().unwrap_or(0.0))?;
     
     // Handle optional bid/ask
     if let (Some(bid), Some(ask)) = (tick.bid, tick.ask) {
-        dict.set_item("bid", bid.to_f64().unwrap_or(0.0))?;
-        dict.set_item("ask", ask.to_f64().unwrap_or(0.0))?;
-        dict.set_item("spread", (ask - bid).to_f64().unwrap_or(0.0))?;
+        dict.set_item("bid", bid.to_string().parse::<f64>().unwrap_or(0.0))?;
+        dict.set_item("ask", ask.to_string().parse::<f64>().unwrap_or(0.0))?;
+        dict.set_item("spread", (ask - bid).to_string().parse::<f64>().unwrap_or(0.0))?;
     } else {
-        dict.set_item("bid", tick.price.to_f64().unwrap_or(0.0))?;
-        dict.set_item("ask", tick.price.to_f64().unwrap_or(0.0))?;
+        dict.set_item("bid", tick.price.to_string().parse::<f64>().unwrap_or(0.0))?;
+        dict.set_item("ask", tick.price.to_string().parse::<f64>().unwrap_or(0.0))?;
         dict.set_item("spread", 0.0)?;
     }
     
@@ -43,24 +41,17 @@ fn tick_to_dict(tick: Tick, py: Python<'_>) -> PyResult<Bound<'_, PyDict>> {
     Ok(dict)
 }
 
-// Automated conversion for TimeInterval
-impl<'py> IntoPyObject<'py> for TimeInterval {
-    type Target = PyString;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-    
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let s = match self {
-            TimeInterval::OneMinute => "1m",
-            TimeInterval::FiveMinutes => "5m",
-            TimeInterval::FifteenMinutes => "15m",
-            TimeInterval::ThirtyMinutes => "30m",
-            TimeInterval::OneHour => "1h",
-            TimeInterval::FourHours => "4h",
-            TimeInterval::OneDay => "1d",
-            TimeInterval::Custom(seconds) => return Ok(PyString::new(py, &format!("{seconds}s"))),
-        };
-        Ok(PyString::new(py, s))
+// Helper function for TimeInterval conversion
+fn time_interval_to_string(interval: TimeInterval) -> String {
+    match interval {
+        TimeInterval::OneMinute => "1m".to_string(),
+        TimeInterval::FiveMinutes => "5m".to_string(),
+        TimeInterval::FifteenMinutes => "15m".to_string(),
+        TimeInterval::ThirtyMinutes => "30m".to_string(),
+        TimeInterval::OneHour => "1h".to_string(),
+        TimeInterval::FourHours => "4h".to_string(),
+        TimeInterval::OneDay => "1d".to_string(),
+        TimeInterval::Custom(seconds) => format!("{}s", seconds),
     }
 }
 
@@ -75,17 +66,17 @@ pub struct PyGeneratorConfig {
 impl PyGeneratorConfig {
     #[getter]
     fn initial_price(&self) -> f64 {
-        self.inner.starting_price.to_f64().unwrap_or(0.0)
+        self.inner.starting_price.to_string().parse::<f64>().unwrap_or(0.0)
     }
     
     #[getter]
     fn volatility(&self) -> f64 {
-        self.inner.volatility.to_f64().unwrap_or(0.0)
+        self.inner.volatility.to_string().parse::<f64>().unwrap_or(0.0)
     }
     
     #[getter]
     fn trend_strength(&self) -> f64 {
-        self.inner.trend_strength.to_f64().unwrap_or(0.0)
+        self.inner.trend_strength.to_string().parse::<f64>().unwrap_or(0.0)
     }
     
     #[getter]
@@ -95,12 +86,12 @@ impl PyGeneratorConfig {
     
     #[getter]
     fn min_price(&self) -> f64 {
-        self.inner.min_price.to_f64().unwrap_or(0.0)
+        self.inner.min_price.to_string().parse::<f64>().unwrap_or(0.0)
     }
     
     #[getter]
     fn max_price(&self) -> f64 {
-        self.inner.max_price.to_f64().unwrap_or(0.0)
+        self.inner.max_price.to_string().parse::<f64>().unwrap_or(0.0)
     }
     
     #[getter]
@@ -115,7 +106,7 @@ impl PyGeneratorConfig {
     
     #[getter]
     fn time_interval(&self) -> String {
-        format!("{:?}", self.inner.time_interval)
+        time_interval_to_string(self.inner.time_interval)
     }
     
     #[getter]
@@ -158,7 +149,7 @@ impl PyMarketDataGenerator {
             if let Ok(Some(val)) = dict.get_item("trend") {
                 // For backwards compatibility, interpret single trend value as bullish/bearish direction
                 let trend_val = val.extract::<f64>()?;
-                use crate::config::TrendDirection;
+                use ::market_data_source::config::TrendDirection;
                 let direction = if trend_val > 0.0 {
                     TrendDirection::Bullish
                 } else if trend_val < 0.0 {
@@ -201,17 +192,29 @@ impl PyMarketDataGenerator {
     }
     
     /// Generate OHLC data series - returns list of dicts
-    fn generate_series(&mut self, count: usize) -> Vec<OHLC> {
-        self.generator.generate_series(count)
+    fn generate_series(&mut self, py: Python<'_>, count: usize) -> PyResult<Vec<Py<PyDict>>> {
+        let data = self.generator.generate_series(count);
+        let mut result = Vec::new();
+        for ohlc in data {
+            let dict = ohlc_to_dict(ohlc, py)?;
+            result.push(dict.unbind());
+        }
+        Ok(result)
     }
     
     /// Generate tick data - returns list of dicts
-    fn generate_ticks(&mut self, count: usize) -> Vec<Tick> {
-        self.generator.generate_ticks(count)
+    fn generate_ticks(&mut self, py: Python<'_>, count: usize) -> PyResult<Vec<Py<PyDict>>> {
+        let data = self.generator.generate_ticks(count);
+        let mut result = Vec::new();
+        for tick in data {
+            let dict = tick_to_dict(tick, py)?;
+            result.push(dict.unbind());
+        }
+        Ok(result)
     }
     
     /// Generate data between timestamps
-    fn generate_series_between(&mut self, start: i64, end: i64) -> PyResult<Vec<OHLC>> {
+    fn generate_series_between(&mut self, py: Python<'_>, start: i64, end: i64) -> PyResult<Vec<Py<PyDict>>> {
         // Set starting timestamp
         self.generator.set_timestamp(start);
         
@@ -229,66 +232,13 @@ impl PyMarketDataGenerator {
         };
         
         let count = (duration_ms / interval_ms).max(1) as usize;
-        Ok(self.generator.generate_series(count))
-    }
-    
-    /// Export data to CSV file
-    #[allow(clippy::wrong_self_convention)]
-    fn to_csv(&mut self, path: &str, count: usize) -> PyResult<()> {
         let data = self.generator.generate_series(count);
-        let exporter = CsvExporter::new();
-        exporter.export_ohlc(&data, path)
-            .map_err(|e| PyValueError::new_err(format!("Export failed: {e}")))?;
-        Ok(())
-    }
-    
-    /// Export data to JSON file
-    #[pyo3(signature = (path, count, lines=None))]
-    #[allow(clippy::wrong_self_convention)]
-    fn to_json(&mut self, path: &str, count: usize, lines: Option<bool>) -> PyResult<()> {
-        let data = self.generator.generate_series(count);
-        let exporter = if lines.unwrap_or(false) {
-            JsonExporter::with_options(JsonOptions::json_lines())
-        } else {
-            JsonExporter::new()
-        };
-        exporter.export_ohlc(&data, path)
-            .map_err(|e| PyValueError::new_err(format!("Export failed: {e}")))?;
-        Ok(())
-    }
-    
-    /// Export data to PNG chart
-    #[pyo3(signature = (path, count, **kwargs))]
-    #[allow(clippy::wrong_self_convention)]
-    fn to_png(&mut self, path: &str, count: usize, kwargs: Option<&Bound<'_, pyo3::types::PyDict>>) -> PyResult<()> {
-        let data = self.generator.generate_series(count);
-        
-        // Build the chart configuration from kwargs
-        let mut builder = ChartBuilder::new();
-        
-        if let Some(dict) = kwargs {
-            if let Ok(Some(width)) = dict.get_item("width") {
-                if let Ok(Some(height)) = dict.get_item("height") {
-                    let w: u32 = width.extract()?;
-                    let h: u32 = height.extract()?;
-                    builder = builder.dimensions(w, h);
-                }
-            }
-            if let Ok(Some(title)) = dict.get_item("title") {
-                let t: String = title.extract()?;
-                builder = builder.title(&t);
-            }
-            if let Ok(Some(volume)) = dict.get_item("volume") {
-                let v: bool = volume.extract()?;
-                builder = builder.show_volume(v);
-            }
+        let mut result = Vec::new();
+        for ohlc in data {
+            let dict = ohlc_to_dict(ohlc, py)?;
+            result.push(dict.unbind());
         }
-        
-        let exporter = ChartExporter::with_builder(builder);
-        
-        exporter.export_ohlc(&data, path)
-            .map_err(|e| PyValueError::new_err(format!("Export failed: {e}")))?;
-        Ok(())
+        Ok(result)
     }
     
     /// Get current configuration

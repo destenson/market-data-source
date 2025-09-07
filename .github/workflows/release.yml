@@ -166,7 +166,9 @@ jobs:
         run: pip install maturin
       
       - name: Build wheels
-        run: maturin build --release --out dist
+        run: |
+          cd market-data-source-python
+          maturin build --release --out ../dist
       
       - name: Test wheel installation
         run: |

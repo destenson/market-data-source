@@ -126,7 +126,8 @@ jobs:
       
       - name: Build test wheel
         run: |
-          maturin build --release --out dist
+          cd market-data-source-python
+          maturin build --release --out ../dist
           echo "## Built Wheels" >> $GITHUB_STEP_SUMMARY
           ls -la dist/ | tail -n +2 >> $GITHUB_STEP_SUMMARY
       

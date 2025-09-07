@@ -1779,6 +1779,7 @@ version = "0.3.0"
 dependencies = [
  "market-data-source",
  "pyo3",
+ "rust_decimal",
 ]
 
 [[package]]

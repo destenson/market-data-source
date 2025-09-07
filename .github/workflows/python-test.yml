@@ -51,7 +51,8 @@ jobs:
       
       - name: Build Python package
         run: |
-          uv run maturin build --release --out dist
+          cd market-data-source-python
+          uv run maturin build --release --out ../dist
       
       - name: Install package
         run: |
@@ -72,16 +73,11 @@ jobs:
           gen = MarketDataGenerator()
           
           # Generate OHLC data
-          ohlc_data = gen.generate_ohlc(100)
+          ohlc_data = gen.generate_series(100)
           print(f'Generated {len(ohlc_data)} OHLC records')
           
-          # Test JSON export
-          json_data = gen.to_json(ohlc_data)
-          parsed = json.loads(json_data)
-          print(f'JSON export successful with {len(parsed)} records')
-          
           # Verify data structure
-          first = parsed[0]
+          first = ohlc_data[0]
           assert 'timestamp' in first
           assert 'open' in first
           assert 'high' in first
