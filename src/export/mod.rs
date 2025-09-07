@@ -205,7 +205,7 @@ pub fn to_csv_string_ohlc(data: &[OHLC]) -> ExportResult<String> {
         }
         
         writer.flush()
-            .map_err(ExportError::Csv)?;
+            .map_err(ExportError::Io)?;
     }
     
     String::from_utf8(buffer)

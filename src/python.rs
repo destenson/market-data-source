@@ -2,6 +2,7 @@
 
 use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
+use pyo3::types::{PyDict, PyString};
 use rust_decimal::prelude::*;
 
 use crate::{
@@ -10,46 +11,58 @@ use crate::{
 };
 
 // Automated conversion trait for OHLC to Python dict
-impl IntoPy<PyObject> for OHLC {
-    fn into_py(self, py: Python) -> PyObject {
-        let dict = pyo3::types::PyDict::new(py);
-        dict.set_item("timestamp", self.timestamp).unwrap();
-        dict.set_item("open", self.open.to_f64().unwrap_or(0.0)).unwrap();
-        dict.set_item("high", self.high.to_f64().unwrap_or(0.0)).unwrap();
-        dict.set_item("low", self.low.to_f64().unwrap_or(0.0)).unwrap();
-        dict.set_item("close", self.close.to_f64().unwrap_or(0.0)).unwrap();
-        dict.set_item("volume", self.volume.value()).unwrap();
-        dict.into()
+impl<'py> IntoPyObject<'py> for OHLC {
+    type Target = PyDict;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+    
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let dict = PyDict::new(py);
+        dict.set_item("timestamp", self.timestamp)?;
+        dict.set_item("open", self.open.to_f64().unwrap_or(0.0))?;
+        dict.set_item("high", self.high.to_f64().unwrap_or(0.0))?;
+        dict.set_item("low", self.low.to_f64().unwrap_or(0.0))?;
+        dict.set_item("close", self.close.to_f64().unwrap_or(0.0))?;
+        dict.set_item("volume", self.volume.value())?;
+        Ok(dict)
     }
 }
 
 // Automated conversion trait for Tick to Python dict
-impl IntoPy<PyObject> for Tick {
-    fn into_py(self, py: Python) -> PyObject {
-        let dict = pyo3::types::PyDict::new(py);
-        dict.set_item("timestamp", self.timestamp).unwrap();
-        dict.set_item("price", self.price.to_f64().unwrap_or(0.0)).unwrap();
+impl<'py> IntoPyObject<'py> for Tick {
+    type Target = PyDict;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+    
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let dict = PyDict::new(py);
+        dict.set_item("timestamp", self.timestamp)?;
+        dict.set_item("price", self.price.to_f64().unwrap_or(0.0))?;
         
         // Handle optional bid/ask
         if let (Some(bid), Some(ask)) = (self.bid, self.ask) {
-            dict.set_item("bid", bid.to_f64().unwrap_or(0.0)).unwrap();
-            dict.set_item("ask", ask.to_f64().unwrap_or(0.0)).unwrap();
-            dict.set_item("spread", (ask - bid).to_f64().unwrap_or(0.0)).unwrap();
+            dict.set_item("bid", bid.to_f64().unwrap_or(0.0))?;
+            dict.set_item("ask", ask.to_f64().unwrap_or(0.0))?;
+            dict.set_item("spread", (ask - bid).to_f64().unwrap_or(0.0))?;
         } else {
-            dict.set_item("bid", self.price.to_f64().unwrap_or(0.0)).unwrap();
-            dict.set_item("ask", self.price.to_f64().unwrap_or(0.0)).unwrap();
-            dict.set_item("spread", 0.0).unwrap();
+            dict.set_item("bid", self.price.to_f64().unwrap_or(0.0))?;
+            dict.set_item("ask", self.price.to_f64().unwrap_or(0.0))?;
+            dict.set_item("spread", 0.0)?;
         }
         
-        dict.set_item("volume", self.volume.value()).unwrap();
-        dict.into()
+        dict.set_item("volume", self.volume.value())?;
+        Ok(dict)
     }
 }
 
 // Automated conversion for TimeInterval
-impl IntoPy<PyObject> for TimeInterval {
-    fn into_py(self, py: Python) -> PyObject {
-        match self {
+impl<'py> IntoPyObject<'py> for TimeInterval {
+    type Target = PyString;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+    
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let s = match self {
             TimeInterval::OneMinute => "1m",
             TimeInterval::FiveMinutes => "5m",
             TimeInterval::FifteenMinutes => "15m",
@@ -57,8 +70,9 @@ impl IntoPy<PyObject> for TimeInterval {
             TimeInterval::OneHour => "1h",
             TimeInterval::FourHours => "4h",
             TimeInterval::OneDay => "1d",
-            TimeInterval::Custom(seconds) => return format!("{seconds}s").into_py(py),
-        }.into_py(py)
+            TimeInterval::Custom(seconds) => return Ok(PyString::new(py, &format!("{seconds}s"))),
+        };
+        Ok(PyString::new(py, s))
     }
 }
 

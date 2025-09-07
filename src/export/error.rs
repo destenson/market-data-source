@@ -16,18 +16,6 @@ pub enum ExportError {
     /// CouchDB database error
     #[cfg(feature = "couchdb")]
     CouchDb(couch_rs::error::CouchError),
-    #[deprecated(note = "Use specific wrapped error variant instead")]
-    /// Configuration error (invalid options)
-    Configuration(String),
-    #[deprecated(note = "Use specific wrapped error variant instead")]
-    /// Chart rendering error (PNG generation)
-    Chart(String),
-    #[deprecated(note = "Use specific wrapped error variant instead")]
-    /// Invalid data error (malformed input)
-    InvalidData(String),
-    #[deprecated(note = "Use specific wrapped error variant instead")]
-    /// Write failed error
-    WriteFailed(String),
     /// Feature not available (disabled feature flag)
     FeatureNotAvailable(String),
 }
@@ -42,10 +30,6 @@ impl fmt::Display for ExportError {
             ExportError::Json(err) => write!(f, "JSON error: {err}"),
             #[cfg(feature = "couchdb")]
             ExportError::CouchDb(err) => write!(f, "CouchDB error: {err}"),
-            ExportError::Configuration(msg) => write!(f, "Configuration error: {msg}"),
-            ExportError::Chart(msg) => write!(f, "Chart rendering error: {msg}"),
-            ExportError::InvalidData(msg) => write!(f, "Invalid data: {msg}"),
-            ExportError::WriteFailed(msg) => write!(f, "Write failed: {msg}"),
             ExportError::FeatureNotAvailable(msg) => write!(f, "Feature not available: {msg}"),
         }
     }

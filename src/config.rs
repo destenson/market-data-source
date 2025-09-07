@@ -265,7 +265,7 @@ impl ConfigBuilder {
     /// Sets the starting price from f64 (convenience method)
     pub fn starting_price_f64(mut self, price: f64) -> Self {
         self.config.starting_price = Decimal::from_f64(price)
-            .unwrap_or_else(|_| Decimal::from_f64(100.0).expect("100.0 should always convert to Decimal"));
+            .unwrap_or_else(|| Decimal::from_f64(100.0).expect("100.0 should always convert to Decimal"));
         self
     }
 
@@ -279,9 +279,9 @@ impl ConfigBuilder {
     /// Sets the price boundaries from f64 (convenience method)
     pub fn price_range_f64(mut self, min: f64, max: f64) -> Self {
         self.config.min_price = Decimal::from_f64(min)
-            .unwrap_or_else(|_| Decimal::from_f64(1.0).expect("1.0 should always convert to Decimal"));
+            .unwrap_or_else(|| Decimal::from_f64(1.0).expect("1.0 should always convert to Decimal"));
         self.config.max_price = Decimal::from_f64(max)
-            .unwrap_or_else(|_| Decimal::from_f64(1e15).expect("1e15 should always convert to Decimal"));
+            .unwrap_or_else(|| Decimal::from_f64(1e15).expect("1e15 should always convert to Decimal"));
         self
     }
 
@@ -308,7 +308,7 @@ impl ConfigBuilder {
     /// Sets the volatility from f64 (convenience method)
     pub fn volatility_f64(mut self, volatility: f64) -> Self {
         self.config.volatility = Decimal::from_f64(volatility)
-            .unwrap_or_else(|_| Decimal::from_f64(0.02).expect("0.02 should always convert to Decimal"));
+            .unwrap_or_else(|| Decimal::from_f64(0.02).expect("0.02 should always convert to Decimal"));
         self
     }
 
