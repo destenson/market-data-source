@@ -198,7 +198,7 @@ impl MarketDataGenerator {
         let exporter = CsvExporter::default();
         
         // Create an iterator that generates candles on-the-fly
-        let iter = (0..count).map(|_| self.generate_candle());
+        let iter = (0..count).map(|_| self.generate_ohlc());
         
         Ok(exporter.stream_ohlc(iter, path)?)
     }
@@ -259,7 +259,7 @@ mod tests {
             .unwrap();
         
         let mut generator = MarketDataGenerator::with_config(config).unwrap();
-        let candle = generator.generate_candle();
+        let candle = generator.generate_ohlc();
         
         assert!(candle.is_valid());
         assert!(candle.volume.value() > 0);
@@ -329,9 +329,9 @@ mod tests {
         
         let mut generator = MarketDataGenerator::with_config(config).unwrap();
         
-        let candle1 = generator.generate_candle();
+        let candle1 = generator.generate_ohlc();
         generator.reset();
-        let candle2 = generator.generate_candle();
+        let candle2 = generator.generate_ohlc();
         
         // After reset with same seed, should generate same values
         assert_eq!(candle1.open, candle2.open);
