@@ -33,6 +33,12 @@ jobs:
         with:
           cache-on-failure: true
       
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fontconfig libfontconfig1-dev
+      
       - name: Build
         run: cargo build --verbose
       
@@ -83,6 +89,11 @@ jobs:
         with:
           cache-on-failure: true
       
+      - name: Install system dependencies (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fontconfig libfontconfig1-dev
+      
       - name: Test features ${{ matrix.features }}
         run: cargo test --features "${{ matrix.features }}" --verbose
   
@@ -98,6 +109,11 @@ jobs:
           components: llvm-tools-preview
       
       - uses: Swatinem/rust-cache@v2
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fontconfig libfontconfig1-dev
       
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov

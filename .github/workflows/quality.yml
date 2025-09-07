@@ -20,6 +20,11 @@ jobs:
       
       - uses: Swatinem/rust-cache@v2
       
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fontconfig libfontconfig1-dev
+      
       - name: Run clippy (no features)
         run: cargo clippy --no-default-features -- -D warnings
       
@@ -59,6 +64,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       
       - uses: Swatinem/rust-cache@v2
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fontconfig libfontconfig1-dev
       
       - name: Build documentation (no features)
         run: cargo doc --no-deps --no-default-features
@@ -103,6 +113,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.75.0  # MSRV from Cargo.toml
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fontconfig libfontconfig1-dev
       
       - name: Check MSRV
         run: cargo check --all-features

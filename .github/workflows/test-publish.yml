@@ -63,6 +63,11 @@ jobs:
       
       - uses: dtolnay/rust-toolchain@stable
       
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fontconfig libfontconfig1-dev
+      
       - name: Test OIDC token exchange
         uses: rust-lang/crates-io-auth-action@v1
         id: auth
@@ -109,6 +114,11 @@ jobs:
           python-version: '3.10'
       
       - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fontconfig libfontconfig1-dev
       
       - name: Install build tools
         run: |
