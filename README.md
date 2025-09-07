@@ -4,6 +4,9 @@
 [![PyPI](https://img.shields.io/pypi/v/market-data-source.svg)](https://pypi.org/project/market-data-source/)
 [![Documentation](https://docs.rs/market-data-source/badge.svg)](https://docs.rs/market-data-source)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://github.com/deste128/market-data-source/actions/workflows/test.yml/badge.svg)](https://github.com/deste128/market-data-source/actions/workflows/test.yml)
+[![Python Tests](https://github.com/deste128/market-data-source/actions/workflows/python-test.yml/badge.svg)](https://github.com/deste128/market-data-source/actions/workflows/python-test.yml)
+[![Code Quality](https://github.com/deste128/market-data-source/actions/workflows/quality.yml/badge.svg)](https://github.com/deste128/market-data-source/actions/workflows/quality.yml)
 
 **10x faster than pure Python** | **Financial precision with Decimal types** | **Python & Rust support**
 
