@@ -130,7 +130,9 @@ try {
     $createBody = @{
         symbol = "BTCUSD"
         config = @{
-            initial_price = "50000.0"
+            starting_price = "50000.0"
+            min_price = "200.0"
+            max_price = "200000.0"
             volatility = "0.05"
             drift = "0.0002"
         }

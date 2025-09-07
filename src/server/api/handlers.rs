@@ -1,3 +1,4 @@
+#![allow(unused)]
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,

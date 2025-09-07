@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use axum::{
     extract::State,
     response::{Json, IntoResponse},
