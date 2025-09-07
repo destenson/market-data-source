@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! CouchDB Export Example
 //!
 //! This example demonstrates how to export market data to CouchDB database.

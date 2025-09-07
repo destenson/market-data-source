@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! PNG Chart Export Example
 //!
 //! This example demonstrates how to export market data as PNG charts.

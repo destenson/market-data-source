@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! JSON Export Example
 //!
 //! This example demonstrates how to export market data to JSON formats.

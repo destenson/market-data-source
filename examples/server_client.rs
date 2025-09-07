@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! Example client for interacting with the Market Data Source server
 //!
 //! Run the server first:

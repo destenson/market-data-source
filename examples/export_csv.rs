@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! CSV Export Example
 //!
 //! This example demonstrates how to export market data to CSV format.

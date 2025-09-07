@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! Basic example of using the market-data-source library
 
 use market_data_source::MarketDataGenerator;

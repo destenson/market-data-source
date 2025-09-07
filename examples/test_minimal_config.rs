@@ -1,3 +1,4 @@
+#![allow(unused)]
 // Test that the create symbol endpoint works with minimal configuration
 
 use serde_json::json;

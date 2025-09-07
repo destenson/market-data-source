@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! All Export Formats Example
 //!
 //! This comprehensive example demonstrates how to export the same market data
