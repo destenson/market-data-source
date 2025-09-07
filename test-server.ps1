@@ -3,7 +3,7 @@
 
 param(
     [int]$Port = 8080,
-    [string]$Host = "localhost",
+    [string]$HostName = "localhost",
     [int]$StartupDelay = 3,
     [int]$TestDelay = 1
 )
@@ -60,12 +60,14 @@ Write-Host "Build successful!" -ForegroundColor Green
 Write-Host ""
 
 # Start the server in background
-Write-Host "Starting server on ${Host}:${Port}..." -ForegroundColor Cyan
-$serverProcess = Start-Process -FilePath "cargo" -ArgumentList "run","--bin","market-data-server","--features","api-server","--","--port",$Port,"--host",$Host -NoNewWindow -PassThru
+Write-Host "Starting server on ${HostName}:${Port}..." -ForegroundColor Cyan
+$serverProcess = Start-Process -FilePath "cargo" -ArgumentList "run","--bin","market-data-server","--features","api-server","--","--port",$Port,"--host",$HostName,"start" -NoNewWindow -PassThru
 
 # Wait for server to start
 Write-Host "Waiting $StartupDelay seconds for server to start..." -ForegroundColor Gray
 Start-Sleep -Seconds $StartupDelay
+Write-Host "Finished waiting." -ForegroundColor Gray
+Write-Host ""
 
 # Check if server process is still running
 if ($serverProcess.HasExited) {
@@ -76,7 +78,7 @@ if ($serverProcess.HasExited) {
 Write-Host "Server started with PID: $($serverProcess.Id)" -ForegroundColor Green
 Write-Host ""
 
-$baseUrl = "http://${Host}:${Port}"
+$baseUrl = "http://${HostName}:${Port}"
 $apiUrl = "${baseUrl}/api/v1"
 $testsPassed = 0
 $testsFailed = 0
@@ -200,7 +202,7 @@ try {
     
     # Test 11: WebSocket Connection (just test if endpoint responds)
     Write-Host "Testing: WebSocket Endpoint" -ForegroundColor Yellow
-    Write-Host "  URL: ws://${Host}:${Port}/ws" -ForegroundColor Gray
+    Write-Host "  URL: ws://${HostName}:${Port}/ws" -ForegroundColor Gray
     try {
         # We can't easily test WebSocket in PowerShell, so just check if the HTTP upgrade would work
         $wsHeaders = @{
