@@ -4,8 +4,8 @@ build-backend = "maturin"
 
 [project]
 name = "market-data-source"
-version = "0.2.0"
-description = "High-performance synthetic market data generation library"
+version = "0.3.0"
+description = "High-performance financial data generation with Python bindings. Rust-powered market data simulation for Python data scientists and quantitative researchers."
 readme = "README.md"
 requires-python = ">=3.8"
 license = { file = "LICENSE" }
@@ -19,6 +19,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
@@ -29,6 +30,7 @@ classifiers = [
     "Programming Language :: Rust",
     "Topic :: Office/Business :: Financial",
     "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 keywords = [
@@ -50,8 +52,7 @@ Issues = "https://github.com/destenson/market-data-source/issues"
 
 [tool.maturin]
 features = ["python", "synthetic"]
-python-source = "python"
-module-name = "market_data_source._market_data_source"
+module-name = "market_data_source"
 
 # Feature variants for different capabilities
 [tool.maturin.feature-set]
