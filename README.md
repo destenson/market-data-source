@@ -1,6 +1,21 @@
 # Market Data Source
 
+[![Crates.io](https://img.shields.io/crates/v/market-data-source.svg)](https://crates.io/crates/market-data-source)
+[![PyPI](https://img.shields.io/pypi/v/market-data-source.svg)](https://pypi.org/project/market-data-source/)
+[![Documentation](https://docs.rs/market-data-source/badge.svg)](https://docs.rs/market-data-source)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**10x faster than pure Python** | **Financial precision with Decimal types** | **Python & Rust support**
+
 Market Data Source is a high-performance Rust library for generating realistic synthetic market data with Python bindings. It provides a unified interface to generate real-time and historical market data, making it easier for developers to integrate market data into their applications for backtesting, research, and development.
+
+## Why Market Data Source?
+
+- **No API limits** - Generate unlimited data without rate limiting
+- **No costs** - Completely free and open source
+- **Reproducible** - Deterministic generation with seed support
+- **Fast** - Rust performance with Python convenience
+- **Flexible** - Export to CSV, JSON, PNG charts, or stream to CouchDB
 
 Key features:
 - **High-performance** Rust implementation with Python bindings via PyO3
@@ -22,57 +37,121 @@ Key features:
 - Streaming generation for large datasets
 - Extensible architecture for adding new algorithms
 
-## Getting Started
+## Installation
 
-### Python Installation (Recommended with UV)
+### Quick Install
 
-The easiest way to use Market Data Source is through Python using [UV](https://github.com/astral-sh/uv):
-
+#### Python (pip)
 ```bash
-# Install UV (if not already installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh  # macOS/Linux
-# or
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
-
-# Install market-data-source
-uv pip install market-data-source
-
-# Or build from source
-uv pip install maturin
-uv run maturin develop --features python,synthetic,live,api-emulator,api-bridge --release
+pip install market-data-source
 ```
 
-Quick Python example:
+#### Rust (Cargo)
+```toml
+[dependencies]
+market-data-source = "0.3.0"
+```
+
+### Detailed Installation
+
+#### Python Installation
+
+**Option 1: Install from PyPI (Recommended)**
+```bash
+# Using pip
+pip install market-data-source
+
+# Using uv (faster)
+uv pip install market-data-source
+```
+
+**Option 2: Build from source**
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/market-data-source.git
+cd market-data-source
+
+# Install with maturin
+pip install maturin
+maturin develop --release
+```
+
+#### Rust Installation
+
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+market-data-source = "0.3.0"
+
+# Or with specific features
+market-data-source = { 
+    version = "0.3.0", 
+    features = ["csv_export", "json_export", "png_export"] 
+}
+```
+
+Available features:
+- `csv_export` - CSV file export support
+- `json_export` - JSON/JSONL export support  
+- `png_export` - PNG chart generation
+- `couchdb` - CouchDB database export
+- `dotenvy` - Environment variable configuration
+- `serde` - Serialization support
+
+## Quick Start
+
+### Python Example
 
 ```python
 import market_data_source as mds
 
-# Create generator
+# Create generator with configuration
 generator = mds.MarketDataGenerator(
     initial_price=100.0,
     volatility=0.02,
     seed=42
 )
 
-# Generate OHLC data
+# Generate 100 OHLC candles
 data = generator.generate_series(100)
 
-# Export to files
-generator.to_csv("output.csv", count=1000)
-generator.to_json("output.json", count=1000)
+# Export to various formats
+generator.to_csv("data.csv", count=1000)
+generator.to_json("data.json", count=1000)
 generator.to_png("chart.png", count=500)
 ```
 
-See [PYTHON_SETUP.md](docs/PYTHON_SETUP.md) for detailed Python setup instructions.
+### Rust Example
 
-### Rust Installation
+```rust
+use market_data_source::{MarketDataGenerator, ConfigBuilder};
 
-To use Market Data Source in your Rust project, add the following dependency to your `Cargo.toml` file:
-
-```toml
-[dependencies]
-market-data-source = { version = "0.3.0", features = ["csv_export", "json_export", "png_export", "couchdb", "dotenvy", "serde"] }
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create generator with custom config
+    let config = ConfigBuilder::new()
+        .initial_price_f64(100.0)
+        .volatility_f64(0.02)
+        .seed(42)
+        .build();
+    
+    let mut generator = MarketDataGenerator::with_config(config)?;
+    
+    // Generate OHLC data
+    let candles = generator.generate_series(100);
+    
+    // Export to CSV
+    #[cfg(feature = "csv_export")]
+    {
+        use market_data_source::export::to_csv_ohlc;
+        to_csv_ohlc(&candles, "output.csv")?;
+    }
+    
+    Ok(())
+}
 ```
+
+See [examples/](examples/) directory for more comprehensive examples.
 
 ### Environment Variables
 
