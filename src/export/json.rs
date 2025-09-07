@@ -326,7 +326,7 @@ mod tests {
         for line in lines.iter() {
             let tick: Tick = serde_json::from_str(line).unwrap();
             assert!(tick.price > Decimal::from(0), "Price should be positive");
-            assert!(tick.volume.value() >= 0, "Volume should be non-negative");
+            // Volume is u64, so it's always non-negative
         }
     }
 

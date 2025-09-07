@@ -245,6 +245,7 @@ impl PyMarketDataGenerator {
     }
     
     /// Export data to CSV file
+    #[allow(clippy::wrong_self_convention)]
     fn to_csv(&mut self, path: &str, count: usize) -> PyResult<()> {
         let data = self.generator.generate_series(count);
         let exporter = CsvExporter::new();
@@ -255,6 +256,7 @@ impl PyMarketDataGenerator {
     
     /// Export data to JSON file
     #[pyo3(signature = (path, count, lines=None))]
+    #[allow(clippy::wrong_self_convention)]
     fn to_json(&mut self, path: &str, count: usize, lines: Option<bool>) -> PyResult<()> {
         let data = self.generator.generate_series(count);
         let exporter = if lines.unwrap_or(false) {
@@ -269,6 +271,7 @@ impl PyMarketDataGenerator {
     
     /// Export data to PNG chart
     #[pyo3(signature = (path, count, **kwargs))]
+    #[allow(clippy::wrong_self_convention)]
     fn to_png(&mut self, path: &str, count: usize, kwargs: Option<&Bound<'_, pyo3::types::PyDict>>) -> PyResult<()> {
         let data = self.generator.generate_series(count);
         

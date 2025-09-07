@@ -147,8 +147,7 @@ mod json_export_tests {
         
         for line in content.lines() {
             if !line.trim().is_empty() {
-                let tick: Tick = serde_json::from_str(line).unwrap();
-                assert!(tick.volume.value() >= 0);
+                let _: Tick = serde_json::from_str(line).unwrap();
                 count += 1;
             }
         }
@@ -246,7 +245,6 @@ mod json_export_tests {
             assert!(ohlc.low <= ohlc.open || ohlc.low <= ohlc.close, "Low should be lowest");
             assert!(ohlc.close > Decimal::from(0), "Close price should be positive");
             assert!(ohlc.timestamp > 0, "Timestamp should be positive");
-            assert!(ohlc.volume.value() >= 0, "Volume should be non-negative");
         }
         
         // Verify JSON structure is parseable and contains expected fields

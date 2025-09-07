@@ -212,7 +212,7 @@ mod tests {
     fn test_env_config_load() {
         let _config = EnvConfig::load();
         // Basic load test - should not panic
-        assert!(true);
+        // Test passes if no panic occurs
     }
     
     #[test]
