@@ -8,20 +8,20 @@
 [![Python Tests](https://github.com/deste128/market-data-source/actions/workflows/python-test.yml/badge.svg)](https://github.com/deste128/market-data-source/actions/workflows/python-test.yml)
 [![Code Quality](https://github.com/deste128/market-data-source/actions/workflows/quality.yml/badge.svg)](https://github.com/deste128/market-data-source/actions/workflows/quality.yml)
 
-**10x faster than pure Python** | **Financial precision with Decimal types** | **Python & Rust support**
+**Financial precision with Decimal types** | **Python & Rust dual ecosystem support** | **Extensible architecture**
 
-Market Data Source is a high-performance Rust library for generating realistic synthetic market data with Python bindings. It provides a unified interface to generate real-time and historical market data, making it easier for developers to integrate market data into their applications for backtesting, research, and development.
+Market Data Source is a Rust library for generating realistic synthetic market data with Python bindings. It provides a unified interface to generate real-time and historical market data, making it easier for developers to integrate market data into their applications for backtesting, research, and development.
 
 ## Why Market Data Source?
 
 - **No API limits** - Generate unlimited data without rate limiting
 - **No costs** - Completely free and open source
 - **Reproducible** - Deterministic generation with seed support
-- **Fast** - Rust performance with Python convenience
+- **Native bindings** - Use from both Rust and Python
 - **Flexible** - Export to CSV, JSON, PNG charts, or stream to CouchDB
 
 Key features:
-- **High-performance** Rust implementation with Python bindings via PyO3
+- **Rust implementation** with Python bindings via PyO3
 - **Realistic data generation** using advanced algorithms to simulate market conditions
 - **Multiple export formats** including CSV, JSON, CouchDB, and PNG charts
 - **Extensible architecture** allowing users to easily add custom algorithms
