@@ -96,6 +96,8 @@ utoipa-swagger-ui = { version = "8", features = ["axum"], optional = true }
 [dev-dependencies]
 tempfile = "3.8"
 serde_json = "1.0.143"
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1.47", features = ["full"] }
 
 [lib]
 name = "market_data_source"
@@ -105,4 +107,4 @@ crate-type = ["rlib", "cdylib"]
 [[bin]]
 name = "market-data-server"
 path = "src/bin/server.rs"
-required-features = ["server"]
+required-features = ["api-server"]
