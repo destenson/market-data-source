@@ -1,10 +1,9 @@
 use axum::{
-    extract::{ws::WebSocketUpgrade, State, WebSocket},
+    extract::{ws::{WebSocketUpgrade, WebSocket, Message}, State},
     response::Response,
 };
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use super::state::AppState;
 use crate::types::OHLC;
 use tracing::{debug, error, info};
@@ -73,121 +72,140 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     };
     
     if let Ok(msg) = serde_json::to_string(&welcome) {
-        let _ = sender.send(axum::extract::ws::Message::Text(msg)).await;
+        let _ = sender.send(Message::Text(msg.into())).await;
     }
     
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<String>();
     let mut subscriptions: Vec<(String, tokio::task::JoinHandle<()>)> = Vec::new();
     
-    while let Some(msg) = receiver.next().await {
-        if let Ok(msg) = msg {
-            match msg {
-                axum::extract::ws::Message::Text(text) => {
-                    match serde_json::from_str::<WsMessage>(&text) {
-                        Ok(ws_msg) => {
-                            match ws_msg {
-                                WsMessage::Subscribe { symbol, interval } => {
-                                    info!("WebSocket subscribing to {} with interval {}ms", symbol, interval);
-                                    
-                                    subscriptions.retain(|(s, handle)| {
-                                        if s == &symbol {
-                                            handle.abort();
-                                            false
-                                        } else {
-                                            true
-                                        }
-                                    });
-                                    
-                                    let generator = state.get_or_create_generator(&symbol).await;
-                                    let symbol_clone = symbol.clone();
-                                    let mut sender_clone = sender.clone();
-                                    
-                                    let handle = tokio::spawn(async move {
-                                        let mut interval_timer = tokio::time::interval(
-                                            std::time::Duration::from_millis(interval)
-                                        );
+    loop {
+        tokio::select! {
+            // Handle incoming WebSocket messages
+            msg = receiver.next() => {
+                match msg {
+                    Some(Ok(Message::Text(text))) => {
+                        match serde_json::from_str::<WsMessage>(&text) {
+                            Ok(ws_msg) => {
+                                match ws_msg {
+                                    WsMessage::Subscribe { symbol, interval } => {
+                                        info!("WebSocket subscribing to {} with interval {}ms", symbol, interval);
                                         
-                                        loop {
-                                            interval_timer.tick().await;
+                                        // Cancel existing subscription for this symbol
+                                        subscriptions.retain(|(s, handle)| {
+                                            if s == &symbol {
+                                                handle.abort();
+                                                false
+                                            } else {
+                                                true
+                                            }
+                                        });
+                                        
+                                        let generator = state.get_or_create_generator(&symbol).await;
+                                        let symbol_clone = symbol.clone();
+                                        let tx_clone = tx.clone();
+                                        
+                                        let handle = tokio::spawn(async move {
+                                            let mut interval_timer = tokio::time::interval(
+                                                std::time::Duration::from_millis(interval)
+                                            );
                                             
-                                            let mut gen = generator.write().await;
-                                            let ohlc = gen.generate_ohlc();
-                                            
-                                            let response = WsResponse::MarketData {
-                                                symbol: symbol_clone.clone(),
-                                                ohlc,
-                                                timestamp: chrono::Utc::now(),
-                                            };
-                                            
-                                            if let Ok(msg) = serde_json::to_string(&response) {
-                                                if sender_clone.send(axum::extract::ws::Message::Text(msg)).await.is_err() {
-                                                    break;
+                                            loop {
+                                                interval_timer.tick().await;
+                                                
+                                                let ohlc = {
+                                                    let mut generator_lock = generator.write().await;
+                                                    generator_lock.generate_ohlc()
+                                                };
+                                                
+                                                let response = WsResponse::MarketData {
+                                                    symbol: symbol_clone.clone(),
+                                                    ohlc,
+                                                    timestamp: chrono::Utc::now(),
+                                                };
+                                                
+                                                if let Ok(msg) = serde_json::to_string(&response) {
+                                                    if tx_clone.send(msg).is_err() {
+                                                        break;
+                                                    }
                                                 }
                                             }
+                                        });
+                                        
+                                        subscriptions.push((symbol.clone(), handle));
+                                        
+                                        let response = WsResponse::Subscribed { symbol, interval };
+                                        if let Ok(msg) = serde_json::to_string(&response) {
+                                            let _ = sender.send(Message::Text(msg.into())).await;
                                         }
-                                    });
-                                    
-                                    subscriptions.push((symbol.clone(), handle));
-                                    
-                                    let response = WsResponse::Subscribed { symbol, interval };
-                                    if let Ok(msg) = serde_json::to_string(&response) {
-                                        let _ = sender.send(axum::extract::ws::Message::Text(msg)).await;
                                     }
-                                }
-                                WsMessage::Unsubscribe { symbol } => {
-                                    info!("WebSocket unsubscribing from {}", symbol);
-                                    
-                                    subscriptions.retain(|(s, handle)| {
-                                        if s == &symbol {
-                                            handle.abort();
-                                            false
-                                        } else {
-                                            true
+                                    WsMessage::Unsubscribe { symbol } => {
+                                        info!("WebSocket unsubscribing from {}", symbol);
+                                        
+                                        subscriptions.retain(|(s, handle)| {
+                                            if s == &symbol {
+                                                handle.abort();
+                                                false
+                                            } else {
+                                                true
+                                            }
+                                        });
+                                        
+                                        let response = WsResponse::Unsubscribed { symbol };
+                                        if let Ok(msg) = serde_json::to_string(&response) {
+                                            let _ = sender.send(Message::Text(msg.into())).await;
                                         }
-                                    });
-                                    
-                                    let response = WsResponse::Unsubscribed { symbol };
-                                    if let Ok(msg) = serde_json::to_string(&response) {
-                                        let _ = sender.send(axum::extract::ws::Message::Text(msg)).await;
                                     }
-                                }
-                                WsMessage::Configure { symbol, config } => {
-                                    debug!("Configuring {} with {:?}", symbol, config);
-                                    
-                                    let response = WsResponse::Error {
-                                        message: "Configuration not yet implemented".to_string(),
-                                    };
-                                    if let Ok(msg) = serde_json::to_string(&response) {
-                                        let _ = sender.send(axum::extract::ws::Message::Text(msg)).await;
+                                    WsMessage::Configure { symbol, config } => {
+                                        debug!("Configuring {} with {:?}", symbol, config);
+                                        
+                                        let response = WsResponse::Error {
+                                            message: "Configuration not yet implemented".to_string(),
+                                        };
+                                        if let Ok(msg) = serde_json::to_string(&response) {
+                                            let _ = sender.send(Message::Text(msg.into())).await;
+                                        }
                                     }
-                                }
-                                WsMessage::Ping => {
-                                    let response = WsResponse::Pong;
-                                    if let Ok(msg) = serde_json::to_string(&response) {
-                                        let _ = sender.send(axum::extract::ws::Message::Text(msg)).await;
+                                    WsMessage::Ping => {
+                                        let response = WsResponse::Pong;
+                                        if let Ok(msg) = serde_json::to_string(&response) {
+                                            let _ = sender.send(Message::Text(msg.into())).await;
+                                        }
                                     }
+                                    WsMessage::Pong => {}
                                 }
-                                WsMessage::Pong => {}
                             }
-                        }
-                        Err(e) => {
-                            error!("Failed to parse WebSocket message: {}", e);
-                            let response = WsResponse::Error {
-                                message: format!("Invalid message format: {}", e),
-                            };
-                            if let Ok(msg) = serde_json::to_string(&response) {
-                                let _ = sender.send(axum::extract::ws::Message::Text(msg)).await;
+                            Err(e) => {
+                                error!("Failed to parse WebSocket message: {}", e);
+                                let response = WsResponse::Error {
+                                    message: format!("Invalid message format: {}", e),
+                                };
+                                if let Ok(msg) = serde_json::to_string(&response) {
+                                    let _ = sender.send(Message::Text(msg.into())).await;
+                                }
                             }
                         }
                     }
+                    Some(Ok(Message::Close(_))) | None => {
+                        break;
+                    }
+                    Some(Err(e)) => {
+                        error!("WebSocket error: {}", e);
+                        break;
+                    }
+                    _ => {}
                 }
-                axum::extract::ws::Message::Close(_) => {
+            }
+            
+            // Handle outgoing messages from subscriptions
+            Some(msg) = rx.recv() => {
+                if sender.send(Message::Text(msg.into())).await.is_err() {
                     break;
                 }
-                _ => {}
             }
         }
     }
     
+    // Clean up subscriptions
     for (_, handle) in subscriptions {
         handle.abort();
     }

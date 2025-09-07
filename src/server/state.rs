@@ -26,14 +26,14 @@ impl AppState {
         generators.entry(symbol.to_string())
             .or_insert_with(|| {
                 let config = GeneratorConfig::default();
-                Arc::new(RwLock::new(MarketDataGenerator::with_config(config)))
+                Arc::new(RwLock::new(MarketDataGenerator::with_config(config).expect("Failed to create generator")))
             })
             .clone()
     }
     
     pub async fn create_generator_with_config(&self, symbol: &str, config: GeneratorConfig) -> Arc<RwLock<MarketDataGenerator>> {
         let mut generators = self.generators.write().await;
-        let generator = Arc::new(RwLock::new(MarketDataGenerator::with_config(config)));
+        let generator = Arc::new(RwLock::new(MarketDataGenerator::with_config(config).expect("Failed to create generator")));
         generators.insert(symbol.to_string(), generator.clone());
         generator
     }

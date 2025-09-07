@@ -1,11 +1,19 @@
 use axum::{
     extract::State,
     response::{Json, IntoResponse},
-    routing::get,
+    routing::{get, post},
     Router,
 };
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use super::state::AppState;
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ControlCommand {
+    pub command: String,
+    #[serde(default)]
+    pub params: serde_json::Value,
+}
 
 pub fn api_routes() -> Router<AppState> {
     Router::new()
@@ -33,6 +41,77 @@ pub async fn health() -> impl IntoResponse {
         "status": "healthy",
         "timestamp": chrono::Utc::now().to_rfc3339()
     }))
+}
+
+pub async fn control(Json(cmd): Json<ControlCommand>) -> impl IntoResponse {
+    match cmd.command.as_str() {
+        "shutdown" => {
+            // Log the shutdown request
+            tracing::info!("Shutdown requested via control API");
+            
+            // Get delay from params or use default
+            let delay_ms = cmd.params.get("delay_ms")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(100);
+            
+            // Spawn a task to shutdown after a short delay to allow response to be sent
+            tokio::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+                tracing::info!("Shutting down server...");
+                std::process::exit(0);
+            });
+            
+            Json(json!({
+                "status": "success",
+                "command": "shutdown",
+                "message": "Server shutdown initiated",
+                "delay_ms": delay_ms,
+                "timestamp": chrono::Utc::now().to_rfc3339()
+            }))
+        }
+        "reload" => {
+            // Placeholder for config reload
+            Json(json!({
+                "status": "error",
+                "command": "reload",
+                "message": "Config reload not yet implemented",
+                "timestamp": chrono::Utc::now().to_rfc3339()
+            }))
+        }
+        "gc" => {
+            // Trigger garbage collection / cleanup
+            tracing::info!("Garbage collection requested");
+            
+            Json(json!({
+                "status": "success",
+                "command": "gc",
+                "message": "Garbage collection initiated",
+                "timestamp": chrono::Utc::now().to_rfc3339()
+            }))
+        }
+        "status" => {
+            // Return server status information
+            Json(json!({
+                "status": "success",
+                "command": "status",
+                "server": {
+                    "version": env!("CARGO_PKG_VERSION"),
+                    "uptime": "not tracked", // Could add actual uptime tracking
+                    "rust_version": env!("CARGO_PKG_RUST_VERSION"),
+                },
+                "timestamp": chrono::Utc::now().to_rfc3339()
+            }))
+        }
+        _ => {
+            Json(json!({
+                "status": "error",
+                "command": cmd.command,
+                "message": format!("Unknown control command: {}", cmd.command),
+                "available_commands": ["shutdown", "reload", "gc", "status"],
+                "timestamp": chrono::Utc::now().to_rfc3339()
+            }))
+        }
+    }
 }
 
 pub async fn api_discovery(State(state): State<AppState>) -> impl IntoResponse {

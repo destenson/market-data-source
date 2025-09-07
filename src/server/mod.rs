@@ -9,7 +9,7 @@ pub use state::AppState;
 
 use axum::{
     Router,
-    routing::get,
+    routing::{get, post},
 };
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
@@ -24,6 +24,7 @@ pub async fn run_server(config: ServerConfig) -> Result<(), Box<dyn std::error::
         .nest("/api/v1", api::routes())
         .route("/", get(routes::index))
         .route("/health", get(routes::health))
+        .route("/control", post(routes::control))
         .route("/api", get(routes::api_discovery))
         .layer(CorsLayer::permissive())
         .with_state(state);

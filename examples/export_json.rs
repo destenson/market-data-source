@@ -5,10 +5,18 @@
 
 use market_data_source::{
     MarketDataGenerator, ConfigBuilder, TrendDirection,
-    export::{to_json_ohlc, to_json_ticks, to_jsonl_ohlc, to_jsonl_ticks}
 };
 
+#[cfg(not(feature = "json_export"))]
+fn main() {
+    eprintln!("This example requires the 'json_export' feature. Please run with '--features json_export'");
+}
+
+
+#[cfg(feature = "json_export")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use market_data_source::export::{to_json_ohlc, to_json_ticks, to_jsonl_ohlc, to_jsonl_ticks};
+
     println!("Market Data Source - JSON Export Example");
     println!("========================================");
     
@@ -72,8 +80,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Example 5: Custom JSON export options
     println!("\n5. Custom JSON export with pretty printing...");
     
-    use market_data_source::export::json::{JsonExporter, JsonOptions};
-    use market_data_source::export::DataExporter;
+    use market_data_source::export::{json::{JsonExporter, JsonOptions}, DataExporter};
     
     // Create pretty-printed JSON exporter
     let pretty_options = JsonOptions::pretty();

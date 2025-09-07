@@ -56,8 +56,8 @@ impl MarketDataGenerator {
         })
     }
 
-    /// Generates a single OHLC candle
-    pub fn generate_candle(&mut self) -> OHLC {
+    /// Generates a single OHLC
+    pub fn generate_ohlc(&mut self) -> OHLC {
         // Generate OHLC prices (using 10 ticks per candle for realism)
         let (open, high, low, close) = self.price_generator.generate_ohlc(&mut self.rng, 10);
         
@@ -72,12 +72,18 @@ impl MarketDataGenerator {
         
         OHLC::new(open, high, low, close, volume, timestamp)
     }
+    
+    /// Generates a single OHLC candle
+    #[deprecated(since = "0.2.0", note = "Use generate_ohlc() instead")]
+    pub fn generate_candle(&mut self) -> OHLC {
+        self.generate_ohlc()
+    }
 
     /// Generates a series of OHLC candles
     pub fn generate_series(&mut self, count: usize) -> Vec<OHLC> {
         let mut candles = Vec::with_capacity(count);
         for _ in 0..count {
-            candles.push(self.generate_candle());
+            candles.push(self.generate_ohlc());
         }
         candles
     }

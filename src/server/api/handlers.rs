@@ -62,20 +62,20 @@ pub async fn generate_data(
     Json(req): Json<GenerateRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
     let generator = state.get_or_create_generator(&symbol).await;
-    let mut gen = generator.write().await;
+    let mut generator_lock = generator.write().await;
     
     let data = match req.format {
         DataFormat::Ohlc => {
-            let ohlc = gen.generate_series(req.count);
+            let ohlc = generator_lock.generate_series(req.count);
             MarketDataResponse::Ohlc(ohlc)
         }
         DataFormat::Tick => {
-            let ticks = gen.generate_ticks(req.count);
+            let ticks = generator_lock.generate_ticks(req.count);
             MarketDataResponse::Tick(ticks)
         }
         DataFormat::Both => {
-            let ohlc = gen.generate_series(req.count);
-            let ticks = gen.generate_ticks(req.count * 10);
+            let ohlc = generator_lock.generate_series(req.count);
+            let ticks = generator_lock.generate_ticks(req.count * 10);
             MarketDataResponse::Both { ohlc, ticks }
         }
     };
@@ -105,8 +105,10 @@ pub async fn stream_data(
         |(generator, symbol)| async move {
             tokio::time::sleep(Duration::from_millis(1000)).await;
             
-            let mut gen = generator.write().await;
-            let ohlc = gen.generate_ohlc();
+            let ohlc = {
+                let mut generator_lock = generator.write().await;
+                generator_lock.generate_ohlc()
+            };
             
             let data = json!({
                 "symbol": symbol,
@@ -130,10 +132,10 @@ pub async fn get_historical(
     Query(params): Query<HistoricalDataRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
     let generator = state.get_or_create_generator(&symbol).await;
-    let mut gen = generator.write().await;
+    let mut generator_lock = generator.write().await;
     
     let count = params.limit.unwrap_or(100);
-    let ohlc = gen.generate_series(count);
+    let ohlc = generator_lock.generate_series(count);
     
     Ok(Json(json!({
         "symbol": symbol,
@@ -168,8 +170,8 @@ pub async fn export_csv(
         use crate::export::to_csv_string_ohlc;
         
         let generator = state.get_or_create_generator(&symbol).await;
-        let mut gen = generator.write().await;
-        let ohlc = gen.generate_series(100);
+        let mut generator_lock = generator.write().await;
+        let ohlc = generator_lock.generate_series(100);
         
         match to_csv_string_ohlc(&ohlc) {
             Ok(csv) => Ok((
@@ -206,8 +208,8 @@ pub async fn export_json(
     Path(symbol): Path<String>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
     let generator = state.get_or_create_generator(&symbol).await;
-    let mut gen = generator.write().await;
-    let ohlc = gen.generate_series(100);
+    let mut generator_lock = generator.write().await;
+    let ohlc = generator_lock.generate_series(100);
     
     Ok(Json(json!({
         "symbol": symbol,
@@ -225,8 +227,8 @@ pub async fn export_png(
         use crate::export::chart::ChartBuilder;
         
         let generator = state.get_or_create_generator(&symbol).await;
-        let mut gen = generator.write().await;
-        let ohlc = gen.generate_series(100);
+        let mut generator_lock = generator.write().await;
+        let ohlc = generator_lock.generate_series(100);
         
         let mut buffer = Vec::new();
         let chart = ChartBuilder::new()

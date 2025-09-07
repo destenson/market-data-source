@@ -5,21 +5,6 @@ use crate::config::GeneratorConfig;
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(
-        super::handlers::list_symbols,
-        super::handlers::create_symbol,
-        super::handlers::delete_symbol,
-        super::handlers::generate_data,
-        super::handlers::stream_data,
-        super::handlers::get_historical,
-        super::handlers::configure_generator,
-        super::handlers::export_csv,
-        super::handlers::export_json,
-        super::handlers::export_png,
-        super::handlers::get_capabilities,
-        super::handlers::list_algorithms,
-        super::handlers::list_presets,
-    ),
     components(
         schemas(
             GenerateRequest,
