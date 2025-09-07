@@ -182,29 +182,31 @@ pub fn to_csv_ticks<P: AsRef<Path>>(data: &[Tick], path: P) -> ExportResult<()> 
 /// Convenience function to export OHLC data to CSV string
 #[cfg(feature = "csv_export")]
 pub fn to_csv_string_ohlc(data: &[OHLC]) -> ExportResult<String> {
-    use csv::writer::WriterBuilder;
+    use ::csv::WriterBuilder;
     let mut buffer = Vec::new();
-    let mut writer = WriterBuilder::new()
-        .has_headers(true)
-        .from_writer(&mut buffer);
-    
-    writer.write_record(&["timestamp", "open", "high", "low", "close", "volume"])
-        .map_err(|e| ExportError::WriteFailed(e.to_string()))?;
-    
-    for ohlc in data {
-        writer.write_record(&[
-            ohlc.timestamp.to_string(),
-            ohlc.open.to_string(),
-            ohlc.high.to_string(),
-            ohlc.low.to_string(),
-            ohlc.close.to_string(),
-            ohlc.volume.value.to_string(),
-        ])
-        .map_err(|e| ExportError::WriteFailed(e.to_string()))?;
+    {
+        let mut writer = WriterBuilder::new()
+            .has_headers(true)
+            .from_writer(&mut buffer);
+        
+        writer.write_record(&["timestamp", "open", "high", "low", "close", "volume"])
+            .map_err(|e| ExportError::WriteFailed(e.to_string()))?;
+        
+        for ohlc in data {
+            writer.write_record(&[
+                ohlc.timestamp.to_string(),
+                ohlc.open.to_string(),
+                ohlc.high.to_string(),
+                ohlc.low.to_string(),
+                ohlc.close.to_string(),
+                ohlc.volume.value.to_string(),
+            ])
+            .map_err(|e| ExportError::WriteFailed(e.to_string()))?;
+        }
+        
+        writer.flush()
+            .map_err(|e| ExportError::WriteFailed(e.to_string()))?;
     }
-    
-    writer.flush()
-        .map_err(|e| ExportError::WriteFailed(e.to_string()))?;
     
     String::from_utf8(buffer)
         .map_err(|e| ExportError::WriteFailed(e.to_string()))
