@@ -24,12 +24,12 @@ mod png_export_tests {
 
         // Export to PNG
         let result = to_png_ohlc(&ohlc_data, &output_path);
-        assert!(result.is_ok(), "Failed to export candlestick chart: {:?}", result);
+        assert!(result.is_ok(), "Failed to export candlestick chart: {result:?}");
 
         // Verify file exists and is valid PNG
         assert!(output_path.exists());
         let file_size = fs::metadata(&output_path).unwrap().len();
-        assert!(file_size > 1000, "PNG file is too small: {} bytes", file_size);
+        assert!(file_size > 1000, "PNG file is too small: {file_size} bytes");
 
         // Check PNG magic bytes
         let contents = fs::read(&output_path).unwrap();
@@ -55,12 +55,12 @@ mod png_export_tests {
 
         // Export to PNG
         let result = to_png_ticks(&tick_data, &output_path);
-        assert!(result.is_ok(), "Failed to export line chart: {:?}", result);
+        assert!(result.is_ok(), "Failed to export line chart: {result:?}");
 
         // Verify file exists and is valid PNG
         assert!(output_path.exists());
         let file_size = fs::metadata(&output_path).unwrap().len();
-        assert!(file_size > 1000, "PNG file is too small: {} bytes", file_size);
+        assert!(file_size > 1000, "PNG file is too small: {file_size} bytes");
 
         // Check PNG header
         let contents = fs::read(&output_path).unwrap();
@@ -92,7 +92,7 @@ mod png_export_tests {
         // Export with custom builder
         let exporter = ChartExporter::with_builder(chart_builder);
         let result = exporter.export_ohlc(&ohlc_data, &output_path);
-        assert!(result.is_ok(), "Failed to export custom chart: {:?}", result);
+        assert!(result.is_ok(), "Failed to export custom chart: {result:?}");
 
         // Verify file exists
         assert!(output_path.exists());
@@ -180,8 +180,7 @@ mod png_export_tests {
         // Ensure it completes in reasonable time (< 10 seconds)
         assert!(
             duration.as_secs() < 10,
-            "Chart generation took too long: {:?}",
-            duration
+            "Chart generation took too long: {duration:?}"
         );
     }
 

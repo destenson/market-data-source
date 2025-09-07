@@ -22,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // 1. Check server health
     println!("1. Checking server health...");
-    let response = client.get(format!("{}/health", base_url))
+    let response = client.get(format!("{base_url}/health"))
         .send()
         .await?;
     let health: serde_json::Value = response.json().await?;
@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // 2. Discover API capabilities
     println!("2. Discovering API capabilities...");
-    let response = client.get(format!("{}/api", base_url))
+    let response = client.get(format!("{base_url}/api"))
         .send()
         .await?;
     let discovery: serde_json::Value = response.json().await?;
@@ -39,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // 3. Get detailed capabilities
     println!("3. Getting detailed capabilities...");
-    let response = client.get(format!("{}/api/v1/capabilities", base_url))
+    let response = client.get(format!("{base_url}/api/v1/capabilities"))
         .send()
         .await?;
     let capabilities: serde_json::Value = response.json().await?;
@@ -59,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
     
-    let response = client.post(format!("{}/api/v1/symbols", base_url))
+    let response = client.post(format!("{base_url}/api/v1/symbols"))
         .json(&create_request)
         .send()
         .await?;
@@ -78,7 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "format": "ohlc"
     });
     
-    let response = client.post(format!("{}/api/v1/generate/BTCUSD", base_url))
+    let response = client.post(format!("{base_url}/api/v1/generate/BTCUSD"))
         .json(&generate_request)
         .send()
         .await?;
@@ -105,7 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // 6. List available symbols
     println!("6. Listing available symbols...");
-    let response = client.get(format!("{}/api/v1/symbols", base_url))
+    let response = client.get(format!("{base_url}/api/v1/symbols"))
         .send()
         .await?;
     let symbols: serde_json::Value = response.json().await?;
@@ -113,7 +113,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // 7. Get historical data
     println!("7. Getting historical data...");
-    let response = client.get(format!("{}/api/v1/historical/BTCUSD?limit=5", base_url))
+    let response = client.get(format!("{base_url}/api/v1/historical/BTCUSD?limit=5"))
         .send()
         .await?;
     
@@ -124,7 +124,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // 8. List available algorithms
     println!("8. Listing available algorithms...");
-    let response = client.get(format!("{}/api/v1/algorithms", base_url))
+    let response = client.get(format!("{base_url}/api/v1/algorithms"))
         .send()
         .await?;
     let algorithms: serde_json::Value = response.json().await?;
@@ -133,7 +133,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // 9. List available presets
     println!("9. Listing available presets...");
-    let response = client.get(format!("{}/api/v1/presets", base_url))
+    let response = client.get(format!("{base_url}/api/v1/presets"))
         .send()
         .await?;
     let presets: serde_json::Value = response.json().await?;
@@ -142,7 +142,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .keys()
         .cloned()
         .collect();
-    println!("   Presets: {:?}\n", preset_names);
+    println!("   Presets: {preset_names:?}\n");
     
     // 10. Test WebSocket connection
     println!("10. Testing WebSocket connection...");

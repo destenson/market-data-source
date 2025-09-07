@@ -9,7 +9,7 @@ mod json_export_tests {
     use market_data_source::types::{OHLC, Tick};
     use std::fs;
     use tempfile::tempdir;
-    use serde_json;
+    
 
     #[test]
     fn test_generator_to_json_export() {
@@ -239,7 +239,7 @@ mod json_export_tests {
         
         // Verify all required fields are present and valid
         for (i, ohlc) in imported_data.iter().enumerate() {
-            assert!(ohlc.is_valid(), "OHLC at index {} should be valid", i);
+            assert!(ohlc.is_valid(), "OHLC at index {i} should be valid");
             use rust_decimal::Decimal;
             assert!(ohlc.open > Decimal::from(0), "Open price should be positive");
             assert!(ohlc.high >= ohlc.open || ohlc.high >= ohlc.close, "High should be highest");

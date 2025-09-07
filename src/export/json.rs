@@ -12,6 +12,7 @@ use std::path::Path;
 
 /// Options for JSON export
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct JsonOptions {
     /// Use pretty printing with indentation
     pub pretty: bool,
@@ -21,15 +22,6 @@ pub struct JsonOptions {
     pub compress: bool,
 }
 
-impl Default for JsonOptions {
-    fn default() -> Self {
-        Self {
-            pretty: false,
-            json_lines: false,
-            compress: false,
-        }
-    }
-}
 
 impl JsonOptions {
     /// Create options for pretty-printed JSON
@@ -358,7 +350,7 @@ mod tests {
         
         // Verify structural integrity rather than exact values
         for (i, ohlc) in imported_data.iter().enumerate() {
-            assert!(ohlc.is_valid(), "OHLC at index {} should be valid", i);
+            assert!(ohlc.is_valid(), "OHLC at index {i} should be valid");
             
             // Verify the relationships are preserved
             assert!(ohlc.high >= ohlc.low, "High should be >= low");

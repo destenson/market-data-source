@@ -27,13 +27,13 @@ impl RandomWalkGenerator {
         
         // Create normal distribution for price changes
         let price_distribution = Normal::new(0.0, volatility_f64)
-            .map_err(|e| format!("Failed to create price distribution: {}", e))?;
+            .map_err(|e| format!("Failed to create price distribution: {e}"))?;
         
         // Create normal distribution for volume
         let volume_distribution = Normal::new(
             config.base_volume as f64,
             config.base_volume as f64 * config.volume_volatility
-        ).map_err(|e| format!("Failed to create volume distribution: {}", e))?;
+        ).map_err(|e| format!("Failed to create volume distribution: {e}"))?;
 
         Ok(Self {
             current_price: config.starting_price,

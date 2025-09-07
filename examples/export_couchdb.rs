@@ -50,10 +50,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match to_couchdb_ohlc(&ohlc_data, server_url, database_name) {
         Ok(_) => {
             println!("   ✓ Successfully exported OHLC data to CouchDB");
-            println!("   Database: {}/{}", server_url, database_name);
+            println!("   Database: {server_url}/{database_name}");
         }
         Err(e) => {
-            println!("   ❌ Failed to export to CouchDB: {}", e);
+            println!("   ❌ Failed to export to CouchDB: {e}");
             println!("   This is expected if CouchDB is not running or configured");
         }
     }
@@ -69,10 +69,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match to_couchdb_ticks(&tick_data, server_url, tick_database) {
         Ok(_) => {
             println!("   ✓ Successfully exported tick data to CouchDB");
-            println!("   Database: {}/{}", server_url, tick_database);
+            println!("   Database: {server_url}/{tick_database}");
         }
         Err(e) => {
-            println!("   ❌ Failed to export tick data: {}", e);
+            println!("   ❌ Failed to export tick data: {e}");
         }
     }
     
@@ -97,10 +97,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match exporter.export_ohlc(&custom_data, "") {
         Ok(_) => {
             println!("   ✓ Successfully exported with custom options");
-            println!("   Database: {}/custom_market_data", server_url);
+            println!("   Database: {server_url}/custom_market_data");
         }
         Err(e) => {
-            println!("   ❌ Custom export failed: {}", e);
+            println!("   ❌ Custom export failed: {e}");
         }
     }
     
@@ -119,7 +119,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("   ✓ Successfully exported using environment config");
             }
             Err(e) => {
-                println!("   ❌ Environment-based export failed: {}", e);
+                println!("   ❌ Environment-based export failed: {e}");
                 println!("   Make sure environment variables are set correctly");
             }
         }
@@ -129,7 +129,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("   ✓ Successfully exported tick data using environment config");
             }
             Err(e) => {
-                println!("   ❌ Tick data environment export failed: {}", e);
+                println!("   ❌ Tick data environment export failed: {e}");
             }
         }
     }
@@ -161,7 +161,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("   ✓ Successfully exported large dataset in batches");
         }
         Err(e) => {
-            println!("   ❌ Batch export failed: {}", e);
+            println!("   ❌ Batch export failed: {e}");
         }
     }
     
@@ -178,7 +178,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("   Unexpected success with invalid server");
         }
         Err(e) => {
-            println!("   ✓ Properly handled connection error: {}", e);
+            println!("   ✓ Properly handled connection error: {e}");
         }
     }
     

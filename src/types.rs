@@ -212,7 +212,7 @@ impl fmt::Display for TimeInterval {
             TimeInterval::OneHour => write!(f, "1h"),
             TimeInterval::FourHours => write!(f, "4h"),
             TimeInterval::OneDay => write!(f, "1d"),
-            TimeInterval::Custom(s) => write!(f, "{}s", s),
+            TimeInterval::Custom(s) => write!(f, "{s}s"),
         }
     }
 }
@@ -329,7 +329,7 @@ mod tests {
         let vol = Volume::new(1500);
         assert_eq!(vol.value(), 1500);
         assert_eq!(vol.as_f64(), 1500.0);
-        assert_eq!(format!("{}", vol), "1500");
+        assert_eq!(format!("{vol}"), "1500");
     }
 
     #[cfg(feature = "serde")]

@@ -242,6 +242,12 @@ pub struct ConfigBuilder {
     config: GeneratorConfig,
 }
 
+impl Default for ConfigBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ConfigBuilder {
     /// Creates a new builder with default configuration
     pub fn new() -> Self {
@@ -351,10 +357,10 @@ pub enum ConfigError {
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ConfigError::InvalidPrice(msg) => write!(f, "Invalid price configuration: {}", msg),
-            ConfigError::InvalidVolatility(msg) => write!(f, "Invalid volatility configuration: {}", msg),
-            ConfigError::InvalidTrend(msg) => write!(f, "Invalid trend configuration: {}", msg),
-            ConfigError::InvalidParameter(msg) => write!(f, "Invalid parameter: {}", msg),
+            ConfigError::InvalidPrice(msg) => write!(f, "Invalid price configuration: {msg}"),
+            ConfigError::InvalidVolatility(msg) => write!(f, "Invalid volatility configuration: {msg}"),
+            ConfigError::InvalidTrend(msg) => write!(f, "Invalid trend configuration: {msg}"),
+            ConfigError::InvalidParameter(msg) => write!(f, "Invalid parameter: {msg}"),
         }
     }
 }

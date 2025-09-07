@@ -177,7 +177,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
                             Err(e) => {
                                 error!("Failed to parse WebSocket message: {}", e);
                                 let response = WsResponse::Error {
-                                    message: format!("Invalid message format: {}", e),
+                                    message: format!("Invalid message format: {e}"),
                                 };
                                 if let Ok(msg) = serde_json::to_string(&response) {
                                     let _ = sender.send(Message::Text(msg.into())).await;

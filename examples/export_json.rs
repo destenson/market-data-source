@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Export to standard JSON format
     let json_ohlc_file = "market_data_ohlc.json";
     to_json_ohlc(&ohlc_data, json_ohlc_file)?;
-    println!("   ✓ Exported OHLC data to standard JSON: {}", json_ohlc_file);
+    println!("   ✓ Exported OHLC data to standard JSON: {json_ohlc_file}");
     
     // Example 2: Standard JSON export for tick data
     println!("\n2. Exporting tick data to standard JSON...");
@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Export to standard JSON format
     let json_tick_file = "market_data_ticks.json";
     to_json_ticks(&tick_data, json_tick_file)?;
-    println!("   ✓ Exported tick data to standard JSON: {}", json_tick_file);
+    println!("   ✓ Exported tick data to standard JSON: {json_tick_file}");
     
     // Example 3: JSON Lines (JSONL) export for OHLC data
     println!("\n3. Exporting OHLC data to JSON Lines format...");
@@ -64,7 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Export to JSON Lines format (one JSON object per line)
     let jsonl_ohlc_file = "market_data_ohlc.jsonl";
     to_jsonl_ohlc(&jsonl_ohlc_data, jsonl_ohlc_file)?;
-    println!("   ✓ Exported OHLC data to JSON Lines: {}", jsonl_ohlc_file);
+    println!("   ✓ Exported OHLC data to JSON Lines: {jsonl_ohlc_file}");
     println!("   JSON Lines format is ideal for streaming and big data processing");
     
     // Example 4: JSON Lines (JSONL) export for tick data
@@ -76,7 +76,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Export to JSON Lines format
     let jsonl_tick_file = "market_data_ticks.jsonl";
     to_jsonl_ticks(&jsonl_tick_data, jsonl_tick_file)?;
-    println!("   ✓ Exported tick data to JSON Lines: {}", jsonl_tick_file);
+    println!("   ✓ Exported tick data to JSON Lines: {jsonl_tick_file}");
     
     // Example 5: Custom JSON export options
     println!("\n5. Custom JSON export with pretty printing...");
@@ -91,7 +91,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let pretty_data = generator.generate_series(5);
     let pretty_file = "pretty_formatted.json";
     pretty_exporter.export_ohlc(&pretty_data, pretty_file)?;
-    println!("   ✓ Exported with pretty formatting to: {}", pretty_file);
+    println!("   ✓ Exported with pretty formatting to: {pretty_file}");
     
     // Example 6: Compact JSON (no pretty printing)
     println!("\n6. Compact JSON export...");
@@ -101,7 +101,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let compact_file = "compact_formatted.json";
     compact_exporter.export_ohlc(&pretty_data, compact_file)?;
-    println!("   ✓ Exported in compact format to: {}", compact_file);
+    println!("   ✓ Exported in compact format to: {compact_file}");
     
     // Example 7: Reading and verifying JSON data
     println!("\n7. Verifying exported JSON data...");
@@ -154,14 +154,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     println!("\n✅ JSON export examples completed successfully!");
     println!("\nGenerated files:");
-    println!("  - {} (Standard JSON - OHLC)", json_ohlc_file);
-    println!("  - {} (Standard JSON - Ticks)", json_tick_file);
-    println!("  - {} (JSON Lines - OHLC)", jsonl_ohlc_file);
-    println!("  - {} (JSON Lines - Ticks)", jsonl_tick_file);
-    println!("  - {} (Pretty formatted)", pretty_file);
-    println!("  - {} (Compact formatted)", compact_file);
-    println!("  - {} (Large dataset - JSON)", large_json_file);
-    println!("  - {} (Large dataset - JSONL)", large_jsonl_file);
+    println!("  - {json_ohlc_file} (Standard JSON - OHLC)");
+    println!("  - {json_tick_file} (Standard JSON - Ticks)");
+    println!("  - {jsonl_ohlc_file} (JSON Lines - OHLC)");
+    println!("  - {jsonl_tick_file} (JSON Lines - Ticks)");
+    println!("  - {pretty_file} (Pretty formatted)");
+    println!("  - {compact_file} (Compact formatted)");
+    println!("  - {large_json_file} (Large dataset - JSON)");
+    println!("  - {large_jsonl_file} (Large dataset - JSONL)");
     
     println!("\nFormat comparison:");
     println!("  📄 Standard JSON: Complete JSON array, good for small-medium datasets");

@@ -228,7 +228,7 @@ mod tests {
     fn test_has_api_key() {
         let config = EnvConfig::load();
         // These should return false unless env vars are set
-        assert_eq!(config.has_api_key("unknown"), false);
+        assert!(!config.has_api_key("unknown"));
     }
     
     #[test]

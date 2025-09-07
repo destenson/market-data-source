@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Export as PNG chart using convenience function
     let basic_chart_file = "basic_candlestick_chart.png";
     to_png_ohlc(&ohlc_data, basic_chart_file)?;
-    println!("   ✓ Created basic candlestick chart: {}", basic_chart_file);
+    println!("   ✓ Created basic candlestick chart: {basic_chart_file}");
     
     // Example 2: Basic line chart for tick data
     println!("\n2. Creating basic line chart for tick data...");
@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Export as PNG line chart
     let basic_line_file = "basic_line_chart.png";
     to_png_ticks(&tick_data, basic_line_file)?;
-    println!("   ✓ Created basic line chart: {}", basic_line_file);
+    println!("   ✓ Created basic line chart: {basic_line_file}");
     
     // Example 3: Custom styled candlestick chart
     println!("\n3. Creating custom styled candlestick chart...");
@@ -65,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let custom_chart_file = "custom_styled_candlestick.png";
     to_png_ohlc_with_builder(&ohlc_data, custom_chart_file, custom_builder)?;
-    println!("   ✓ Created custom styled chart: {}", custom_chart_file);
+    println!("   ✓ Created custom styled chart: {custom_chart_file}");
     
     // Example 4: Chart with moving averages
     println!("\n4. Creating chart with moving averages...");
@@ -82,7 +82,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let ma_chart_file = "chart_with_moving_average.png";
     to_png_ohlc_with_builder(&ma_data, ma_chart_file, ma_builder)?;
-    println!("   ✓ Created chart with moving average: {}", ma_chart_file);
+    println!("   ✓ Created chart with moving average: {ma_chart_file}");
     
     // Example 5: High resolution chart for presentation
     println!("\n5. Creating high resolution chart...");
@@ -98,7 +98,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let hires_chart_file = "high_resolution_chart.png";
     to_png_ohlc_with_builder(&ohlc_data, hires_chart_file, hires_builder)?;
-    println!("   ✓ Created high resolution chart: {}", hires_chart_file);
+    println!("   ✓ Created high resolution chart: {hires_chart_file}");
     
     // Example 6: Dark theme chart
     println!("\n6. Creating dark theme chart...");
@@ -114,7 +114,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let dark_chart_file = "dark_theme_chart.png";
     to_png_ohlc_with_builder(&ohlc_data, dark_chart_file, dark_builder)?;
-    println!("   ✓ Created dark theme chart: {}", dark_chart_file);
+    println!("   ✓ Created dark theme chart: {dark_chart_file}");
     
     // Example 7: Tick data line chart with custom styling
     println!("\n7. Creating styled tick line chart...");
@@ -130,7 +130,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let styled_tick_file = "styled_tick_chart.png";
     to_png_ticks_with_builder(&tick_data, styled_tick_file, tick_builder)?;
-    println!("   ✓ Created styled tick chart: {}", styled_tick_file);
+    println!("   ✓ Created styled tick chart: {styled_tick_file}");
     
     // Example 8: Multiple timeframes comparison
     println!("\n8. Creating comparison charts...");
@@ -159,7 +159,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let long_chart_file = "long_term_chart.png";
     to_png_ohlc_with_builder(&long_term, long_chart_file, long_builder)?;
     
-    println!("   ✓ Created comparison charts: {} and {}", short_chart_file, long_chart_file);
+    println!("   ✓ Created comparison charts: {short_chart_file} and {long_chart_file}");
     
     // Example 9: Chart export using ChartExporter directly
     println!("\n9. Using ChartExporter directly...");
@@ -173,20 +173,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let direct_export_file = "direct_exporter_chart.png";
     
     chart_exporter.export_ohlc(&ohlc_data, direct_export_file)?;
-    println!("   ✓ Created chart using direct exporter: {}", direct_export_file);
+    println!("   ✓ Created chart using direct exporter: {direct_export_file}");
     
     println!("\n✅ PNG chart export examples completed successfully!");
     println!("\nGenerated chart files:");
-    println!("  - {} (Basic candlestick)", basic_chart_file);
-    println!("  - {} (Basic line chart)", basic_line_file);
-    println!("  - {} (Custom styled)", custom_chart_file);
-    println!("  - {} (With moving average)", ma_chart_file);
-    println!("  - {} (High resolution)", hires_chart_file);
-    println!("  - {} (Dark theme)", dark_chart_file);
-    println!("  - {} (Styled tick chart)", styled_tick_file);
-    println!("  - {} (Short term)", short_chart_file);
-    println!("  - {} (Long term)", long_chart_file);
-    println!("  - {} (Direct exporter)", direct_export_file);
+    println!("  - {basic_chart_file} (Basic candlestick)");
+    println!("  - {basic_line_file} (Basic line chart)");
+    println!("  - {custom_chart_file} (Custom styled)");
+    println!("  - {ma_chart_file} (With moving average)");
+    println!("  - {hires_chart_file} (High resolution)");
+    println!("  - {dark_chart_file} (Dark theme)");
+    println!("  - {styled_tick_file} (Styled tick chart)");
+    println!("  - {short_chart_file} (Short term)");
+    println!("  - {long_chart_file} (Long term)");
+    println!("  - {direct_export_file} (Direct exporter)");
     
     println!("\nChart features demonstrated:");
     println!("  📊 Candlestick charts for OHLC data");

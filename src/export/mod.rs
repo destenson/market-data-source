@@ -189,7 +189,7 @@ pub fn to_csv_string_ohlc(data: &[OHLC]) -> ExportResult<String> {
             .has_headers(true)
             .from_writer(&mut buffer);
         
-        writer.write_record(&["timestamp", "open", "high", "low", "close", "volume"])
+        writer.write_record(["timestamp", "open", "high", "low", "close", "volume"])
             .map_err(|e| ExportError::WriteFailed(e.to_string()))?;
         
         for ohlc in data {

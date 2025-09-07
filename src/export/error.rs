@@ -35,18 +35,18 @@ pub enum ExportError {
 impl fmt::Display for ExportError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ExportError::Io(err) => write!(f, "I/O error: {}", err),
+            ExportError::Io(err) => write!(f, "I/O error: {err}"),
             #[cfg(feature = "csv_export")]
-            ExportError::Csv(err) => write!(f, "CSV error: {}", err),
+            ExportError::Csv(err) => write!(f, "CSV error: {err}"),
             #[cfg(feature = "json_export")]
-            ExportError::Json(err) => write!(f, "JSON error: {}", err),
+            ExportError::Json(err) => write!(f, "JSON error: {err}"),
             #[cfg(feature = "couchdb")]
-            ExportError::CouchDb(err) => write!(f, "CouchDB error: {}", err),
-            ExportError::Configuration(msg) => write!(f, "Configuration error: {}", msg),
-            ExportError::Chart(msg) => write!(f, "Chart rendering error: {}", msg),
-            ExportError::InvalidData(msg) => write!(f, "Invalid data: {}", msg),
-            ExportError::WriteFailed(msg) => write!(f, "Write failed: {}", msg),
-            ExportError::FeatureNotAvailable(msg) => write!(f, "Feature not available: {}", msg),
+            ExportError::CouchDb(err) => write!(f, "CouchDB error: {err}"),
+            ExportError::Configuration(msg) => write!(f, "Configuration error: {msg}"),
+            ExportError::Chart(msg) => write!(f, "Chart rendering error: {msg}"),
+            ExportError::InvalidData(msg) => write!(f, "Invalid data: {msg}"),
+            ExportError::WriteFailed(msg) => write!(f, "Write failed: {msg}"),
+            ExportError::FeatureNotAvailable(msg) => write!(f, "Feature not available: {msg}"),
         }
     }
 }

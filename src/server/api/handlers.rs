@@ -35,7 +35,7 @@ pub async fn create_symbol(
         return Err((
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse {
-                error: format!("Invalid configuration: {}", e),
+                error: format!("Invalid configuration: {e}"),
                 code: 400,
                 details: Some(serde_json::json!({
                     "validation_error": e.to_string(),
@@ -67,7 +67,7 @@ pub async fn delete_symbol(
         None => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse {
-                error: format!("Symbol {} not found", symbol),
+                error: format!("Symbol {symbol} not found"),
                 code: 404,
                 details: None,
             })
@@ -201,7 +201,7 @@ pub async fn export_csv(
             Err(e) => Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
-                    error: format!("Failed to generate CSV: {}", e),
+                    error: format!("Failed to generate CSV: {e}"),
                     code: 500,
                     details: None,
                 })
@@ -251,7 +251,7 @@ pub async fn export_png(
         
         let mut buffer = Vec::new();
         let chart = ChartBuilder::new()
-            .title(&format!("{} Market Data", symbol))
+            .title(format!("{symbol} Market Data"))
             .build_to_buffer(&ohlc, &mut buffer);
         
         match chart {
@@ -263,7 +263,7 @@ pub async fn export_png(
             Err(e) => Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
-                    error: format!("Failed to generate chart: {}", e),
+                    error: format!("Failed to generate chart: {e}"),
                     code: 500,
                     details: None,
                 })

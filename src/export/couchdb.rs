@@ -217,7 +217,7 @@ impl DataExporter for CouchDbExporter {
         
         for doc in documents {
             let json = serde_json::to_string(&doc)?;
-            writeln!(writer, "{}", json)?;
+            writeln!(writer, "{json}")?;
         }
         
         Ok(())
@@ -231,7 +231,7 @@ impl DataExporter for CouchDbExporter {
         
         for doc in documents {
             let json = serde_json::to_string(&doc)?;
-            writeln!(writer, "{}", json)?;
+            writeln!(writer, "{json}")?;
         }
         
         Ok(())
@@ -474,8 +474,8 @@ mod tests {
         // This test just verifies the from_env method exists and works
         // We don't test actual env var loading since that depends on runtime environment
         let exporter = CouchDbExporter::from_env();
-        assert!(exporter.server_url.len() > 0);
-        assert!(exporter.database_name.len() > 0);
+        assert!(!exporter.server_url.is_empty());
+        assert!(!exporter.database_name.is_empty());
     }
 
     #[test]

@@ -57,7 +57,7 @@ impl IntoPy<PyObject> for TimeInterval {
             TimeInterval::OneHour => "1h",
             TimeInterval::FourHours => "4h",
             TimeInterval::OneDay => "1d",
-            TimeInterval::Custom(seconds) => return format!("{}s", seconds).into_py(py),
+            TimeInterval::Custom(seconds) => return format!("{seconds}s").into_py(py),
         }.into_py(py)
     }
 }
@@ -192,9 +192,9 @@ impl PyMarketDataGenerator {
         }
         
         let config = builder.build()
-            .map_err(|e| PyValueError::new_err(format!("Configuration error: {}", e)))?;
+            .map_err(|e| PyValueError::new_err(format!("Configuration error: {e}")))?;
         let generator = MarketDataGenerator::with_config(config)
-            .map_err(|e| PyValueError::new_err(format!("Failed to create generator: {}", e)))?;
+            .map_err(|e| PyValueError::new_err(format!("Failed to create generator: {e}")))?;
         Ok(PyMarketDataGenerator { generator })
     }
     
@@ -235,7 +235,7 @@ impl PyMarketDataGenerator {
         let data = self.generator.generate_series(count);
         let exporter = CsvExporter::new();
         exporter.export_ohlc(&data, path)
-            .map_err(|e| PyValueError::new_err(format!("Export failed: {}", e)))?;
+            .map_err(|e| PyValueError::new_err(format!("Export failed: {e}")))?;
         Ok(())
     }
     
@@ -249,7 +249,7 @@ impl PyMarketDataGenerator {
             JsonExporter::new()
         };
         exporter.export_ohlc(&data, path)
-            .map_err(|e| PyValueError::new_err(format!("Export failed: {}", e)))?;
+            .map_err(|e| PyValueError::new_err(format!("Export failed: {e}")))?;
         Ok(())
     }
     
@@ -282,7 +282,7 @@ impl PyMarketDataGenerator {
         let exporter = ChartExporter::with_builder(builder);
         
         exporter.export_ohlc(&data, path)
-            .map_err(|e| PyValueError::new_err(format!("Export failed: {}", e)))?;
+            .map_err(|e| PyValueError::new_err(format!("Export failed: {e}")))?;
         Ok(())
     }
     
@@ -300,7 +300,7 @@ impl PyMarketDataGenerator {
         let mut config = self.generator.config().clone();
         config.seed = Some(seed);
         self.generator = MarketDataGenerator::with_config(config)
-            .map_err(|e| PyValueError::new_err(format!("Failed to set seed: {}", e)))?;
+            .map_err(|e| PyValueError::new_err(format!("Failed to set seed: {e}")))?;
         Ok(())
     }
     
@@ -308,7 +308,7 @@ impl PyMarketDataGenerator {
     fn reset(&mut self) -> PyResult<()> {
         let config = self.generator.config().clone();
         self.generator = MarketDataGenerator::with_config(config)
-            .map_err(|e| PyValueError::new_err(format!("Failed to reset: {}", e)))?;
+            .map_err(|e| PyValueError::new_err(format!("Failed to reset: {e}")))?;
         Ok(())
     }
     
@@ -327,7 +327,7 @@ fn parse_interval(s: &str) -> PyResult<TimeInterval> {
         "1h" => Ok(TimeInterval::OneHour),
         "4h" => Ok(TimeInterval::FourHours),
         "1d" => Ok(TimeInterval::OneDay),
-        _ => Err(PyValueError::new_err(format!("Invalid interval: {}", s))),
+        _ => Err(PyValueError::new_err(format!("Invalid interval: {s}"))),
     }
 }
 

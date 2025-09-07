@@ -63,7 +63,7 @@ mod csv_integration_tests {
         // Export OHLC data
         let ohlc_path = fixture.get_path("integration_ohlc.csv");
         let result = to_csv_ohlc(&fixture.ohlc_data, &ohlc_path);
-        assert!(result.is_ok(), "CSV OHLC export failed: {:?}", result);
+        assert!(result.is_ok(), "CSV OHLC export failed: {result:?}");
         
         // Verify file exists and has correct content
         assert!(ohlc_path.exists());
@@ -77,7 +77,7 @@ mod csv_integration_tests {
         // Export tick data
         let tick_path = fixture.get_path("integration_ticks.csv");
         let result = to_csv_ticks(&fixture.tick_data, &tick_path);
-        assert!(result.is_ok(), "CSV tick export failed: {:?}", result);
+        assert!(result.is_ok(), "CSV tick export failed: {result:?}");
         
         // Verify tick file
         assert!(tick_path.exists());
@@ -123,7 +123,7 @@ mod csv_integration_tests {
 mod json_integration_tests {
     use super::*;
     use market_data_source::export::{to_json_ohlc, to_jsonl_ohlc};
-    use serde_json;
+    
     
     #[test]
     fn test_json_export_integration() {
@@ -132,7 +132,7 @@ mod json_integration_tests {
         // Test standard JSON export
         let json_path = fixture.get_path("integration.json");
         let result = to_json_ohlc(&fixture.ohlc_data, &json_path);
-        assert!(result.is_ok(), "JSON export failed: {:?}", result);
+        assert!(result.is_ok(), "JSON export failed: {result:?}");
         
         // Verify file exists and is valid JSON
         assert!(json_path.exists());
@@ -146,7 +146,7 @@ mod json_integration_tests {
         // Test JSON Lines export
         let jsonl_path = fixture.get_path("integration.jsonl");
         let result = to_jsonl_ohlc(&fixture.ohlc_data, &jsonl_path);
-        assert!(result.is_ok(), "JSONL export failed: {:?}", result);
+        assert!(result.is_ok(), "JSONL export failed: {result:?}");
         
         // Verify JSONL format
         let jsonl_content = fs::read_to_string(&jsonl_path).unwrap();
@@ -200,12 +200,12 @@ mod png_integration_tests {
         // Test OHLC chart export
         let ohlc_chart_path = fixture.get_path("integration_candlestick.png");
         let result = to_png_ohlc(&fixture.ohlc_data, &ohlc_chart_path);
-        assert!(result.is_ok(), "PNG OHLC export failed: {:?}", result);
+        assert!(result.is_ok(), "PNG OHLC export failed: {result:?}");
         
         // Verify PNG file
         assert!(ohlc_chart_path.exists());
         let file_size = fs::metadata(&ohlc_chart_path).unwrap().len();
-        assert!(file_size > 1000, "PNG file too small: {} bytes", file_size);
+        assert!(file_size > 1000, "PNG file too small: {file_size} bytes");
         
         // Verify PNG magic bytes
         let content = fs::read(&ohlc_chart_path).unwrap();
@@ -215,12 +215,12 @@ mod png_integration_tests {
         // Test tick chart export
         let tick_chart_path = fixture.get_path("integration_line.png");
         let result = to_png_ticks(&fixture.tick_data, &tick_chart_path);
-        assert!(result.is_ok(), "PNG tick export failed: {:?}", result);
+        assert!(result.is_ok(), "PNG tick export failed: {result:?}");
         
         // Verify tick chart
         assert!(tick_chart_path.exists());
         let tick_size = fs::metadata(&tick_chart_path).unwrap().len();
-        assert!(tick_size > 1000, "Tick chart too small: {} bytes", tick_size);
+        assert!(tick_size > 1000, "Tick chart too small: {tick_size} bytes");
     }
     
     #[test]
@@ -238,12 +238,12 @@ mod png_integration_tests {
         
         let custom_path = fixture.get_path("custom_chart.png");
         let result = to_png_ohlc_with_builder(&fixture.ohlc_data, &custom_path, builder);
-        assert!(result.is_ok(), "Custom PNG export failed: {:?}", result);
+        assert!(result.is_ok(), "Custom PNG export failed: {result:?}");
         
         // Verify custom chart
         assert!(custom_path.exists());
         let file_size = fs::metadata(&custom_path).unwrap().len();
-        assert!(file_size > 2000, "Custom chart too small: {} bytes", file_size);
+        assert!(file_size > 2000, "Custom chart too small: {file_size} bytes");
     }
 }
 
@@ -270,7 +270,7 @@ mod couchdb_integration_tests {
             }
             Err(e) => {
                 // Expected if CouchDB is not running
-                println!("CouchDB export failed (expected): {}", e);
+                println!("CouchDB export failed (expected): {e}");
                 // Don't fail the test, just log it
             }
         }
@@ -279,7 +279,7 @@ mod couchdb_integration_tests {
         let result = to_couchdb_ticks(&fixture.tick_data[..3], server_url, "tick_test");
         match result {
             Ok(_) => println!("CouchDB tick export successful"),
-            Err(e) => println!("CouchDB tick export failed (expected): {}", e),
+            Err(e) => println!("CouchDB tick export failed (expected): {e}"),
         }
     }
 }
@@ -318,10 +318,10 @@ mod performance_tests {
             assert!(csv_path.exists());
             
             let records_per_sec = large_data.len() as f64 / duration.as_secs_f64();
-            println!("CSV Performance: {:.0} records/sec ({:?})", records_per_sec, duration);
+            println!("CSV Performance: {records_per_sec:.0} records/sec ({duration:?})");
             
             // Should handle at least 1000 records per second
-            assert!(records_per_sec > 1000.0, "CSV export too slow: {:.0} rec/sec", records_per_sec);
+            assert!(records_per_sec > 1000.0, "CSV export too slow: {records_per_sec:.0} rec/sec");
         }
         
         // Benchmark JSON export
@@ -339,10 +339,10 @@ mod performance_tests {
             assert!(json_path.exists());
             
             let records_per_sec = large_data.len() as f64 / duration.as_secs_f64();
-            println!("JSON Performance: {:.0} records/sec ({:?})", records_per_sec, duration);
+            println!("JSON Performance: {records_per_sec:.0} records/sec ({duration:?})");
             
             // JSON might be slower due to more formatting
-            assert!(records_per_sec > 500.0, "JSON export too slow: {:.0} rec/sec", records_per_sec);
+            assert!(records_per_sec > 500.0, "JSON export too slow: {records_per_sec:.0} rec/sec");
         }
         
         // Benchmark PNG export (smaller dataset)
@@ -363,7 +363,7 @@ mod performance_tests {
             println!("PNG Chart Performance: {} records in {:?}", chart_data.len(), duration);
             
             // Charts should complete within reasonable time
-            assert!(duration.as_secs() < 30, "PNG export took too long: {:?}", duration);
+            assert!(duration.as_secs() < 30, "PNG export took too long: {duration:?}");
         }
     }
 }
@@ -395,7 +395,7 @@ mod error_handling_tests {
                     assert_eq!(lines.len(), 1); // Just the header
                 }
                 Err(e) => {
-                    println!("Empty CSV export handling: {}", e);
+                    println!("Empty CSV export handling: {e}");
                     // Some exporters might reject empty data, which is acceptable
                 }
             }
@@ -418,7 +418,7 @@ mod error_handling_tests {
                     assert_eq!(parsed.as_array().unwrap().len(), 0);
                 }
                 Err(e) => {
-                    println!("Empty JSON export handling: {}", e);
+                    println!("Empty JSON export handling: {e}");
                 }
             }
         }
@@ -480,8 +480,8 @@ fn test_export_integration_summary() {
     #[cfg(not(feature = "couchdb"))]
     disabled_features.push("couchdb");
     
-    println!("Enabled features: {:?}", enabled_features);
-    println!("Disabled features: {:?}", disabled_features);
+    println!("Enabled features: {enabled_features:?}");
+    println!("Disabled features: {disabled_features:?}");
     
     // Basic test to ensure at least one format works
     assert!(!enabled_features.is_empty(), "At least one export feature should be enabled for integration tests");

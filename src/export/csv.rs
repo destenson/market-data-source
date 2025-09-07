@@ -13,6 +13,7 @@ use std::path::Path;
 
 /// CSV exporter for market data
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct CsvExporter {
     options: CsvOptions,
 }
@@ -52,13 +53,6 @@ impl Default for CsvOptions {
     }
 }
 
-impl Default for CsvExporter {
-    fn default() -> Self {
-        Self {
-            options: CsvOptions::default(),
-        }
-    }
-}
 
 impl CsvExporter {
     /// Creates a new CSV exporter with default options
@@ -113,7 +107,7 @@ impl CsvExporter {
 
         // Write headers if configured
         if self.options.include_headers {
-            csv_writer.write_record(&[
+            csv_writer.write_record([
                 "timestamp",
                 "open",
                 "high",
@@ -145,7 +139,7 @@ impl CsvExporter {
 
         // Write headers if configured
         if self.options.include_headers {
-            csv_writer.write_record(&[
+            csv_writer.write_record([
                 "timestamp",
                 "price",
                 "volume",
@@ -180,7 +174,7 @@ impl CsvExporter {
 
         // Write headers if configured
         if self.options.include_headers {
-            csv_writer.write_record(&[
+            csv_writer.write_record([
                 "timestamp",
                 "open",
                 "high",
@@ -223,7 +217,7 @@ impl CsvExporter {
 
         // Write headers if configured
         if self.options.include_headers {
-            csv_writer.write_record(&[
+            csv_writer.write_record([
                 "timestamp",
                 "price",
                 "volume",
@@ -278,7 +272,7 @@ impl DataExporter for CsvExporter {
 mod tests {
     use super::*;
     use std::io::Cursor;
-    use rust_decimal::prelude::*;
+    
     use rust_decimal::Decimal;
     use crate::types::{OHLC, Tick};
     use std::str::FromStr;

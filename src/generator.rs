@@ -31,7 +31,7 @@ impl MarketDataGenerator {
     pub fn with_config(config: GeneratorConfig) -> Result<Self, String> {
         // Validate configuration
         config.validate()
-            .map_err(|e| format!("Invalid configuration: {}", e))?;
+            .map_err(|e| format!("Invalid configuration: {e}"))?;
 
         // Create RNG with seed if provided
         let rng = match config.seed {
@@ -45,7 +45,7 @@ impl MarketDataGenerator {
         // Get current timestamp
         let current_timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map_err(|e| format!("Failed to get system time: {}", e))?
+            .map_err(|e| format!("Failed to get system time: {e}"))?
             .as_millis() as i64;
 
         Ok(Self {
@@ -146,7 +146,7 @@ impl MarketDataGenerator {
     /// Updates the configuration
     pub fn set_config(&mut self, config: GeneratorConfig) -> Result<(), String> {
         config.validate()
-            .map_err(|e| format!("Invalid configuration: {}", e))?;
+            .map_err(|e| format!("Invalid configuration: {e}"))?;
         
         // Update config
         self.config = config.clone();

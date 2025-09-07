@@ -49,7 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 successful_exports.push("CSV OHLC");
             }
             Err(e) => {
-                println!("   ❌ CSV OHLC export failed: {}", e);
+                println!("   ❌ CSV OHLC export failed: {e}");
                 failed_exports.push("CSV OHLC");
             }
         }
@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 successful_exports.push("CSV Ticks");
             }
             Err(e) => {
-                println!("   ❌ CSV Ticks export failed: {}", e);
+                println!("   ❌ CSV Ticks export failed: {e}");
                 failed_exports.push("CSV Ticks");
             }
         }
@@ -90,7 +90,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 successful_exports.push("JSON OHLC");
             }
             Err(e) => {
-                println!("   ❌ JSON OHLC export failed: {}", e);
+                println!("   ❌ JSON OHLC export failed: {e}");
                 failed_exports.push("JSON OHLC");
             }
         }
@@ -101,7 +101,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 successful_exports.push("JSON Ticks");
             }
             Err(e) => {
-                println!("   ❌ JSON Ticks export failed: {}", e);
+                println!("   ❌ JSON Ticks export failed: {e}");
                 failed_exports.push("JSON Ticks");
             }
         }
@@ -113,7 +113,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 successful_exports.push("JSONL OHLC");
             }
             Err(e) => {
-                println!("   ❌ JSON Lines OHLC export failed: {}", e);
+                println!("   ❌ JSON Lines OHLC export failed: {e}");
                 failed_exports.push("JSONL OHLC");
             }
         }
@@ -124,7 +124,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 successful_exports.push("JSONL Ticks");
             }
             Err(e) => {
-                println!("   ❌ JSON Lines Ticks export failed: {}", e);
+                println!("   ❌ JSON Lines Ticks export failed: {e}");
                 failed_exports.push("JSONL Ticks");
             }
         }
@@ -153,7 +153,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 successful_exports.push("PNG Candlestick");
             }
             Err(e) => {
-                println!("   ❌ PNG candlestick export failed: {}", e);
+                println!("   ❌ PNG candlestick export failed: {e}");
                 failed_exports.push("PNG Candlestick");
             }
         }
@@ -165,7 +165,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 successful_exports.push("PNG Line Chart");
             }
             Err(e) => {
-                println!("   ❌ PNG line chart export failed: {}", e);
+                println!("   ❌ PNG line chart export failed: {e}");
                 failed_exports.push("PNG Line Chart");
             }
         }
@@ -185,7 +185,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 successful_exports.push("PNG Advanced Chart");
             }
             Err(e) => {
-                println!("   ❌ PNG advanced chart export failed: {}", e);
+                println!("   ❌ PNG advanced chart export failed: {e}");
                 failed_exports.push("PNG Advanced Chart");
             }
         }
@@ -215,7 +215,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 successful_exports.push("CouchDB OHLC");
             }
             Err(e) => {
-                println!("   ❌ CouchDB OHLC export failed: {}", e);
+                println!("   ❌ CouchDB OHLC export failed: {e}");
                 println!("      (This is expected if CouchDB is not running)");
                 failed_exports.push("CouchDB OHLC");
             }
@@ -228,7 +228,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 successful_exports.push("CouchDB Ticks");
             }
             Err(e) => {
-                println!("   ❌ CouchDB Ticks export failed: {}", e);
+                println!("   ❌ CouchDB Ticks export failed: {e}");
                 failed_exports.push("CouchDB Ticks");
             }
         }
@@ -256,7 +256,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 successful_exports.push("Custom CSV");
             }
             Err(e) => {
-                println!("   ❌ Custom CSV failed: {}", e);
+                println!("   ❌ Custom CSV failed: {e}");
                 failed_exports.push("Custom CSV");
             }
         }
@@ -275,7 +275,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 successful_exports.push("Pretty JSON");
             }
             Err(e) => {
-                println!("   ❌ Pretty JSON failed: {}", e);
+                println!("   ❌ Pretty JSON failed: {e}");
                 failed_exports.push("Pretty JSON");
             }
         }
@@ -316,21 +316,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !successful_exports.is_empty() {
         println!("\n✅ Successful Exports ({}):", successful_exports.len());
         for export in &successful_exports {
-            println!("   - {}", export);
+            println!("   - {export}");
         }
     }
     
     if !failed_exports.is_empty() {
         println!("\n❌ Failed/Disabled Exports ({}):", failed_exports.len());
         for export in &failed_exports {
-            println!("   - {}", export);
+            println!("   - {export}");
         }
     }
     
     if !timings.is_empty() {
         println!("\n⏱️ Performance Results:");
         for (format, duration) in &timings {
-            println!("   {} export: {:?}", format, duration);
+            println!("   {format} export: {duration:?}");
         }
     }
     
@@ -354,7 +354,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     for file in &potential_files {
         if std::path::Path::new(file).exists() {
-            println!("   ✓ {}", file);
+            println!("   ✓ {file}");
         }
     }
     

@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Export to CSV file
     let ohlc_file = "market_data_ohlc.csv";
     to_csv_ohlc(&ohlc_data, ohlc_file)?;
-    println!("   ✓ Exported OHLC data to: {}", ohlc_file);
+    println!("   ✓ Exported OHLC data to: {ohlc_file}");
     
     // Show sample of the data
     println!("   Sample data (first 3 candles):");
@@ -57,7 +57,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Export to CSV file
     let tick_file = "market_data_ticks.csv";
     to_csv_ticks(&tick_data, tick_file)?;
-    println!("   ✓ Exported tick data to: {}", tick_file);
+    println!("   ✓ Exported tick data to: {tick_file}");
     
     // Show sample of the tick data
     println!("   Sample data (first 3 ticks):");
@@ -80,18 +80,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Generate and export in one step
     let direct_ohlc_file = "direct_export_ohlc.csv";
     generator_direct.generate_to_csv_ohlc(25, direct_ohlc_file)?;
-    println!("   ✓ Generated and exported 25 OHLC candles to: {}", direct_ohlc_file);
+    println!("   ✓ Generated and exported 25 OHLC candles to: {direct_ohlc_file}");
     
     let direct_tick_file = "direct_export_ticks.csv";
     generator_direct.generate_to_csv_ticks(25, direct_tick_file)?;
-    println!("   ✓ Generated and exported 25 ticks to: {}", direct_tick_file);
+    println!("   ✓ Generated and exported 25 ticks to: {direct_tick_file}");
     
     // Example 4: Large dataset with streaming
     println!("\n4. Streaming large dataset export...");
     
     let large_ohlc_file = "large_dataset_ohlc.csv";
     let count = generator_direct.stream_generate_to_csv_ohlc(1000, large_ohlc_file)?;
-    println!("   ✓ Streamed {} OHLC candles to: {}", count, large_ohlc_file);
+    println!("   ✓ Streamed {count} OHLC candles to: {large_ohlc_file}");
     
     // Example 5: Custom CSV options
     println!("\n5. Custom CSV export options...");
@@ -109,7 +109,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let semicolon_file = "custom_semicolon.csv";
     semicolon_exporter.export_ohlc(&custom_data, semicolon_file)?;
-    println!("   ✓ Exported with semicolon delimiter to: {}", semicolon_file);
+    println!("   ✓ Exported with semicolon delimiter to: {semicolon_file}");
     
     // Export without headers
     let no_headers_exporter = CsvExporter::new()
@@ -117,20 +117,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let no_headers_file = "no_headers.csv";
     no_headers_exporter.export_ohlc(&custom_data, no_headers_file)?;
-    println!("   ✓ Exported without headers to: {}", no_headers_file);
+    println!("   ✓ Exported without headers to: {no_headers_file}");
     
     println!("\n✅ CSV export examples completed successfully!");
     println!("\nGenerated files:");
-    println!("  - {}", ohlc_file);
-    println!("  - {}", tick_file);
-    println!("  - {}", direct_ohlc_file);
-    println!("  - {}", direct_tick_file);
-    println!("  - {}", large_ohlc_file);
-    println!("  - {}", semicolon_file);
-    println!("  - {}", no_headers_file);
+    println!("  - {ohlc_file}");
+    println!("  - {tick_file}");
+    println!("  - {direct_ohlc_file}");
+    println!("  - {direct_tick_file}");
+    println!("  - {large_ohlc_file}");
+    println!("  - {semicolon_file}");
+    println!("  - {no_headers_file}");
     
     println!("\nYou can open these files in Excel, Google Sheets, or any CSV viewer.");
-    println!("Or analyze them with Python pandas: pd.read_csv('{}').", ohlc_file);
+    println!("Or analyze them with Python pandas: pd.read_csv('{ohlc_file}').");
     
     Ok(())
 }
@@ -145,8 +145,8 @@ fn format_ohlc(ohlc: &market_data_source::OHLC) -> String {
 
 // Helper function to format tick data for display
 fn format_tick(tick: &market_data_source::Tick) -> String {
-    let bid_str = tick.bid.map(|b| format!("{:.2}", b)).unwrap_or_else(|| "N/A".to_string());
-    let ask_str = tick.ask.map(|a| format!("{:.2}", a)).unwrap_or_else(|| "N/A".to_string());
+    let bid_str = tick.bid.map(|b| format!("{b:.2}")).unwrap_or_else(|| "N/A".to_string());
+    let ask_str = tick.ask.map(|a| format!("{a:.2}")).unwrap_or_else(|| "N/A".to_string());
     format!(
         "Price:{:.2} Vol:{} Bid:{} Ask:{}",
         tick.price, tick.volume, bid_str, ask_str

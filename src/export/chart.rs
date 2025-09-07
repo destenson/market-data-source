@@ -270,7 +270,7 @@ impl ChartBuilder {
                 // Draw the high-low line
                 price_chart.draw_series(std::iter::once(PathElement::new(
                     vec![(x, low), (x, high)],
-                    &color,
+                    color,
                 )))?;
 
                 // Draw the open-close rectangle
@@ -360,7 +360,7 @@ impl ChartBuilder {
                 .x_desc("Time")
                 .y_desc("Price")
                 .label_style((self.font_family.as_str(), 15).into_font().color(&self.text_color))
-                .axis_style(&self.grid_color)
+                .axis_style(self.grid_color)
                 .draw()?;
         }
 
@@ -403,12 +403,12 @@ impl ChartBuilder {
                     &self.ma_color,
                 ))?
                 .label(format!("SMA({})", self.ma_period))
-                .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], &self.ma_color));
+                .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], self.ma_color));
                 
                 price_chart.configure_series_labels()
                     .label_font((self.font_family.as_str(), 15).into_font().color(&self.text_color))
-                    .background_style(&WHITE.mix(0.8))
-                    .border_style(&BLACK)
+                    .background_style(WHITE.mix(0.8))
+                    .border_style(BLACK)
                     .draw()?;
             }
         }
@@ -434,7 +434,7 @@ impl ChartBuilder {
                     .x_desc("Time")
                     .y_desc("Volume")
                     .label_style((self.font_family.as_str(), 15).into_font().color(&self.text_color))
-                    .axis_style(&self.grid_color)
+                    .axis_style(self.grid_color)
                     .draw()?;
             }
 
@@ -509,7 +509,7 @@ impl ChartBuilder {
                 .x_desc("Time")
                 .y_desc("Price")
                 .label_style((self.font_family.as_str(), 15).into_font().color(&self.text_color))
-                .axis_style(&self.grid_color)
+                .axis_style(self.grid_color)
                 .draw()?;
         }
 
@@ -520,7 +520,7 @@ impl ChartBuilder {
             &self.ma_color,
         ))?
         .label("Price")
-        .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], &self.ma_color));
+        .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], self.ma_color));
 
         // Draw bid/ask lines if available
         let has_bid_ask = data.iter().any(|tick| tick.bid.is_some() && tick.ask.is_some());
@@ -532,7 +532,7 @@ impl ChartBuilder {
                 &self.bearish_color,
             ))?
             .label("Bid")
-            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], &self.bearish_color));
+            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], self.bearish_color));
 
             // Draw ask line
             chart.draw_series(LineSeries::new(
@@ -541,14 +541,14 @@ impl ChartBuilder {
                 &self.bullish_color,
             ))?
             .label("Ask")
-            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], &self.bullish_color));
+            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], self.bullish_color));
         }
 
         //
         chart.configure_series_labels()
             .label_font((self.font_family.as_str(), 15).into_font().color(&self.text_color))
-            .background_style(&WHITE.mix(0.8))
-            .border_style(&BLACK)
+            .background_style(WHITE.mix(0.8))
+            .border_style(BLACK)
             .draw()?;
 
             root.present()?;
@@ -581,17 +581,11 @@ impl ChartBuilder {
 }
 
 /// Chart exporter for PNG format
+#[derive(Default)]
 pub struct ChartExporter {
     builder: ChartBuilder,
 }
 
-impl Default for ChartExporter {
-    fn default() -> Self {
-        Self {
-            builder: ChartBuilder::default(),
-        }
-    }
-}
 
 impl ChartExporter {
     /// Create a new chart exporter with default settings
