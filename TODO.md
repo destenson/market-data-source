@@ -87,7 +87,21 @@
    - Currently blocked by SIMD feature conflict
    - Update to couch_rs 0.10+ when possible
 
-## 🚀 Next Major Features
+## 🚀 Next Major Features (Pre-Publication)
+
+### Market Regime & Dynamics (For v0.4.0 Consideration)
+- [ ] **Market Regime Changes**: Implement dynamic market state transitions (bull/bear/sideways)
+  - Regime detection algorithms based on volatility and trend characteristics
+  - Smooth transitions between different market conditions
+  - Configurable regime persistence and switching probabilities
+  - Historical regime modeling for realistic market cycle simulation
+  
+- [ ] **Live Parameter Updates**: Runtime configuration modification without restart
+  - Hot-reload configuration changes via API endpoints
+  - WebSocket-based parameter broadcasting to connected clients
+  - Validation and rollback mechanisms for invalid parameter changes
+  - Parameter change logging and audit trail
+  - Integration with existing server infrastructure
 
 ### Enhanced Market Realism
 - [ ] **Volatility Clustering**: GARCH/EGARCH models
@@ -114,7 +128,20 @@
 - [ ] **SQLite Export**: Embedded database support
 - [ ] **Real Data Sources**: Yahoo Finance, Alpha Vantage, IEX Cloud integrations
 
-## 🎯 KILLER FEATURES - Level 2 & Options
+## 🎯 KILLER FEATURES - v0.5.0+ (Major Differentiators)
+
+### Factor Model Integration (v0.5.0 - Premium Feature)
+- [ ] **Factor Model Integration**: Synthetic data replication based on financial factor models
+  - Support for Fama-French 3-factor and 5-factor models (market, size, value, profitability, investment)
+  - CAPM (Capital Asset Pricing Model) implementation with customizable beta coefficients
+  - Arbitrage Pricing Theory (APT) with multiple factor exposure specification
+  - Custom factor model specification via configuration or API
+  - Factor loading estimation from historical data input
+  - Cross-sectional factor model support for portfolio-level simulation
+  - Time-varying factor loadings and regime-dependent factor models
+  - Integration with existing volatility and trend generation systems
+
+## 🎯 ADVANCED FEATURES - Level 2 & Options
 
 ### Order Book (Level 2) Data
 - [ ] **Full Order Book**: Multiple price levels with bid/ask sizes
@@ -160,6 +187,10 @@
 | Deprecated code | 5+ | Medium | 3 days |
 | Format string efficiency | 7 | Low | 1 day |
 | Missing features | 10+ | Low | Ongoing |
+| **New Feature Requests** | | | |
+| Market regime changes | 1 | Medium-High | 1-2 weeks |
+| Live parameter updates | 1 | Medium-High | 1 week |
+| ~~Factor model integration~~ | ~~1~~ | ~~High~~ | ~~Reserved for v0.5.0~~ |
 
 ## 📝 Notes
 
@@ -181,7 +212,23 @@ The project has evolved into a production-ready financial data generation platfo
 - ⚠️ WebSocket endpoint needs investigation (13/15 server tests passing - 86.7%)
 - ⚠️ Code quality improvements needed (34 clippy warnings)
 
-Next sprint should focus on:
+## 🎯 Publication vs Feature Enhancement Decision Point
+
+**Option A: Quick Publication Path (Recommended)**
+Focus on immediate publication readiness:
 1. Addressing clippy warnings (particularly unwrap() usage in config.rs)
 2. Fixing WebSocket endpoint for complete server functionality  
 3. Cleaning up deprecated code for forward compatibility
+4. Implement publication pipeline (PRPs 21-27)
+
+**Option B: Feature Enhancement Path**  
+Add market dynamics features before publication:
+1. Complete Option A requirements first
+2. Implement Market Regime Changes (estimated 1-2 weeks)
+3. Implement Live Parameter Updates (estimated 1 week)  
+4. Enhanced testing and validation for new features
+5. Updated documentation and examples
+
+**Note**: Factor Model Integration postponed to v0.5.0 as premium differentiator feature due to complexity and development time required.
+
+**Recommendation**: Publish current stable version (0.3.0) first, then add advanced features in 0.4.0. This gets community feedback early and establishes the package in both ecosystems.
