@@ -2,12 +2,11 @@
 
 use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
-use rust_decimal::Decimal;
 use rust_decimal::prelude::*;
 
 use crate::{
-    MarketDataGenerator, GeneratorConfig, ConfigBuilder, OHLC, Tick, TimeInterval, Volume,
-    export::{DataExporter, CsvExporter, JsonExporter, chart::ChartExporter}
+    MarketDataGenerator, GeneratorConfig, ConfigBuilder, OHLC, Tick, TimeInterval,
+    export::{DataExporter, CsvExporter, JsonExporter, json::JsonOptions, chart::{ChartExporter, ChartBuilder}}
 };
 
 // Automated conversion trait for OHLC to Python dict
@@ -64,7 +63,7 @@ impl IntoPy<PyObject> for TimeInterval {
 }
 
 /// Python wrapper for GeneratorConfig with automatic getters
-#[pyclass(name = "GeneratorConfig", get_all)]
+#[pyclass(name = "GeneratorConfig")]
 #[derive(Clone)]
 pub struct PyGeneratorConfig {
     inner: GeneratorConfig,
@@ -74,7 +73,7 @@ pub struct PyGeneratorConfig {
 impl PyGeneratorConfig {
     #[getter]
     fn initial_price(&self) -> f64 {
-        self.inner.initial_price.to_f64().unwrap_or(0.0)
+        self.inner.starting_price.to_f64().unwrap_or(0.0)
     }
     
     #[getter]
@@ -83,23 +82,28 @@ impl PyGeneratorConfig {
     }
     
     #[getter]
-    fn trend(&self) -> f64 {
-        self.inner.trend.to_f64().unwrap_or(0.0)
+    fn trend_strength(&self) -> f64 {
+        self.inner.trend_strength.to_f64().unwrap_or(0.0)
     }
     
     #[getter]
-    fn min_price(&self) -> Option<f64> {
-        self.inner.min_price.map(|p| p.to_f64().unwrap_or(0.0))
+    fn trend_direction(&self) -> String {
+        format!("{:?}", self.inner.trend_direction)
     }
     
     #[getter]
-    fn max_price(&self) -> Option<f64> {
-        self.inner.max_price.map(|p| p.to_f64().unwrap_or(0.0))
+    fn min_price(&self) -> f64 {
+        self.inner.min_price.to_f64().unwrap_or(0.0)
     }
     
     #[getter]
-    fn volume_base(&self) -> f64 {
-        self.inner.volume_base.to_f64().unwrap_or(0.0)
+    fn max_price(&self) -> f64 {
+        self.inner.max_price.to_f64().unwrap_or(0.0)
+    }
+    
+    #[getter]
+    fn base_volume(&self) -> u64 {
+        self.inner.base_volume
     }
     
     #[getter]
@@ -108,8 +112,8 @@ impl PyGeneratorConfig {
     }
     
     #[getter]
-    fn interval(&self) -> String {
-        format!("{:?}", self.inner.interval)
+    fn time_interval(&self) -> String {
+        format!("{:?}", self.inner.time_interval)
     }
     
     #[getter]
@@ -119,10 +123,10 @@ impl PyGeneratorConfig {
     
     fn __repr__(&self) -> String {
         format!(
-            "GeneratorConfig(initial_price={}, volatility={}, trend={})",
+            "GeneratorConfig(initial_price={}, volatility={}, trend_strength={})",
             self.initial_price(),
             self.volatility(),
-            self.trend()
+            self.trend_strength()
         )
     }
 }
@@ -138,61 +142,57 @@ impl PyMarketDataGenerator {
     /// Create a new MarketDataGenerator with kwargs
     #[new]
     #[pyo3(signature = (**kwargs))]
-    fn new(kwargs: Option<&pyo3::types::PyDict>) -> PyResult<Self> {
+    fn new(kwargs: Option<&Bound<'_, pyo3::types::PyDict>>) -> PyResult<Self> {
         let mut builder = ConfigBuilder::new();
         
         if let Some(dict) = kwargs {
             // Automatically extract and set all parameters from kwargs
-            if let Ok(val) = dict.get_item("initial_price") {
-                if let Some(v) = val {
-                    builder = builder.initial_price_f64(v.extract::<f64>()?);
-                }
+            if let Ok(Some(val)) = dict.get_item("initial_price") {
+                builder = builder.starting_price_f64(val.extract::<f64>()?);
             }
-            if let Ok(val) = dict.get_item("volatility") {
-                if let Some(v) = val {
-                    builder = builder.volatility_f64(v.extract::<f64>()?);
-                }
+            if let Ok(Some(val)) = dict.get_item("volatility") {
+                builder = builder.volatility_f64(val.extract::<f64>()?);
             }
-            if let Ok(val) = dict.get_item("trend") {
-                if let Some(v) = val {
-                    builder = builder.trend_f64(v.extract::<f64>()?);
-                }
+            if let Ok(Some(val)) = dict.get_item("trend") {
+                // For backwards compatibility, interpret single trend value as bullish/bearish direction
+                let trend_val = val.extract::<f64>()?;
+                use crate::config::TrendDirection;
+                let direction = if trend_val > 0.0 {
+                    TrendDirection::Bullish
+                } else if trend_val < 0.0 {
+                    TrendDirection::Bearish
+                } else {
+                    TrendDirection::Sideways
+                };
+                builder = builder.trend_f64(direction, trend_val.abs());
             }
-            if let Ok(val) = dict.get_item("min_price") {
-                if let Some(v) = val {
-                    builder = builder.min_price_f64(v.extract::<f64>()?);
+            if let Ok(Some(val)) = dict.get_item("min_price") {
+                if let Ok(Some(max_val)) = dict.get_item("max_price") {
+                    builder = builder.price_range_f64(val.extract::<f64>()?, max_val.extract::<f64>()?);
+                } else {
+                    builder = builder.price_range_f64(val.extract::<f64>()?, 1e15);
                 }
+            } else if let Ok(Some(val)) = dict.get_item("max_price") {
+                builder = builder.price_range_f64(1.0, val.extract::<f64>()?);
             }
-            if let Ok(val) = dict.get_item("max_price") {
-                if let Some(v) = val {
-                    builder = builder.max_price_f64(v.extract::<f64>()?);
-                }
+            if let Ok(Some(val)) = dict.get_item("volume_base") {
+                builder = builder.base_volume(val.extract::<u64>()?);
             }
-            if let Ok(val) = dict.get_item("volume_base") {
-                if let Some(v) = val {
-                    builder = builder.volume_base_f64(v.extract::<f64>()?);
-                }
+            if let Ok(Some(val)) = dict.get_item("volume_volatility") {
+                builder = builder.volume_volatility(val.extract::<f64>()?);
             }
-            if let Ok(val) = dict.get_item("volume_volatility") {
-                if let Some(v) = val {
-                    builder = builder.volume_volatility(v.extract::<f64>()?);
-                }
+            if let Ok(Some(val)) = dict.get_item("seed") {
+                builder = builder.seed(val.extract::<u64>()?);
             }
-            if let Ok(val) = dict.get_item("seed") {
-                if let Some(v) = val {
-                    builder = builder.seed(v.extract::<u64>()?);
-                }
-            }
-            if let Ok(val) = dict.get_item("interval") {
-                if let Some(v) = val {
-                    let interval_str = v.extract::<&str>()?;
-                    let interval = parse_interval(interval_str)?;
-                    builder = builder.interval(interval);
-                }
+            if let Ok(Some(val)) = dict.get_item("interval") {
+                let interval_str = val.extract::<&str>()?;
+                let interval = parse_interval(interval_str)?;
+                builder = builder.time_interval(interval);
             }
         }
         
-        let config = builder.build();
+        let config = builder.build()
+            .map_err(|e| PyValueError::new_err(format!("Configuration error: {}", e)))?;
         let generator = MarketDataGenerator::with_config(config)
             .map_err(|e| PyValueError::new_err(format!("Failed to create generator: {}", e)))?;
         Ok(PyMarketDataGenerator { generator })
@@ -210,14 +210,24 @@ impl PyMarketDataGenerator {
     
     /// Generate data between timestamps
     fn generate_series_between(&mut self, start: i64, end: i64) -> PyResult<Vec<OHLC>> {
-        let start_dt = pyo3::chrono::Utc.timestamp_opt(start, 0)
-            .single()
-            .ok_or_else(|| PyValueError::new_err("Invalid start timestamp"))?;
-        let end_dt = pyo3::chrono::Utc.timestamp_opt(end, 0)
-            .single()
-            .ok_or_else(|| PyValueError::new_err("Invalid end timestamp"))?;
+        // Set starting timestamp
+        self.generator.set_timestamp(start);
         
-        Ok(self.generator.generate_series_between(start_dt, end_dt))
+        // Calculate how many points to generate based on time interval
+        let duration_ms = end - start;
+        let interval_ms = match self.generator.config().time_interval {
+            TimeInterval::OneMinute => 60_000,
+            TimeInterval::FiveMinutes => 300_000,
+            TimeInterval::FifteenMinutes => 900_000,
+            TimeInterval::ThirtyMinutes => 1_800_000,
+            TimeInterval::OneHour => 3_600_000,
+            TimeInterval::FourHours => 14_400_000,
+            TimeInterval::OneDay => 86_400_000,
+            TimeInterval::Custom(secs) => secs as i64 * 1000,
+        };
+        
+        let count = (duration_ms / interval_ms).max(1) as usize;
+        Ok(self.generator.generate_series(count))
     }
     
     /// Export data to CSV file
@@ -230,33 +240,46 @@ impl PyMarketDataGenerator {
     }
     
     /// Export data to JSON file
+    #[pyo3(signature = (path, count, lines=None))]
     fn to_json(&mut self, path: &str, count: usize, lines: Option<bool>) -> PyResult<()> {
         let data = self.generator.generate_series(count);
-        let exporter = JsonExporter::new(lines.unwrap_or(false));
+        let exporter = if lines.unwrap_or(false) {
+            JsonExporter::with_options(JsonOptions::json_lines())
+        } else {
+            JsonExporter::new()
+        };
         exporter.export_ohlc(&data, path)
             .map_err(|e| PyValueError::new_err(format!("Export failed: {}", e)))?;
         Ok(())
     }
     
     /// Export data to PNG chart
-    fn to_png(&mut self, path: &str, count: usize, kwargs: Option<&pyo3::types::PyDict>) -> PyResult<()> {
+    #[pyo3(signature = (path, count, **kwargs))]
+    fn to_png(&mut self, path: &str, count: usize, kwargs: Option<&Bound<'_, pyo3::types::PyDict>>) -> PyResult<()> {
         let data = self.generator.generate_series(count);
-        let mut exporter = ChartExporter::new();
         
-        // Auto-extract PNG parameters from kwargs
+        // Build the chart configuration from kwargs
+        let mut builder = ChartBuilder::new();
+        
         if let Some(dict) = kwargs {
-            if let Ok(Some(v)) = dict.get_item("width") {
-                if let Ok(Some(h)) = dict.get_item("height") {
-                    exporter = exporter.with_dimensions(v.extract()?, h.extract()?);
+            if let Ok(Some(width)) = dict.get_item("width") {
+                if let Ok(Some(height)) = dict.get_item("height") {
+                    let w: u32 = width.extract()?;
+                    let h: u32 = height.extract()?;
+                    builder = builder.dimensions(w, h);
                 }
             }
-            if let Ok(Some(v)) = dict.get_item("title") {
-                exporter = exporter.with_title(v.extract()?);
+            if let Ok(Some(title)) = dict.get_item("title") {
+                let t: String = title.extract()?;
+                builder = builder.title(&t);
             }
-            if let Ok(Some(v)) = dict.get_item("volume") {
-                exporter = exporter.with_volume(v.extract()?);
+            if let Ok(Some(volume)) = dict.get_item("volume") {
+                let v: bool = volume.extract()?;
+                builder = builder.show_volume(v);
             }
         }
+        
+        let exporter = ChartExporter::with_builder(builder);
         
         exporter.export_ohlc(&data, path)
             .map_err(|e| PyValueError::new_err(format!("Export failed: {}", e)))?;
