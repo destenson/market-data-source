@@ -1,13 +1,14 @@
 # TODO
 
-## 🔍 Current Implementation Status
+## Current Implementation Status
 
 ### Recently Completed ✅
+- **REST/WebSocket Server**: Full API server with runtime discovery, control endpoint, and clean shutdown
 - **PRP-20**: Python Bindings - Full PyO3 integration with examples and tests
 - **19 PRPs Completed**: All foundational PRPs (01-13, 15-20) - Complete export infrastructure implemented with financial precision
 - **Python Integration**: Fully functional Python bindings with seed support, all export formats, and preset configurations
 - **Export Module**: Fully functional with trait-based design, proper error types, and unified architecture
-- **Feature Flags**: Proper separation of optional dependencies (csv_export, json_export, png_export, couchdb, python)
+- **Feature Flags**: Proper separation of optional dependencies (csv_export, json_export, png_export, couchdb, python, api-server)
 - **Comprehensive Examples**: Complete example suite demonstrating all export formats in both Rust and Python
 - **Integration Tests**: End-to-end test coverage for all export formats including performance benchmarks
 - **PNG Chart Generation**: Full candlestick and line chart support with customizable styling, volume bars, and moving averages
@@ -18,32 +19,50 @@
 
 ### Code Quality Metrics
 - **No TODO/FIXME comments** found in codebase (exceptionally clean implementation)
-- **Unwrap Usage**: 178 `unwrap()`/`expect()` calls across 8 files (technical debt)
+- **Unwrap Usage**: 309 `unwrap()`/`expect()` calls across 18 files (technical debt)
 - **Dead Code**: Unused methods `current_price()` and `set_price()` in RandomWalkGenerator (src/algorithms/random_walk.rs:101-108)
+- **Deprecated Method**: `generate_candle()` marked as deprecated in favor of `generate_ohlc()` (src/generator.rs:77)
+- **Unused Imports**: 
+  - `ConfigBuilder` in src/server/api/handlers.rs:13
+  - `std::time::Duration` in src/server/config.rs:2
+  - `post` in src/server/routes.rs:4
+- **Unused Variables**:
+  - `state` and `symbol` in export handlers (src/server/api/handlers.rs:165-166, 222-223)
 
 ## 🎯 Immediate Priorities
 
-### High Priority - Technical Debt
-1. [ ] **Error Handling**: Replace 178 unwrap() calls with proper Result handling
-   - src/config.rs: 38 occurrences
-   - src/export/json.rs: 31 occurrences  
-   - src/python.rs: 15 occurrences
-   - src/algorithms/random_walk.rs: 15 occurrences
-   - src/generator.rs: 13 occurrences
-   - src/export/csv.rs: 8 occurrences
-   - src/export/chart.rs: 6 occurrences
+### High Priority - Code Cleanup
+1. [ ] **Fix Compilation Warnings**: Address unused imports and variables in server code
+   - Remove unused `ConfigBuilder` import
+   - Remove unused `std::time::Duration` import  
+   - Prefix unused parameters with `_` in export handlers
+   
+2. [ ] **Error Handling**: Replace 309 unwrap() calls with proper Result handling
    - src/types.rs: 52 occurrences
+   - src/config.rs: 38 occurrences  
+   - src/export/json.rs: 31 occurrences
+   - src/python.rs: 15 occurrences
+   - src/generator.rs: 13 occurrences
+   - src/algorithms/random_walk.rs: 15 occurrences
+   - Other files: ~145 occurrences
 
-2. [ ] **Volume volatility type** - Consider converting to Decimal (src/config.rs:90)
-   - Currently kept as f64 for performance reasons
+3. [ ] **Test Suite Restoration**: Fix compilation errors in test files
+   - Update test files for Decimal types
+   - Restore CI/CD capability
 
-### Medium Priority - Code Cleanup
-1. [ ] **Dead Code Removal**: Remove unused `current_price()` and `set_price()` methods in RandomWalkGenerator
-2. [ ] **CouchDB Dependency**: Update to couch_rs 0.10+ or fix dependency issue properly
+### Medium Priority - Server Enhancements
+1. [ ] **Authentication**: Add auth middleware for control endpoint
+2. [ ] **Rate Limiting**: Implement actual rate limiting (currently just configured)
+3. [ ] **Metrics Endpoint**: Add Prometheus-compatible metrics
+4. [ ] **Config Reload**: Implement configuration reload in control endpoint
+5. [ ] **Uptime Tracking**: Add actual uptime tracking to status command
 
 ### Lower Priority - Feature Enhancements
-1. [ ] **JSON compression**: Implement compression feature (src/export/json.rs:20)
-2. [ ] **Environment variable expansion**: Enhance EnvConfig beyond current optional variables (src/env.rs:157)
+1. [ ] **Dead Code Removal**: Remove unused `current_price()` and `set_price()` methods in RandomWalkGenerator
+2. [ ] **Volume volatility type**: Consider converting to Decimal (src/config.rs:90)
+3. [ ] **CouchDB Dependency**: Update to couch_rs 0.10+ or fix dependency issue properly
+4. [ ] **JSON compression**: Implement compression feature (src/export/json.rs:20)
+5. [ ] **Environment variable expansion**: Enhance EnvConfig beyond current optional variables (src/env.rs:157)
 
 ## 🚀 Next Major Features - Enhanced Realism
 
@@ -77,27 +96,9 @@
 - [ ] **SQLite Export**: Embedded database support
 - [ ] **HDF5 Support**: Scientific data format
 
-## 🚀 Standalone Executable Server
+## 🚀 Server & API Features
 
-### Binary Distribution
-- [ ] **Single Executable**: `market-data-server` binary for all platforms
-- [ ] **Zero Dependencies**: Self-contained, no runtime required
-- [ ] **CLI Configuration**: Command-line args for all settings
-- [ ] **Config File Support**: YAML/TOML configuration
-- [ ] **Docker Image**: Official Docker container
-- [ ] **Systemd Service**: Linux service integration
-- [ ] **Windows Service**: Windows service support
-
-### Server Features
-- [ ] **Multi-Protocol**: REST, WebSocket, gRPC support
-- [ ] **Hot Reload**: Change config without restart
-- [ ] **Metrics Endpoint**: Prometheus/Grafana compatible
-- [ ] **Health Checks**: Kubernetes-ready health endpoints
-- [ ] **Multi-Symbol**: Generate data for multiple symbols concurrently
-- [ ] **Scenario Files**: Load and replay market scenarios
-- [ ] **Record & Replay**: Record generated data for exact replay
-
-### API Emulation Endpoints
+### API Emulation Endpoints (Partially Implemented)
 - [ ] **Yahoo Finance Format**: `/v8/finance/chart/{symbol}`
 - [ ] **Alpha Vantage Format**: `/query?function=TIME_SERIES_INTRADAY`
 - [ ] **IEX Cloud Format**: `/stable/stock/{symbol}/quote`
@@ -105,6 +106,15 @@
 - [ ] **Binance Format**: `/api/v3/klines` (crypto)
 - [ ] **Interactive Brokers**: TWS API protocol emulation
 - [ ] **FIX Protocol**: FIX 4.4/5.0 for institutional clients
+
+### Server Enhancements
+- [ ] **Multi-Protocol**: Add gRPC support alongside REST/WebSocket
+- [ ] **Hot Reload**: Complete config reload without restart
+- [ ] **Multi-Symbol Streaming**: Concurrent generation for multiple symbols
+- [ ] **Scenario Files**: Load and replay market scenarios
+- [ ] **Record & Replay**: Record generated data for exact replay
+- [ ] **Docker Image**: Official Docker container
+- [ ] **Kubernetes Support**: Helm charts and operators
 
 ## 🎯 KILLER FEATURES - Level 2 Data & Options
 
@@ -150,6 +160,7 @@
 
 ### Priority Documentation
 - [ ] **API Reference**: Complete rustdoc documentation for all public APIs
+- [ ] **Server Guide**: REST/WebSocket API documentation
 - [ ] **Cookbook**: Common scenarios (crashes, rallies, ranging markets)
 - [ ] **Migration Guide**: For users coming from other data generators
 - [ ] **Performance Guide**: Optimization tips and benchmarks
@@ -164,7 +175,7 @@
 ## 🔧 Technical Improvements
 
 ### Performance Optimizations
-- [ ] **SIMD Optimization**: Use SIMD for batch generation
+- [ ] **SIMD Optimization**: Use SIMD for batch generation (blocked by dependency)
 - [ ] **Parallel Generation**: Multi-threaded data generation
 - [ ] **Memory Pool**: Reuse allocations for better performance
 - [ ] **Zero-Copy Streaming**: Efficient data streaming
@@ -178,7 +189,6 @@
 ## 🌟 Future Vision
 
 ### Advanced Features
-- [ ] **Options Data**: Generate options chains with Greeks
 - [ ] **Market Depth**: Full order book simulation
 - [ ] **Crypto Markets**: 24/7 trading, different volatility patterns
 - [ ] **Economic Indicators**: Correlated economic data generation
@@ -205,6 +215,13 @@
 - Consider real-world use cases from quantitative trading
 
 ## 🔥 Why These Features Matter
+
+### REST/WebSocket Server (COMPLETED ✅)
+- **Now Available**: Full server with runtime discoverable API
+- **Real-time Streaming**: WebSocket support for live data feeds
+- **Control Endpoint**: Clean shutdown and server management
+- **API Discovery**: Runtime introspection of available endpoints
+- **Multiple Formats**: Export to JSON, CSV, PNG via REST API
 
 ### Python Bindings (COMPLETED ✅)
 - **Now Available**: Full Python integration via PyO3
