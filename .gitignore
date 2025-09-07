@@ -9,3 +9,4 @@ target/
 **/*.jsonl
 .venv
 **/__pycache__/
+**/*.py[cd]
