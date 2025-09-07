@@ -71,12 +71,12 @@
 
 #### Long-term Roadmap (v0.5.0+)
 1. [ ] **Factor model integration** - Fama-French, CAPM, APT models
-2. [ ] **Advanced algorithms** - GARCH, mean reversion, jump diffusion
+2. [ ] **Multi-asset support** - Bonds, commodities, FX data generation
 3. [ ] **Real data sources** - Yahoo Finance, Alpha Vantage integrations
 
 #### Long-term Roadmap (v0.6.0+)
 1. [ ] **High-frequency data** - Tick-level generation and processing
-2. [ ] **Multi-asset support** - Bonds, commodities, FX data generation
+2. [ ] **Advanced algorithms** - GARCH, mean reversion, jump diffusion
 3. [ ] **Trading Universe Models** - Sector rotation, market breadth simulations, GDP correlations, regime shifts, industry cycles, interest rates, international market segments
 4. [ ] **Options Data** - Implied volatility surfaces, Greeks, option pricing models
 5. [ ] **Commodities Markets** - Futures curves, seasonality patterns, storage costs
