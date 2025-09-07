@@ -50,7 +50,7 @@ mod couchdb_export_tests {
     fn test_couchdb_exporter_creation() {
         let _exporter = CouchDbExporter::new("http://localhost:5984", "test_db");
         // Basic creation test - doesn't require actual CouchDB connection
-        assert!(true, "CouchDB exporter created successfully");
+        // Test passes if no panic occurs during creation
     }
 
     #[test]
@@ -59,7 +59,7 @@ mod couchdb_export_tests {
             .with_auth("admin", "password")
             .with_batch_size(500);
         // Options test - doesn't require actual CouchDB connection
-        assert!(true, "CouchDB exporter configured successfully");
+        // Test passes if no panic occurs during configuration
     }
 
     // Integration tests that require actual CouchDB instance
