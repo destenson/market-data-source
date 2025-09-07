@@ -61,8 +61,11 @@
 
 ### Lower Priority - Future Enhancements
 
+#### Automation & Tooling
+1. [ ] **Automated CHANGELOG generation** - Create script to generate CHANGELOG.md from git commits and tags instead of manual creation
+
 #### Server Enhancements (Post-Publication)
-1. [ ] **Uptime tracking implementation** (src/server/routes.rs:101)
+2. [ ] **Uptime tracking implementation** (src/server/routes.rs:101)
    - Add server start time to AppState
    - Calculate and return actual uptime in status endpoint
    - *Note*: Currently returns placeholder "not tracked" - cosmetic enhancement only
