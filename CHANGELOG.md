@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2025-01-07
 
 ### Added
+- **Market Regime Control System** - Advanced features for controlling and detecting market regimes
+  - RegimeController for managing market transitions
+  - VolatilityRegimeDetector for volatility-based regime detection
+  - RegimeSchedule for programmatic regime sequences
+  - Smooth transitions between market states
 - Enhanced feature set with synthetic and live data capabilities
 - Server infrastructure with REST/WebSocket API using Axum framework
 - Comprehensive Python bindings with PyO3 integration
@@ -18,7 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CouchDB integration with bulk operations
   - PNG chart generation with candlestick charts, line charts, volume bars, and moving averages
 - Configuration presets (volatile, stable, bull market, bear market)
-- Comprehensive test suite with 64 unit tests and 11 integration tests
+- Comprehensive test suite with 97 unit tests and multiple integration tests
+- Release automation with GitHub Actions for crates.io and PyPI
 
 ### Changed
 - Migrated from deprecated PyO3 traits to modern implementations
@@ -28,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optimized memory management for complex feature builds
 
 ### Fixed
+- Volatility detection logic improvements for better statistical accuracy
+- Regime controller advance logic to properly handle transitions
 - Deprecated candle generation replaced with updated OHLC generation
 - Compilation errors resolved across all feature combinations
 - Error handling improvements in CSV and PNG export functions
