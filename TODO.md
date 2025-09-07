@@ -1,5 +1,7 @@
 # TODO
 
+- Volumes should not be limited to integers (you can by fractional stock, and portions of crypto, etc.) - use Decimal everywhere real values are involved
+
 ## Current Implementation Status
 
 ### Current Status: 🚀 **PUBLICATION READY**
