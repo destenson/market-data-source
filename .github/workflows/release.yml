@@ -156,6 +156,12 @@ jobs:
       
       - uses: dtolnay/rust-toolchain@stable
       
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fontconfig libfontconfig1-dev
+      
       - name: Install maturin
         run: pip install maturin
       

@@ -34,6 +34,12 @@ jobs:
         with:
           cache-on-failure: true
       
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fontconfig libfontconfig1-dev
+      
       - name: Install uv
         uses: astral-sh/setup-uv@v3
         with:
