@@ -307,7 +307,6 @@ impl RegimeController {
                 if transition.is_complete() {
                     self.transition = None;
                 }
-                return true;
             }
         }
 
