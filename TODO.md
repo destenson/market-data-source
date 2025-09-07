@@ -4,14 +4,14 @@
 
 ## Current Implementation Status
 
-### Current Status: 🚀 **PUBLICATION READY**
+### Current Status: 🚧 **DEVELOPMENT** - Not yet published
 
-**Code Quality Metrics Achieved**:
-- **Library Tests**: 64/64 passing (100%)
+**Code Quality Metrics**:
+- **Library Tests**: 92/97 passing (5 failures in volatility module)
 - **Integration Tests**: 11/11 passing (100%) 
-- **Clippy Warnings**: 0 warnings in core library
+- **Clippy Warnings**: ~8 warnings to fix (unused imports, loop improvements)
 - **Deprecated Code**: 0 deprecated items remaining
-- **TODO/FIXME Comments**: 0 found in active codebase (exceptionally clean)
+- **TODO/FIXME Comments**: 0 found in codebase
 
 **Build & Test Status**:
 - ✅ **Core Library**: Builds clean with all features
@@ -22,9 +22,20 @@
 
 ## 🎯 Immediate Priorities
 
-### Critical - Publication Pipeline
+### High Priority - Code Quality & API
 
-**NEXT ACTION**: Execute **PRP-27: Release Automation Workflow**
+1. **Fix Volatility Module Tests** - 5 failing tests in `src/regimes/volatility.rs`
+   - Tests expecting detection behavior that was replaced with control
+   - Either fix tests or remove unused detection code
+
+2. **Regime Control API Endpoints** - Add REST/WebSocket APIs for regime control
+   - Enable runtime regime schedule changes
+   - Query current regime status
+   - Force regime transitions via API
+
+3. **Clean Up Unused Code**
+   - Remove or fix broken volatility detector implementation
+   - Remove references to RuleBasedDetector (file missing)
 
 #### Completed Pipeline PRPs ✅
 1. [x] **PRP-22**: Crates.io Metadata Setup - COMPLETED
@@ -42,8 +53,8 @@
    - GitHub Actions workflows with trusted publishing
    - Test workflow for validation
 
-#### Final Release Step
-6. [ ] **PRP-27**: Release Automation Workflow
+#### Completed Release Steps ✅
+6. [x] **PRP-27**: Release Automation Workflow - COMPLETED
    - Automated version bumping
    - Cross-platform release automation
    - Publication pipeline integration
@@ -53,12 +64,13 @@
 ### v0.4.0 - Market Dynamics & Control
 PRPs 28-31 have been created for implementation:
 
-1. [ ] **Market Regime Changes** - Dynamic bull/bear/sideways transitions
-   - PRP-28: Market Regime Detection Foundation
-   - PRP-29: Market Regime Transition Engine
+1. [x] **Market Regime Control** - ✅ COMPLETED
+   - PRP-28: ~~Market Regime Detection~~ → Implemented as Regime CONTROL instead
+   - PRP-29: ~~Market Regime Transition~~ → Implemented as deterministic transitions
+   - **Note**: PRPs were backwards - correctly implemented control instead of detection
 2. [ ] **Live Parameter Updates** - Runtime configuration without restart
-   - PRP-30: Dynamic Parameter Scheduler
-   - PRP-31: Parameter Update API Endpoints
+   - PRP-30: Dynamic Parameter Scheduler (partially done via regime control)
+   - PRP-31: Parameter Update API Endpoints (needs API implementation)
 
 ### v0.5.0 - Advanced Models & Real Data
 PRPs 32-46, 51-55 have been created for implementation:
@@ -117,9 +129,20 @@ PRPs 41-43, 47-50, 56-58 have been created for implementation:
 ### Minor Enhancements
 
 #### Code Quality & Automation
-1. [ ] **Automated CHANGELOG generation** (scripts/generate-changelog.py:260) - Implement dry-run mode for changelog script
-2. [ ] **Uptime tracking** (src/server/routes.rs:101) - Add actual uptime calculation to health endpoint
-3. [ ] **Environment configuration expansion** (src/env.rs:157) - Add more optional environment variables for configuration
+1. [ ] **Volume Decimal Support** - Volumes should use Decimal type instead of integers
+   - Support fractional stock and crypto volumes
+   - Update Volume type to use Decimal internally
+
+2. [ ] **Automated CHANGELOG generation** (scripts/generate-changelog.py:260) - Implement dry-run mode
+
+3. [ ] **Uptime tracking** (src/server/routes.rs:101) - Add actual uptime calculation to health endpoint
+
+4. [ ] **Environment configuration expansion** (src/env.rs:157) - Add more optional environment variables
+
+5. [ ] **Clippy Warnings** - Fix remaining clippy warnings:
+   - Unused imports in tests
+   - Needless range loops in generator tests
+   - Field reassign with default in controller tests
 
 ## 📊 Current Architecture Status
 
@@ -142,6 +165,9 @@ PRPs 41-43, 47-50, 56-58 have been created for implementation:
 
 ## 🏆 Major Milestones Achieved
 
+### Latest Achievement: Regime Control System ✅
+Successfully implemented deterministic market regime control (PRPs 28-29), allowing users to specify exact market conditions for testing strategies.
+
 ### Pre-Publication Quality Reached (PRP-21) ✅
 The project has successfully transitioned from **"Critical Quality Issues"** to **"Publication Ready"** status:
 
@@ -162,27 +188,41 @@ All foundational work, CI/CD infrastructure, and trusted publishing completed wi
 
 ## 🎯 Success Criteria for Publication
 
-### Ready for crates.io ✅
+### Ready for crates.io
 - [x] Code quality standards met
 - [x] Comprehensive test coverage  
-- [x] Zero compilation warnings
+- [ ] Zero compilation warnings (8 clippy warnings remain)
 - [x] Proper error handling throughout
 - [x] Documentation complete
 - [x] Package metadata finalized (PRP-22)
 - [x] CHANGELOG created (PRP-24)
-- [x] Trusted publishing configured (PRP-26)
+- [ ] **PUBLISH TO CRATES.IO** - Not yet published
 
-### Ready for PyPI ✅
+### Ready for PyPI
 - [x] Python bindings functional
 - [x] PyO3 integration complete  
 - [x] Python package metadata aligned (PRP-23)
 - [x] Cross-platform wheels configured (PRP-26)
 - [x] PyPI-specific documentation
-- [x] Trusted publishing workflows (PRP-26)
+- [ ] **PUBLISH TO PYPI** - Not yet published
 
 ### Publication Pipeline (PRPs 22-27)
 The remaining work focuses entirely on **final release automation** (PRP-27), not core functionality. The library itself is feature-complete and publication-ready with trusted publishing configured.
 
+## 🔧 Technical Debt Tracker
+
+### Known Issues
+1. **Volatility Module Tests** - 5 failing tests need fixing or removal
+2. **Missing RuleBasedDetector** - Referenced but file doesn't exist
+3. **Clippy Warnings** - Minor code quality issues to address
+4. **Volume Type** - Should use Decimal instead of integer
+
+### Recent Changes
+- ✅ Implemented Regime Control System (replaced detection approach)
+- ✅ Added deterministic regime transitions
+- ✅ Created comprehensive test suite for regime control
+- ⚠️ PRPs 28-29 documentation updated to reflect actual implementation
+
 ---
 
-*Reflecting completion of PRP-26 (Trusted Publishing Setup) with OIDC workflows*
+*Last Updated: After implementing regime control system*
