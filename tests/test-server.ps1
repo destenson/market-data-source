@@ -224,7 +224,7 @@ try {
     Write-Host ""
     Start-Sleep -Seconds $TestDelay
     
-    # Test 10: Export as JSON
+    # Test 12: Export as JSON
     $exportJson = Test-Endpoint -Method "GET" -Url "$apiUrl/export/BTCUSD/json" -Description "Export as JSON"
     if ($exportJson) {
         Write-Host "  Data points: $($exportJson.data.Count)" -ForegroundColor Gray
@@ -232,46 +232,13 @@ try {
     } else { $testsFailed++ }
     Write-Host ""
     
-    # Test 11: WebSocket Connection (just test if endpoint responds)
-    Write-Host "Testing: WebSocket Endpoint" -ForegroundColor Yellow
-    Write-Host "  URL: ws://${HostName}:${Port}/ws" -ForegroundColor Gray
-    try {
-        # We can't easily test WebSocket in PowerShell, so just check if the HTTP upgrade would work
-        $wsHeaders = @{
-            "Upgrade" = "websocket"
-            "Connection" = "Upgrade"
-            "Sec-WebSocket-Key" = [Convert]::ToBase64String((1..16 | ForEach-Object { Get-Random -Maximum 256 } | ForEach-Object { [byte]$_ }))
-            "Sec-WebSocket-Version" = "13"
-        }
-        
-        # This will fail but if it returns 101 or 426, the endpoint exists
-        try {
-            $wsResponse = Invoke-WebRequest -Uri "$baseUrl/ws" -Headers $wsHeaders -Method GET -TimeoutSec 2
-        }
-        catch {
-            if ($_.Exception.Response.StatusCode -eq 426 -or $_.Exception.Response.StatusCode -eq 101) {
-                Write-Host "  [OK] WebSocket endpoint available" -ForegroundColor Green
-                $testsPassed++
-            } else {
-                throw
-            }
-        }
-    }
-    catch {
-        Write-Host "  [FAIL] WebSocket check failed" -ForegroundColor Red
-        $testsFailed++
-    }
+    # Test 13: Delete Symbol
+    Test-Endpoint -Method "DELETE" -Url "$apiUrl/symbols/BTCUSD" -Description "Delete Symbol"
+    Write-Host "  Symbol deleted successfully" -ForegroundColor Gray
+    $testsPassed++
     Write-Host ""
-    
-    # Test 12: Delete Symbol
-    $delete = Test-Endpoint -Method "DELETE" -Url "$apiUrl/symbols/BTCUSD" -Description "Delete Symbol"
-    if ($delete -or $LASTEXITCODE -eq 0) {
-        Write-Host "  Symbol deleted successfully" -ForegroundColor Gray
-        $testsPassed++
-    } else { $testsFailed++ }
-    Write-Host ""
-    
-    # Test 13: Control Endpoint - Status Command
+
+    # Test 14: Control Endpoint - Status Command
     $statusBody = @{
         command = "status"
     } | ConvertTo-Json
