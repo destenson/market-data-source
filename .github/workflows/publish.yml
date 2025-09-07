@@ -1,0 +1,267 @@
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Run in dry-run mode (no actual publishing)'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: read
+  id-token: write  # Required for OIDC token exchange
+
+jobs:
+  # Validate version consistency before publishing
+  validate-version:
+    name: Validate Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get version from tag or Cargo.toml
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+            VERSION=${VERSION#v}  # Remove 'v' prefix if present
+          else
+            VERSION=$(grep "^version" Cargo.toml | head -1 | cut -d'"' -f2)
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing version: $VERSION"
+      
+      - name: Verify version consistency
+        run: |
+          cargo_version=$(grep "^version" Cargo.toml | head -1 | cut -d'"' -f2)
+          py_version=$(grep "^version" pyproject.toml | head -1 | cut -d'"' -f2)
+          
+          if [ "$cargo_version" != "${{ steps.version.outputs.version }}" ]; then
+            echo "Version mismatch: Cargo.toml has $cargo_version"
+            exit 1
+          fi
+          
+          if [ "$py_version" != "${{ steps.version.outputs.version }}" ]; then
+            echo "Version mismatch: pyproject.toml has $py_version"
+            exit 1
+          fi
+          
+          echo "All versions match: ${{ steps.version.outputs.version }}"
+
+  # Publish to crates.io using trusted publishing
+  publish-crates:
+    name: Publish to crates.io
+    needs: validate-version
+    runs-on: ubuntu-latest
+    environment: release  # Protect with environment rules
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Build package
+        run: cargo build --release --all-features
+      
+      # OIDC token exchange for crates.io
+      - name: Authenticate with crates.io
+        uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+        if: github.event.inputs.dry-run != 'true'
+      
+      - name: Publish to crates.io (dry-run)
+        if: github.event.inputs.dry-run == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Running in dry-run mode..."
+          cargo publish --dry-run --all-features
+      
+      - name: Publish to crates.io
+        if: github.event.inputs.dry-run != 'true' && github.event_name == 'push'
+        run: cargo publish --all-features
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+  # Build Python wheels for multiple platforms
+  build-wheels:
+    name: Build Python Wheels
+    needs: validate-version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: windows
+          - os: macos-latest
+            platform: macos
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install build dependencies
+        run: pip install maturin twine
+      
+      - name: Build wheels
+        run: |
+          maturin build --release --out dist --interpreter python3.8 python3.9 python3.10 python3.11 python3.12
+        shell: bash
+      
+      - name: Check wheel validity
+        run: twine check dist/*.whl
+      
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.platform }}
+          path: dist/*.whl
+
+  # Publish to PyPI using trusted publishing
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [validate-version, build-wheels, publish-crates]
+    runs-on: ubuntu-latest
+    environment: release  # Protect with environment rules
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist/
+      
+      - name: List wheels to publish
+        run: |
+          echo "Wheels to be published:"
+          ls -la dist/
+      
+      # Test PyPI publication (for testing)
+      - name: Publish to Test PyPI
+        if: github.event.inputs.dry-run == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+          verbose: true
+      
+      # Production PyPI publication
+      - name: Publish to PyPI
+        if: github.event.inputs.dry-run != 'true' && github.event_name == 'push'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+          verbose: true
+
+  # Create GitHub Release
+  create-release:
+    name: Create GitHub Release
+    needs: [publish-crates, publish-pypi]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write  # Need write permission to create releases
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Extract version and changelog
+        id: release-info
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+          # Extract changelog for this version
+          VERSION_NO_V=${VERSION#v}
+          awk -v ver="$VERSION_NO_V" '
+            /^## \[.*\]/ {
+              if (found) exit
+              if (index($0, ver) > 0) found=1
+              next
+            }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+          
+          if [ ! -s release_notes.md ]; then
+            echo "Release $VERSION" > release_notes.md
+            echo "" >> release_notes.md
+            echo "Published to:" >> release_notes.md
+            echo "- crates.io: https://crates.io/crates/market-data-source" >> release_notes.md
+            echo "- PyPI: https://pypi.org/project/market-data-source/" >> release_notes.md
+          fi
+      
+      - name: Download wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist/
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ${{ steps.release-info.outputs.version }}
+          body_path: release_notes.md
+          files: |
+            dist/*.whl
+          fail_on_unmatched_files: false
+          draft: false
+          prerelease: false
+
+  # Summary job
+  publish-summary:
+    name: Publication Summary
+    needs: [publish-crates, publish-pypi, create-release]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Summary
+        run: |
+          echo "## Publication Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.publish-crates.result }}" == "success" ]; then
+            echo "✅ **crates.io**: Published successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **crates.io**: Publication failed or skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.publish-pypi.result }}" == "success" ]; then
+            echo "✅ **PyPI**: Published successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **PyPI**: Publication failed or skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.create-release.result }}" == "success" ]; then
+            echo "✅ **GitHub Release**: Created successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **GitHub Release**: Creation failed or skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [crates.io](https://crates.io/crates/market-data-source)" >> $GITHUB_STEP_SUMMARY
+          echo "- [PyPI](https://pypi.org/project/market-data-source/)" >> $GITHUB_STEP_SUMMARY
+          echo "- [GitHub Releases](https://github.com/${{ github.repository }}/releases)" >> $GITHUB_STEP_SUMMARY

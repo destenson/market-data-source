@@ -1,0 +1,268 @@
+name: Test Publishing Setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      test-target:
+        description: 'Which registry to test'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - 'both'
+          - 'crates-io'
+          - 'pypi'
+          - 'test-pypi'
+
+permissions:
+  contents: read
+  id-token: write  # Required for OIDC token exchange
+
+jobs:
+  # Test version information extraction
+  test-version-info:
+    name: Test Version Extraction
+    runs-on: ubuntu-latest
+    outputs:
+      cargo-version: ${{ steps.versions.outputs.cargo }}
+      python-version: ${{ steps.versions.outputs.python }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Extract versions
+        id: versions
+        run: |
+          CARGO_VERSION=$(grep "^version" Cargo.toml | head -1 | cut -d'"' -f2)
+          PYTHON_VERSION=$(grep "^version" pyproject.toml | head -1 | cut -d'"' -f2)
+          
+          echo "cargo=$CARGO_VERSION" >> $GITHUB_OUTPUT
+          echo "python=$PYTHON_VERSION" >> $GITHUB_OUTPUT
+          
+          echo "## Version Information" >> $GITHUB_STEP_SUMMARY
+          echo "- Cargo.toml: $CARGO_VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "- pyproject.toml: $PYTHON_VERSION" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$CARGO_VERSION" != "$PYTHON_VERSION" ]; then
+            echo "⚠️ **Warning**: Version mismatch detected!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "✅ Versions match" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Test crates.io OIDC authentication
+  test-crates-auth:
+    name: Test crates.io Authentication
+    needs: test-version-info
+    if: contains(fromJSON('["both", "crates-io"]'), github.event.inputs.test-target)
+    runs-on: ubuntu-latest
+    environment: release
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Test OIDC token exchange
+        uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+        continue-on-error: true
+      
+      - name: Verify token received
+        run: |
+          if [ -n "${{ steps.auth.outputs.token }}" ]; then
+            echo "✅ Successfully obtained crates.io token via OIDC" >> $GITHUB_STEP_SUMMARY
+            echo "Token length: ${#TOKEN_VALUE}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Failed to obtain crates.io token" >> $GITHUB_STEP_SUMMARY
+            echo "Note: This is expected if trusted publishing is not yet configured on crates.io" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+        env:
+          TOKEN_VALUE: ${{ steps.auth.outputs.token }}
+      
+      - name: Test package build
+        run: |
+          cargo package --list > package_files.txt
+          FILE_COUNT=$(wc -l < package_files.txt)
+          echo "📦 Package contains $FILE_COUNT files" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Dry-run publish
+        run: |
+          echo "Testing cargo publish (dry-run)..."
+          cargo publish --dry-run --all-features
+          echo "✅ Cargo publish dry-run successful" >> $GITHUB_STEP_SUMMARY
+
+  # Test PyPI OIDC authentication
+  test-pypi-auth:
+    name: Test PyPI Authentication
+    needs: test-version-info
+    if: contains(fromJSON('["both", "pypi", "test-pypi"]'), github.event.inputs.test-target)
+    runs-on: ubuntu-latest
+    environment: release
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install build tools
+        run: |
+          pip install maturin twine build
+      
+      - name: Build test wheel
+        run: |
+          maturin build --release --out dist
+          echo "## Built Wheels" >> $GITHUB_STEP_SUMMARY
+          ls -la dist/ | tail -n +2 >> $GITHUB_STEP_SUMMARY
+      
+      - name: Check wheel validity
+        run: |
+          twine check dist/*.whl
+          echo "✅ Wheel validation passed" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Test OIDC token availability
+        run: |
+          echo "## OIDC Environment Check" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
+            echo "✅ ACTIONS_ID_TOKEN_REQUEST_URL is set" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ ACTIONS_ID_TOKEN_REQUEST_URL is not set" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ]; then
+            echo "✅ ACTIONS_ID_TOKEN_REQUEST_TOKEN is set" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ ACTIONS_ID_TOKEN_REQUEST_TOKEN is not set" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Test publish to Test PyPI
+        if: github.event.inputs.test-target == 'test-pypi' || github.event.inputs.test-target == 'both'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        continue-on-error: true
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+          verbose: true
+      
+      - name: Report PyPI test results
+        if: always()
+        run: |
+          echo "## PyPI Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "Test completed. Check logs for detailed OIDC authentication status." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Configure trusted publishing at https://pypi.org/manage/project/market-data-source/settings/publishing/" >> $GITHUB_STEP_SUMMARY
+          echo "2. Add this repository as a trusted publisher" >> $GITHUB_STEP_SUMMARY
+          echo "3. Specify workflow: publish.yml" >> $GITHUB_STEP_SUMMARY
+          echo "4. Specify environment: release (optional)" >> $GITHUB_STEP_SUMMARY
+
+  # Test workflow permissions
+  test-permissions:
+    name: Test Workflow Permissions
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check permissions
+        run: |
+          echo "## Workflow Permissions" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check if we can get an ID token
+          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ] && [ -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ]; then
+            echo "✅ **id-token**: write permission is properly configured" >> $GITHUB_STEP_SUMMARY
+            echo "   - Request URL is available" >> $GITHUB_STEP_SUMMARY
+            echo "   - Request token is available" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **id-token**: write permission may not be configured" >> $GITHUB_STEP_SUMMARY
+            echo "   - This permission is required for OIDC authentication" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Repository Information" >> $GITHUB_STEP_SUMMARY
+          echo "- Repository: ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Workflow: ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Run ID: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Actor: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Test JWT claims
+        run: |
+          # This would be the claims that registries see
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### OIDC Token Claims (Expected)" >> $GITHUB_STEP_SUMMARY
+          echo "These are the claims that package registries will verify:" >> $GITHUB_STEP_SUMMARY
+          echo "- **iss**: https://token.actions.githubusercontent.com" >> $GITHUB_STEP_SUMMARY
+          echo "- **repository**: ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **job_workflow_ref**: ${{ github.repository }}/.github/workflows/publish.yml@${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **ref**: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **environment**: release" >> $GITHUB_STEP_SUMMARY
+
+  # Summary report
+  test-summary:
+    name: Test Summary
+    needs: [test-version-info, test-crates-auth, test-pypi-auth, test-permissions]
+    if: always()
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Generate summary report
+        run: |
+          echo "# Publishing Setup Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## Component Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Version check
+          if [ "${{ needs.test-version-info.result }}" == "success" ]; then
+            echo "✅ **Version Consistency**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Version Consistency**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Crates.io check
+          if [ "${{ needs.test-crates-auth.result }}" == "success" ]; then
+            echo "✅ **crates.io Authentication**: Ready" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.test-crates-auth.result }}" == "skipped" ]; then
+            echo "⏭️ **crates.io Authentication**: Skipped" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **crates.io Authentication**: Not configured (expected before first publish)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # PyPI check
+          if [ "${{ needs.test-pypi-auth.result }}" == "success" ]; then
+            echo "✅ **PyPI Authentication**: Ready" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.test-pypi-auth.result }}" == "skipped" ]; then
+            echo "⏭️ **PyPI Authentication**: Skipped" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **PyPI Authentication**: Not configured (expected before first publish)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Permissions check
+          if [ "${{ needs.test-permissions.result }}" == "success" ]; then
+            echo "✅ **Workflow Permissions**: Configured" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Workflow Permissions**: Check failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Setup Instructions" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### For First-Time Setup" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Publish manually first** to establish package ownership" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Configure trusted publishing** on registry websites:" >> $GITHUB_STEP_SUMMARY
+          echo "   - [crates.io settings](https://crates.io/settings/tokens)" >> $GITHUB_STEP_SUMMARY
+          echo "   - [PyPI publishing settings](https://pypi.org/manage/project/market-data-source/settings/publishing/)" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Add repository** as trusted publisher with workflow: \`publish.yml\`" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Run this test again** to verify configuration" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration Details" >> $GITHUB_STEP_SUMMARY
+          echo "- Repository: \`${{ github.repository }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Workflow file: \`.github/workflows/publish.yml\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Environment: \`release\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Required permission: \`id-token: write\`" >> $GITHUB_STEP_SUMMARY

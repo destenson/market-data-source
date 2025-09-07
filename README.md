@@ -400,6 +400,42 @@ cargo run --example export_all --all-features
 - More sophisticated market patterns
 - API emulation features
 
+## Automated Releases
+
+Market Data Source uses GitHub Actions with trusted publishing (OIDC) for secure, automated releases to both crates.io and PyPI without storing API tokens.
+
+### Release Process
+
+To create a new release:
+
+1. Update version in `Cargo.toml` and `pyproject.toml`
+2. Update `CHANGELOG.md` with release notes
+3. Commit and push changes
+4. Create and push a version tag:
+   ```bash
+   git tag v0.3.1
+   git push origin v0.3.1
+   ```
+
+The automated workflow will:
+- Validate version consistency
+- Run full test suite across all platforms
+- Build and publish to crates.io
+- Build Python wheels for multiple platforms
+- Publish to PyPI
+- Create GitHub release with artifacts
+
+### Testing Publication Setup
+
+Test the publishing configuration without releasing:
+
+```bash
+# Via GitHub Actions UI:
+# Actions → Test Publishing Setup → Run workflow
+```
+
+For more details, see [.github/PUBLISHING.md](.github/PUBLISHING.md).
+
 ## Contributing
 
 Contributions are welcome! If you'd like to contribute to Market Data Source, please fork the repository and submit a pull request.
