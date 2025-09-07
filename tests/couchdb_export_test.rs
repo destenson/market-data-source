@@ -12,9 +12,11 @@ mod couchdb_export_tests {
 
     /// Generate test OHLC data
     fn generate_test_ohlc_data(count: usize) -> Vec<OHLC> {
+        use rust_decimal::{Decimal, prelude::FromPrimitive};
+        
         let config = GeneratorConfig {
-            starting_price: 100.0,
-            volatility: 0.02,
+            starting_price: Decimal::from(100),
+            volatility: Decimal::from_f64(0.02).unwrap(),
             time_interval: TimeInterval::OneMinute,
             seed: Some(12345),
             ..GeneratorConfig::default()
@@ -26,9 +28,11 @@ mod couchdb_export_tests {
 
     /// Generate test tick data
     fn generate_test_tick_data(count: usize) -> Vec<Tick> {
+        use rust_decimal::{Decimal, prelude::FromPrimitive};
+        
         let config = GeneratorConfig {
-            starting_price: 100.0,
-            volatility: 0.02,
+            starting_price: Decimal::from(100),
+            volatility: Decimal::from_f64(0.02).unwrap(),
             seed: Some(12345),
             ..GeneratorConfig::default()
         };

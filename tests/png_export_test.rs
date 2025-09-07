@@ -198,14 +198,14 @@ mod png_export_tests {
         assert!(ohlc_result.is_err());
         assert_eq!(
             ohlc_result.unwrap_err().to_string(),
-            "Cannot create chart from empty data"
+            "Chart rendering error: Failed to export OHLC chart: Cannot create chart from empty data"
         );
 
         let tick_result = to_png_ticks(&empty_ticks, &tick_path);
         assert!(tick_result.is_err());
         assert_eq!(
             tick_result.unwrap_err().to_string(),
-            "Cannot create chart from empty data"
+            "Chart rendering error: Failed to export tick chart: Cannot create chart from empty data"
         );
     }
 

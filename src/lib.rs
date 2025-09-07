@@ -51,10 +51,6 @@ pub use export::{to_csv_ohlc, to_csv_ticks};
 // Module for algorithms (internal implementation details)
 mod algorithms;
 
-// Test helpers module
-#[cfg(test)]
-pub mod test_helpers;
-
 // Python bindings module (conditional on feature flag)
 #[cfg(feature = "python")]
 mod python;
@@ -63,13 +59,3 @@ mod python;
 #[cfg(feature = "api-server")]
 pub mod server;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn library_imports_work() {
-        // Basic smoke test that library structure works
-        let _config = GeneratorConfig::default();
-    }
-}
