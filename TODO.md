@@ -81,6 +81,8 @@
 4. [ ] **Options Data** - Implied volatility surfaces, Greeks, option pricing models
 5. [ ] **Commodities Markets** - Futures curves, seasonality patterns, storage costs
 6. [ ] **Cryptocurrency Markets** - High volatility, 24/7 trading, unique market dynamics
+7. [ ] **FIX Protocol Emulation** - Simulate real-time data feeds via FIX protocol
+8. [ ] **FIX Protocol Support** - Real-time data streaming via FIX protocol
 
 ## 📊 Current Architecture Status
 
