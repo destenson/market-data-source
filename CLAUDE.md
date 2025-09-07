@@ -55,6 +55,15 @@ This is a Rust library for fetching and processing market data from various fina
 ## Development Notes
 
 - The library is designed to be used as a dependency in other Rust projects
-- Current version is 0.1.0 using Rust edition 2024
+- Current version is 0.3.0 using Rust edition 2024
 - The public API will expose a `MarketData` struct with methods for fetching real-time and historical data
 - Synthetic data generation is a planned feature for simulating market conditions
+
+## Version Synchronization
+
+When updating versions for a new release:
+1. Update version in `Cargo.toml` (currently 0.3.0)
+2. Update version in `pyproject.toml` to match (currently 0.3.0)
+3. Update version in README.md Rust installation example
+4. Run `maturin build --release -j 1` to build Python wheels
+5. The version will automatically be available in Python via `market_data_source.__version__`

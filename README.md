@@ -71,7 +71,7 @@ To use Market Data Source in your Rust project, add the following dependency to 
 
 ```toml
 [dependencies]
-market-data-source = { version = "0.2.0", features = ["csv_export", "json_export", "png_export", "couchdb", "dotenvy", "serde"] }
+market-data-source = { version = "0.3.0", features = ["csv_export", "json_export", "png_export", "couchdb", "dotenvy", "serde"] }
 ```
 
 ### Environment Variables

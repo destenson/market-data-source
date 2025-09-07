@@ -368,7 +368,7 @@ preset_function!(bear_market_config, bear_market);
 
 /// Python module definition with automatic registration
 #[pymodule]
-fn _market_data_source(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn market_data_source(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Auto-register classes
     m.add_class::<PyMarketDataGenerator>()?;
     m.add_class::<PyGeneratorConfig>()?;
