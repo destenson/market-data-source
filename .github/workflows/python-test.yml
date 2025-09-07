@@ -93,7 +93,7 @@ jobs:
           print('Data structure validation passed')
           "
       
-      - name: Test with pytest (if tests exist)
+      - name: Test with pytest
         run: |
           if [ -d "tests" ]; then
             pytest tests/ -v
