@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! CouchDB export functionality for market data
 //!
 //! This module provides functionality to export market data directly to CouchDB,
