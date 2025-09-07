@@ -1,0 +1,22 @@
+# Only include the Python extension and essential files
+include market-data-source-python/*
+include README.md
+include LICENSE
+include pyproject.toml
+exclude tests/*
+exclude docs/*
+exclude scripts/*
+exclude examples/*
+exclude PRPs/*
+exclude .claude/*
+exclude .github/*
+exclude .env*
+exclude .gitignore
+exclude .python-version
+exclude CHANGELOG.md
+exclude CONTRIBUTING.md
+exclude TODO.md
+exclude codebase-review-report.md
+exclude deny.toml
+exclude uv.lock
+exclude Cargo.*
