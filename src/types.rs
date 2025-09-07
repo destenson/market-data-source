@@ -6,9 +6,13 @@ use rust_decimal::Decimal;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "api-server")]
+use utoipa::ToSchema;
+
 /// Represents an OHLC (Open, High, Low, Close) candle
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "api-server", derive(ToSchema))]
 pub struct OHLC {
     /// Opening price of the period
     pub open: Decimal,
@@ -68,6 +72,7 @@ impl OHLC {
 /// Represents a single tick of market data
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "api-server", derive(ToSchema))]
 pub struct Tick {
     /// Price of the tick
     pub price: Decimal,
@@ -117,8 +122,9 @@ impl Tick {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
+#[cfg_attr(feature = "api-server", derive(ToSchema))]
 pub struct Volume {
-    value: u64,
+    pub value: u64,
 }
 
 impl Volume {
@@ -147,6 +153,7 @@ impl fmt::Display for Volume {
 /// Time intervals for candle periods
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "api-server", derive(ToSchema))]
 pub enum TimeInterval {
     /// One minute
     #[cfg_attr(feature = "serde", serde(rename = "1m"))]

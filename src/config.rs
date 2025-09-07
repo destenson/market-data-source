@@ -8,6 +8,9 @@ use std::fmt;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize, Serializer, Deserializer};
 
+#[cfg(feature = "api-server")]
+use utoipa::ToSchema;
+
 #[cfg(feature = "serde")]
 fn serialize_decimal_inf<S>(value: &Decimal, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -35,6 +38,7 @@ where
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
+#[cfg_attr(feature = "api-server", derive(ToSchema))]
 pub enum TrendDirection {
     /// Upward trend (bullish)
     Bullish,
@@ -47,6 +51,7 @@ pub enum TrendDirection {
 /// Configuration for market data generation
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "api-server", derive(ToSchema))]
 pub struct GeneratorConfig {
     /// Starting price for generation
     pub starting_price: Decimal,
