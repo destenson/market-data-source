@@ -142,6 +142,7 @@ name = "market-data-server"
 path = "src/bin/server.rs"
 required-features = ["api-server"]
 
+[package.metadata.dist]
 exclude = [
     "PRPs/**",
     "scripts/**",
