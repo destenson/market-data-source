@@ -1,4 +1,7 @@
 #![allow(unused)]
+use super::models::*;
+use crate::server::state::AppState;
+use crate::GeneratorConfig;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -9,9 +12,6 @@ use futures::stream::{self, Stream};
 use serde_json::json;
 use std::convert::Infallible;
 use std::time::Duration;
-use super::models::*;
-use crate::server::state::AppState;
-use crate::GeneratorConfig;
 
 pub async fn list_symbols(State(state): State<AppState>) -> impl IntoResponse {
     let symbols = state.list_symbols().await;
@@ -26,10 +26,10 @@ pub async fn create_symbol(
     Json(req): Json<CreateSymbolRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
     let mut config = req.config.unwrap_or_default();
-    
+
     // Apply smart defaults based on what was provided
     config.apply_smart_defaults();
-    
+
     // Validate the configuration
     if let Err(e) = config.validate() {
         return Err((
@@ -41,12 +41,14 @@ pub async fn create_symbol(
                     "validation_error": e.to_string(),
                     "config": config
                 })),
-            })
+            }),
         ));
     }
-    
-    state.create_generator_with_config(&req.symbol, config.clone()).await;
-    
+
+    state
+        .create_generator_with_config(&req.symbol, config.clone())
+        .await;
+
     let info = SymbolInfo {
         symbol: req.symbol.clone(),
         active: true,
@@ -54,7 +56,7 @@ pub async fn create_symbol(
         config,
         statistics: None,
     };
-    
+
     Ok((StatusCode::CREATED, Json(info)))
 }
 
@@ -70,8 +72,9 @@ pub async fn delete_symbol(
                 error: format!("Symbol {symbol} not found"),
                 code: 404,
                 details: None,
-            })
-        ).into_response()
+            }),
+        )
+            .into_response(),
     }
 }
 
@@ -82,7 +85,7 @@ pub async fn generate_data(
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
     let generator = state.get_or_create_generator(&symbol).await;
     let mut generator_lock = generator.write().await;
-    
+
     let data = match req.format {
         DataFormat::Ohlc => {
             let ohlc = generator_lock.generate_series(req.count);
@@ -98,7 +101,7 @@ pub async fn generate_data(
             MarketDataResponse::Both { ohlc, ticks }
         }
     };
-    
+
     let response = GenerateResponse {
         symbol: symbol.clone(),
         data,
@@ -109,7 +112,7 @@ pub async fn generate_data(
             generator_version: env!("CARGO_PKG_VERSION").to_string(),
         },
     };
-    
+
     Ok(Json(response))
 }
 
@@ -118,30 +121,26 @@ pub async fn stream_data(
     Path(symbol): Path<String>,
 ) -> Sse<impl Stream<Item = Result<axum::response::sse::Event, Infallible>>> {
     let generator = state.get_or_create_generator(&symbol).await;
-    
-    let stream = stream::unfold(
-        (generator, symbol),
-        |(generator, symbol)| async move {
-            tokio::time::sleep(Duration::from_millis(1000)).await;
-            
-            let ohlc = {
-                let mut generator_lock = generator.write().await;
-                generator_lock.generate_ohlc()
-            };
-            
-            let data = json!({
-                "symbol": symbol,
-                "ohlc": ohlc,
-                "timestamp": chrono::Utc::now()
-            });
-            
-            let event = axum::response::sse::Event::default()
-                .data(data.to_string());
-            
-            Some((Ok(event), (generator, symbol)))
-        }
-    );
-    
+
+    let stream = stream::unfold((generator, symbol), |(generator, symbol)| async move {
+        tokio::time::sleep(Duration::from_millis(1000)).await;
+
+        let ohlc = {
+            let mut generator_lock = generator.write().await;
+            generator_lock.generate_ohlc()
+        };
+
+        let data = json!({
+            "symbol": symbol,
+            "ohlc": ohlc,
+            "timestamp": chrono::Utc::now()
+        });
+
+        let event = axum::response::sse::Event::default().data(data.to_string());
+
+        Some((Ok(event), (generator, symbol)))
+    });
+
     Sse::new(stream)
 }
 
@@ -152,10 +151,10 @@ pub async fn get_historical(
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
     let generator = state.get_or_create_generator(&symbol).await;
     let mut generator_lock = generator.write().await;
-    
+
     let count = params.limit.unwrap_or(100);
     let ohlc = generator_lock.generate_series(count);
-    
+
     Ok(Json(json!({
         "symbol": symbol,
         "data": ohlc,
@@ -171,8 +170,10 @@ pub async fn configure_generator(
     Path(symbol): Path<String>,
     Json(config): Json<GeneratorConfig>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
-    state.create_generator_with_config(&symbol, config.clone()).await;
-    
+    state
+        .create_generator_with_config(&symbol, config.clone())
+        .await;
+
     Ok(Json(json!({
         "symbol": symbol,
         "config": config,
@@ -187,28 +188,29 @@ pub async fn export_csv(
     #[cfg(feature = "csv_export")]
     {
         use crate::export::to_csv_string_ohlc;
-        
+
         let generator = state.get_or_create_generator(&symbol).await;
         let mut generator_lock = generator.write().await;
         let ohlc = generator_lock.generate_series(100);
-        
+
         match to_csv_string_ohlc(&ohlc) {
             Ok(csv) => Ok((
                 StatusCode::OK,
                 [(axum::http::header::CONTENT_TYPE, "text/csv")],
-                csv
-            ).into_response()),
+                csv,
+            )
+                .into_response()),
             Err(e) => Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
                     error: format!("Failed to generate CSV: {e}"),
                     code: 500,
                     details: None,
-                })
-            ))
+                }),
+            )),
         }
     }
-    
+
     #[cfg(not(feature = "csv_export"))]
     {
         Err((
@@ -217,7 +219,7 @@ pub async fn export_csv(
                 error: "CSV export feature not enabled".to_string(),
                 code: 501,
                 details: None,
-            })
+            }),
         ))
     }
 }
@@ -229,7 +231,7 @@ pub async fn export_json(
     let generator = state.get_or_create_generator(&symbol).await;
     let mut generator_lock = generator.write().await;
     let ohlc = generator_lock.generate_series(100);
-    
+
     Ok(Json(json!({
         "symbol": symbol,
         "data": ohlc,
@@ -244,33 +246,34 @@ pub async fn export_png(
     #[cfg(feature = "png_export")]
     {
         use crate::export::chart::ChartBuilder;
-        
+
         let generator = state.get_or_create_generator(&symbol).await;
         let mut generator_lock = generator.write().await;
         let ohlc = generator_lock.generate_series(100);
-        
+
         let mut buffer = Vec::new();
         let chart = ChartBuilder::new()
             .title(format!("{symbol} Market Data"))
             .build_to_buffer(&ohlc, &mut buffer);
-        
+
         match chart {
             Ok(_) => Ok((
                 StatusCode::OK,
                 [(axum::http::header::CONTENT_TYPE, "image/png")],
-                buffer
-            ).into_response()),
+                buffer,
+            )
+                .into_response()),
             Err(e) => Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
                     error: format!("Failed to generate chart: {e}"),
                     code: 500,
                     details: None,
-                })
-            ))
+                }),
+            )),
         }
     }
-    
+
     #[cfg(not(feature = "png_export"))]
     {
         Err((
@@ -279,7 +282,7 @@ pub async fn export_png(
                 error: "PNG export feature not enabled".to_string(),
                 code: 501,
                 details: None,
-            })
+            }),
         ))
     }
 }
@@ -302,35 +305,33 @@ pub async fn get_capabilities(State(state): State<AppState>) -> impl IntoRespons
             #[cfg(feature = "png_export")]
             "png".to_string(),
         ],
-        algorithms: vec![
-            AlgorithmInfo {
-                name: "random_walk".to_string(),
-                description: "Random walk with drift algorithm".to_string(),
-                parameters: vec![
-                    ParameterInfo {
-                        name: "initial_price".to_string(),
-                        data_type: "decimal".to_string(),
-                        description: "Starting price for the generator".to_string(),
-                        default_value: json!(100.0),
-                        constraints: Some(json!({"min": 0.01, "max": 1000000.0})),
-                    },
-                    ParameterInfo {
-                        name: "volatility".to_string(),
-                        data_type: "decimal".to_string(),
-                        description: "Price volatility factor".to_string(),
-                        default_value: json!(0.02),
-                        constraints: Some(json!({"min": 0.0, "max": 1.0})),
-                    },
-                    ParameterInfo {
-                        name: "drift".to_string(),
-                        data_type: "decimal".to_string(),
-                        description: "Directional bias in price movement".to_string(),
-                        default_value: json!(0.0001),
-                        constraints: Some(json!({"min": -0.1, "max": 0.1})),
-                    },
-                ],
-            },
-        ],
+        algorithms: vec![AlgorithmInfo {
+            name: "random_walk".to_string(),
+            description: "Random walk with drift algorithm".to_string(),
+            parameters: vec![
+                ParameterInfo {
+                    name: "initial_price".to_string(),
+                    data_type: "decimal".to_string(),
+                    description: "Starting price for the generator".to_string(),
+                    default_value: json!(100.0),
+                    constraints: Some(json!({"min": 0.01, "max": 1000000.0})),
+                },
+                ParameterInfo {
+                    name: "volatility".to_string(),
+                    data_type: "decimal".to_string(),
+                    description: "Price volatility factor".to_string(),
+                    default_value: json!(0.02),
+                    constraints: Some(json!({"min": 0.0, "max": 1.0})),
+                },
+                ParameterInfo {
+                    name: "drift".to_string(),
+                    data_type: "decimal".to_string(),
+                    description: "Directional bias in price movement".to_string(),
+                    default_value: json!(0.0001),
+                    constraints: Some(json!({"min": -0.1, "max": 0.1})),
+                },
+            ],
+        }],
         presets: vec![
             PresetInfo {
                 name: "volatile_crypto".to_string(),
@@ -348,7 +349,11 @@ pub async fn get_capabilities(State(state): State<AppState>) -> impl IntoRespons
                 name: "stock_market".to_string(),
                 description: "Moderate volatility for stock market simulation".to_string(),
                 algorithm: "random_walk".to_string(),
-                suitable_for: vec!["AAPL".to_string(), "GOOGL".to_string(), "stocks".to_string()],
+                suitable_for: vec![
+                    "AAPL".to_string(),
+                    "GOOGL".to_string(),
+                    "stocks".to_string(),
+                ],
             },
         ],
         websocket: WebSocketInfo {
@@ -372,7 +377,7 @@ pub async fn get_capabilities(State(state): State<AppState>) -> impl IntoRespons
             }),
         },
     };
-    
+
     Json(capabilities)
 }
 

@@ -1,9 +1,9 @@
 //! Regime control system for deterministic market regime management
 
-use rust_decimal::Decimal;
-use rust_decimal::prelude::FromPrimitive;
 use crate::config::{GeneratorConfig, TrendDirection};
 use crate::regimes::MarketRegime;
+use rust_decimal::prelude::FromPrimitive;
+use rust_decimal::Decimal;
 use std::collections::VecDeque;
 
 #[cfg(feature = "serde")]
@@ -54,31 +54,32 @@ impl RegimeSegment {
     /// Returns default configuration for a given market regime
     fn default_config_for_regime(regime: MarketRegime) -> GeneratorConfig {
         let mut config = GeneratorConfig::default();
-        
+
         match regime {
             MarketRegime::Bull => {
                 config.trend_direction = TrendDirection::Bullish;
                 config.trend_strength = Decimal::new(5, 3); // 0.5% per period
                 config.volatility = Decimal::new(15, 3); // 1.5%
-            },
+            }
             MarketRegime::Bear => {
                 config.trend_direction = TrendDirection::Bearish;
                 config.trend_strength = Decimal::new(7, 3); // 0.7% per period (bear markets often sharper)
                 config.volatility = Decimal::new(25, 3); // 2.5% (higher volatility in bear markets)
-            },
+            }
             MarketRegime::Sideways => {
                 config.trend_direction = TrendDirection::Sideways;
                 config.trend_strength = Decimal::ZERO;
                 config.volatility = Decimal::new(10, 3); // 1.0%
-            },
+            }
             MarketRegime::Normal { std_dev, bias, .. } => {
                 // Use the parameters from the Normal regime
                 config.trend_direction = TrendDirection::Sideways; // Default to sideways
-                config.trend_strength = Decimal::try_from(bias.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
+                config.trend_strength =
+                    Decimal::try_from(bias.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
                 config.volatility = Decimal::try_from(std_dev).unwrap_or(Decimal::new(15, 3));
-            },
+            }
         }
-        
+
         config
     }
 }
@@ -233,22 +234,25 @@ impl TransitionState {
     /// Gets the interpolated configuration at current progress
     pub fn interpolated_config(&self) -> GeneratorConfig {
         let mut config = self.from_config.clone();
-        
+
         // Interpolate trend strength
         let from_strength = self.from_config.trend_strength;
         let to_strength = self.to_config.trend_strength;
-        config.trend_strength = from_strength + (to_strength - from_strength) * Decimal::from_f64(self.progress).unwrap_or(Decimal::ZERO);
-        
+        config.trend_strength = from_strength
+            + (to_strength - from_strength)
+                * Decimal::from_f64(self.progress).unwrap_or(Decimal::ZERO);
+
         // Interpolate volatility
         let from_vol = self.from_config.volatility;
         let to_vol = self.to_config.volatility;
-        config.volatility = from_vol + (to_vol - from_vol) * Decimal::from_f64(self.progress).unwrap_or(Decimal::ZERO);
-        
+        config.volatility = from_vol
+            + (to_vol - from_vol) * Decimal::from_f64(self.progress).unwrap_or(Decimal::ZERO);
+
         // Trend direction switches at 50% progress
         if self.progress >= 0.5 {
             config.trend_direction = self.to_config.trend_direction;
         }
-        
+
         config
     }
 
@@ -319,7 +323,7 @@ impl RegimeController {
         if previous_regime != new_regime {
             if let Some(segment) = current_segment {
                 let new_config = Self::merge_configs(&self.base_config, &segment.config);
-                
+
                 // Start transition if specified
                 if let Some(transition_duration) = segment.transition_duration {
                     if transition_duration > 0 {
@@ -343,12 +347,12 @@ impl RegimeController {
     /// Merges base configuration with regime-specific configuration
     fn merge_configs(base: &GeneratorConfig, regime_specific: &GeneratorConfig) -> GeneratorConfig {
         let mut config = base.clone();
-        
+
         // Override regime-specific parameters
         config.trend_direction = regime_specific.trend_direction;
         config.trend_strength = regime_specific.trend_strength;
         config.volatility = regime_specific.volatility;
-        
+
         config
     }
 
@@ -388,10 +392,15 @@ impl RegimeController {
     }
 
     /// Force immediate regime change (bypassing schedule)
-    pub fn force_regime(&mut self, regime: MarketRegime, duration: usize, transition_duration: Option<usize>) {
-        let segment = RegimeSegment::new(regime, duration)
-            .with_transition(transition_duration.unwrap_or(0));
-        
+    pub fn force_regime(
+        &mut self,
+        regime: MarketRegime,
+        duration: usize,
+        transition_duration: Option<usize>,
+    ) {
+        let segment =
+            RegimeSegment::new(regime, duration).with_transition(transition_duration.unwrap_or(0));
+
         let new_schedule = RegimeSchedule::new(vec![segment]);
         self.set_schedule(new_schedule);
     }
@@ -433,31 +442,38 @@ mod tests {
             RegimeSegment::new(MarketRegime::Bull, 50),
             RegimeSegment::new(MarketRegime::Bear, 30),
         ];
-        
+
         let mut schedule = RegimeSchedule::new(segments);
-        
+
         // Should start with Bull regime
-        assert_eq!(schedule.current_segment().unwrap().regime, MarketRegime::Bull);
-        
+        assert_eq!(
+            schedule.current_segment().unwrap().regime,
+            MarketRegime::Bull
+        );
+
         // Advance 49 times - should still be in Bull
         for _ in 0..49 {
             schedule.advance();
         }
-        assert_eq!(schedule.current_segment().unwrap().regime, MarketRegime::Bull);
-        
+        assert_eq!(
+            schedule.current_segment().unwrap().regime,
+            MarketRegime::Bull
+        );
+
         // Advance once more - should switch to Bear
         schedule.advance();
-        assert_eq!(schedule.current_segment().unwrap().regime, MarketRegime::Bear);
+        assert_eq!(
+            schedule.current_segment().unwrap().regime,
+            MarketRegime::Bear
+        );
     }
 
     #[test]
     fn test_regime_schedule_completion() {
-        let segments = vec![
-            RegimeSegment::new(MarketRegime::Bull, 2),
-        ];
-        
+        let segments = vec![RegimeSegment::new(MarketRegime::Bull, 2)];
+
         let mut schedule = RegimeSchedule::new(segments);
-        
+
         assert!(!schedule.is_complete());
         schedule.advance(); // 1
         assert!(!schedule.is_complete());
@@ -471,14 +487,23 @@ mod tests {
             RegimeSegment::new(MarketRegime::Bull, 1),
             RegimeSegment::new(MarketRegime::Bear, 1),
         ];
-        
+
         let mut schedule = RegimeSchedule::repeating(segments);
-        
-        assert_eq!(schedule.current_segment().unwrap().regime, MarketRegime::Bull);
+
+        assert_eq!(
+            schedule.current_segment().unwrap().regime,
+            MarketRegime::Bull
+        );
         schedule.advance(); // Move to Bear
-        assert_eq!(schedule.current_segment().unwrap().regime, MarketRegime::Bear);
+        assert_eq!(
+            schedule.current_segment().unwrap().regime,
+            MarketRegime::Bear
+        );
         schedule.advance(); // Should cycle back to Bull
-        assert_eq!(schedule.current_segment().unwrap().regime, MarketRegime::Bull);
+        assert_eq!(
+            schedule.current_segment().unwrap().regime,
+            MarketRegime::Bull
+        );
         assert!(!schedule.is_complete()); // Never completes when repeating
     }
 
@@ -487,17 +512,18 @@ mod tests {
         let from_config = GeneratorConfig::default();
         let mut to_config = GeneratorConfig::default();
         to_config.volatility = Decimal::new(2, 1); // 0.2
-        
+
         let mut transition = TransitionState::new(from_config, to_config, 4);
-        
+
         assert_eq!(transition.progress, 0.0);
-        
+
         transition.advance();
         assert_eq!(transition.progress, 0.25);
-        
+
         let interpolated = transition.interpolated_config();
         // Should be 25% of the way from 0.02 to 0.2
-        let expected = Decimal::new(2, 2) + (Decimal::new(2, 1) - Decimal::new(2, 2)) * Decimal::new(25, 2);
+        let expected =
+            Decimal::new(2, 2) + (Decimal::new(2, 1) - Decimal::new(2, 2)) * Decimal::new(25, 2);
         assert_eq!(interpolated.volatility, expected);
     }
 
@@ -507,20 +533,26 @@ mod tests {
             RegimeSegment::new(MarketRegime::Bull, 3),
             RegimeSegment::new(MarketRegime::Bear, 2),
         ];
-        
+
         let schedule = RegimeSchedule::new(segments);
         let base_config = GeneratorConfig::default();
         let mut controller = RegimeController::new(schedule, base_config);
-        
+
         assert_eq!(controller.current_regime(), Some(MarketRegime::Bull));
-        assert_eq!(controller.current_config().trend_direction, TrendDirection::Bullish);
-        
+        assert_eq!(
+            controller.current_config().trend_direction,
+            TrendDirection::Bullish
+        );
+
         // Advance through Bull regime
         for _ in 0..3 {
             controller.advance();
         }
-        
+
         assert_eq!(controller.current_regime(), Some(MarketRegime::Bear));
-        assert_eq!(controller.current_config().trend_direction, TrendDirection::Bearish);
+        assert_eq!(
+            controller.current_config().trend_direction,
+            TrendDirection::Bearish
+        );
     }
 }

@@ -5,12 +5,12 @@
 //! a NoSQL document database that stores JSON documents.
 
 use crate::export::{DataExporter, ExportResult};
-use crate::types::{OHLC, Tick};
-use couch_rs::{Client, database::Database, document::TypedCouchDocument, error::CouchError};
+use crate::types::{Tick, OHLC};
+use couch_rs::{database::Database, document::TypedCouchDocument, error::CouchError, Client};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 use std::borrow::Cow;
+use std::path::Path;
 
 /// CouchDB exporter for market data
 pub struct CouchDbExporter {
@@ -37,35 +37,35 @@ impl CouchDbExporter {
             batch_size: 1000,
         }
     }
-    
+
     /// Create a new CouchDB exporter from environment variables
     #[cfg(feature = "dotenvy")]
     pub fn from_env() -> Self {
         // Load .env file if it exists
         let _ = dotenvy::dotenv();
-        
-        let server_url = std::env::var("COUCHDB_URL")
-            .unwrap_or_else(|_| "http://localhost:5984".to_string());
-        let database_name = std::env::var("COUCHDB_DATABASE")
-            .unwrap_or_else(|_| "market_data".to_string());
-        
+
+        let server_url =
+            std::env::var("COUCHDB_URL").unwrap_or_else(|_| "http://localhost:5984".to_string());
+        let database_name =
+            std::env::var("COUCHDB_DATABASE").unwrap_or_else(|_| "market_data".to_string());
+
         let mut exporter = Self::new(server_url, database_name);
-        
+
         // Set authentication if available
         if let (Ok(username), Ok(password)) = (
             std::env::var("COUCHDB_USERNAME"),
-            std::env::var("COUCHDB_PASSWORD")
+            std::env::var("COUCHDB_PASSWORD"),
         ) {
             exporter = exporter.with_auth(username, password);
         }
-        
+
         // Set batch size if available
         if let Ok(batch_size) = std::env::var("EXPORT_BATCH_SIZE") {
             if let Ok(size) = batch_size.parse() {
                 exporter = exporter.with_batch_size(size);
             }
         }
-        
+
         exporter
     }
 
@@ -83,7 +83,11 @@ impl CouchDbExporter {
     }
 
     /// Create a new CouchDB exporter with options
-    pub fn new_with_options(server_url: impl Into<String>, database_name: impl Into<String>, options: CouchDbOptions) -> Self {
+    pub fn new_with_options(
+        server_url: impl Into<String>,
+        database_name: impl Into<String>,
+        options: CouchDbOptions,
+    ) -> Self {
         Self {
             server_url: server_url.into(),
             database_name: database_name.into(),
@@ -116,9 +120,10 @@ impl CouchDbExporter {
     /// Export OHLC data to CouchDB asynchronously
     pub async fn export_ohlc_async(&self, data: &[OHLC]) -> ExportResult<()> {
         let db = self.get_database().await?;
-        
+
         // Convert OHLC data to documents
-        let mut documents: Vec<OhlcDocument> = data.iter()
+        let mut documents: Vec<OhlcDocument> = data
+            .iter()
             .map(|ohlc| OhlcDocument::from_ohlc(ohlc, "MARKET"))
             .collect();
 
@@ -136,9 +141,10 @@ impl CouchDbExporter {
     /// Export tick data to CouchDB asynchronously
     pub async fn export_ticks_async(&self, data: &[Tick]) -> ExportResult<()> {
         let db = self.get_database().await?;
-        
+
         // Convert tick data to documents
-        let mut documents: Vec<TickDocument> = data.iter()
+        let mut documents: Vec<TickDocument> = data
+            .iter()
             .map(|tick| TickDocument::from_tick(tick, "MARKET"))
             .collect();
 
@@ -187,8 +193,8 @@ impl CouchDbExporter {
                         existing["views"] = design_doc["views"].clone();
                         db.save(&mut existing).await?;
                         Ok(())
-                    },
-                    Err(e) => Err(e)
+                    }
+                    Err(e) => Err(e),
                 }
             }
         }
@@ -209,31 +215,41 @@ impl DataExporter for CouchDbExporter {
         rt.block_on(self.export_ticks_async(data))
     }
 
-    fn export_ohlc_to_writer<W: std::io::Write>(&self, data: &[OHLC], mut writer: W) -> ExportResult<()> {
+    fn export_ohlc_to_writer<W: std::io::Write>(
+        &self,
+        data: &[OHLC],
+        mut writer: W,
+    ) -> ExportResult<()> {
         // Convert OHLC data to JSON and write to the writer
-        let documents: Vec<OhlcDocument> = data.iter()
+        let documents: Vec<OhlcDocument> = data
+            .iter()
             .map(|ohlc| OhlcDocument::from_ohlc(ohlc, "MARKET"))
             .collect();
-        
+
         for doc in documents {
             let json = serde_json::to_string(&doc)?;
             writeln!(writer, "{json}")?;
         }
-        
+
         Ok(())
     }
 
-    fn export_ticks_to_writer<W: std::io::Write>(&self, data: &[Tick], mut writer: W) -> ExportResult<()> {
+    fn export_ticks_to_writer<W: std::io::Write>(
+        &self,
+        data: &[Tick],
+        mut writer: W,
+    ) -> ExportResult<()> {
         // Convert tick data to JSON and write to the writer
-        let documents: Vec<TickDocument> = data.iter()
+        let documents: Vec<TickDocument> = data
+            .iter()
             .map(|tick| TickDocument::from_tick(tick, "MARKET"))
             .collect();
-        
+
         for doc in documents {
             let json = serde_json::to_string(&doc)?;
             writeln!(writer, "{json}")?;
         }
-        
+
         Ok(())
     }
 }
@@ -467,7 +483,7 @@ mod tests {
         assert_eq!(exporter.database_name, "test_db");
         assert_eq!(exporter.batch_size, 1000);
     }
-    
+
     #[test]
     #[cfg(feature = "dotenvy")]
     fn test_couchdb_exporter_from_env() {
@@ -480,16 +496,16 @@ mod tests {
 
     #[test]
     fn test_couchdb_exporter_with_auth() {
-        let exporter = CouchDbExporter::new("http://localhost:5984", "test_db")
-            .with_auth("admin", "password");
+        let exporter =
+            CouchDbExporter::new("http://localhost:5984", "test_db").with_auth("admin", "password");
         assert_eq!(exporter.username, Some("admin".to_string()));
         assert_eq!(exporter.password, Some("password".to_string()));
     }
 
     #[test]
     fn test_couchdb_exporter_with_batch_size() {
-        let exporter = CouchDbExporter::new("http://localhost:5984", "test_db")
-            .with_batch_size(500);
+        let exporter =
+            CouchDbExporter::new("http://localhost:5984", "test_db").with_batch_size(500);
         assert_eq!(exporter.batch_size, 500);
     }
 
@@ -504,7 +520,7 @@ mod tests {
             close: Decimal::from(105),
             volume: Volume::new(1000),
         };
-        
+
         let doc = OhlcDocument::from_ohlc(&ohlc, "TEST");
         assert_eq!(doc.id, "ohlc_TEST_1234567890");
         assert_eq!(doc.symbol, "TEST");
@@ -526,7 +542,7 @@ mod tests {
             ask: Some(Decimal::from_str("100.5").unwrap()),
             volume: Volume::new(100),
         };
-        
+
         let doc = TickDocument::from_tick(&tick, "TEST");
         assert_eq!(doc.id, "tick_TEST_1234567890");
         assert_eq!(doc.symbol, "TEST");
@@ -554,7 +570,7 @@ mod tests {
             .with_database("my_data")
             .with_auth("user", "pass")
             .with_batch_size(2000);
-        
+
         assert_eq!(options.server_url, "http://couchdb:5984");
         assert_eq!(options.database_name, "my_data");
         assert_eq!(options.username, Some("user".to_string()));

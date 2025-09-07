@@ -1,14 +1,14 @@
 #![allow(unused)]
 
+use super::state::AppState;
 use axum::{
     extract::State,
-    response::{Json, IntoResponse},
+    response::{IntoResponse, Json},
     routing::get,
     Router,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use super::state::AppState;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ControlCommand {
@@ -22,8 +22,7 @@ pub fn api_routes() -> Router<AppState> {
 }
 
 pub fn ws_routes() -> Router<AppState> {
-    Router::new()
-        .route("/ws", get(super::websocket::websocket_handler))
+    Router::new().route("/ws", get(super::websocket::websocket_handler))
 }
 
 pub async fn index() -> impl IntoResponse {
@@ -50,19 +49,21 @@ pub async fn control(Json(cmd): Json<ControlCommand>) -> impl IntoResponse {
         "shutdown" => {
             // Log the shutdown request
             tracing::info!("Shutdown requested via control API");
-            
+
             // Get delay from params or use default
-            let delay_ms = cmd.params.get("delay_ms")
+            let delay_ms = cmd
+                .params
+                .get("delay_ms")
                 .and_then(|v| v.as_u64())
                 .unwrap_or(100);
-            
+
             // Spawn a task to shutdown after a short delay to allow response to be sent
             tokio::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
                 tracing::info!("Shutting down server...");
                 std::process::exit(0);
             });
-            
+
             Json(json!({
                 "status": "success",
                 "command": "shutdown",
@@ -83,7 +84,7 @@ pub async fn control(Json(cmd): Json<ControlCommand>) -> impl IntoResponse {
         "gc" => {
             // Trigger garbage collection / cleanup
             tracing::info!("Garbage collection requested");
-            
+
             Json(json!({
                 "status": "success",
                 "command": "gc",
@@ -104,21 +105,19 @@ pub async fn control(Json(cmd): Json<ControlCommand>) -> impl IntoResponse {
                 "timestamp": chrono::Utc::now().to_rfc3339()
             }))
         }
-        _ => {
-            Json(json!({
-                "status": "error",
-                "command": cmd.command,
-                "message": format!("Unknown control command: {}", cmd.command),
-                "available_commands": ["shutdown", "reload", "gc", "status"],
-                "timestamp": chrono::Utc::now().to_rfc3339()
-            }))
-        }
+        _ => Json(json!({
+            "status": "error",
+            "command": cmd.command,
+            "message": format!("Unknown control command: {}", cmd.command),
+            "available_commands": ["shutdown", "reload", "gc", "status"],
+            "timestamp": chrono::Utc::now().to_rfc3339()
+        })),
     }
 }
 
 pub async fn api_discovery(State(state): State<AppState>) -> impl IntoResponse {
     let symbols = state.list_symbols().await;
-    
+
     Json(json!({
         "version": "v1",
         "base_url": format!("{}", state.config.api_prefix),

@@ -43,32 +43,32 @@ impl Default for ServerConfig {
 impl ServerConfig {
     pub fn from_env() -> Self {
         let mut config = Self::default();
-        
+
         if let Ok(port) = std::env::var("SERVER_PORT") {
             if let Ok(p) = port.parse() {
                 config.port = p;
             }
         }
-        
+
         if let Ok(host) = std::env::var("SERVER_HOST") {
             config.host = host;
         }
-        
+
         if let Ok(ws) = std::env::var("ENABLE_WEBSOCKET") {
             config.enable_websocket = ws.parse().unwrap_or(true);
         }
-        
+
         if let Ok(swagger) = std::env::var("ENABLE_SWAGGER") {
             config.enable_swagger = swagger.parse().unwrap_or(true);
         }
-        
+
         if let Ok(level) = std::env::var("LOG_LEVEL") {
             config.log_level = level;
         }
-        
+
         config
     }
-    
+
     pub fn socket_addr(&self) -> String {
         format!("{}:{}", self.host, self.port)
     }

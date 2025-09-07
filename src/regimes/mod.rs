@@ -11,7 +11,9 @@ pub mod detector;
 pub mod statistics;
 pub mod volatility;
 
-pub use controller::{RegimeController, RegimeSchedule, RegimeSegment, ScheduleInfo, TransitionState};
+pub use controller::{
+    RegimeController, RegimeSchedule, RegimeSegment, ScheduleInfo, TransitionState,
+};
 pub use detector::RegimeDetector;
 pub use statistics::RollingStatistics;
 pub use volatility::VolatilityRegimeDetector;
@@ -34,7 +36,7 @@ pub enum MarketRegime {
         std_dev: f64,
         /// Optional bias term for drift
         bias: Option<f64>,
-    }
+    },
 }
 
 impl MarketRegime {
@@ -51,9 +53,9 @@ impl MarketRegime {
     /// Returns the typical volatility multiplier for this regime
     pub fn volatility_factor(&self) -> Decimal {
         match self {
-            MarketRegime::Bull => Decimal::new(8, 1),      // 0.8 - lower volatility
-            MarketRegime::Bear => Decimal::new(12, 1),     // 1.2 - higher volatility
-            MarketRegime::Sideways => Decimal::ONE,        // 1.0 - normal volatility
+            MarketRegime::Bull => Decimal::new(8, 1), // 0.8 - lower volatility
+            MarketRegime::Bear => Decimal::new(12, 1), // 1.2 - higher volatility
+            MarketRegime::Sideways => Decimal::ONE,   // 1.0 - normal volatility
             MarketRegime::Normal { std_dev, .. } => {
                 // Use the std_dev parameter to determine volatility factor
                 Decimal::try_from(*std_dev).unwrap_or(Decimal::ONE)
@@ -64,9 +66,9 @@ impl MarketRegime {
     /// Returns the typical drift factor for this regime
     pub fn drift_factor(&self) -> Decimal {
         match self {
-            MarketRegime::Bull => Decimal::new(5, 3),      // 0.005 - positive drift
-            MarketRegime::Bear => Decimal::new(-5, 3),     // -0.005 - negative drift
-            MarketRegime::Sideways => Decimal::ZERO,       // 0 - no drift
+            MarketRegime::Bull => Decimal::new(5, 3), // 0.005 - positive drift
+            MarketRegime::Bear => Decimal::new(-5, 3), // -0.005 - negative drift
+            MarketRegime::Sideways => Decimal::ZERO,  // 0 - no drift
             MarketRegime::Normal { bias, .. } => {
                 // Use bias if available, otherwise zero drift
                 let drift = bias.unwrap_or(0.0);
@@ -118,7 +120,13 @@ impl RegimeState {
     }
 
     /// Transitions to a new regime
-    pub fn transition(&mut self, new_regime: MarketRegime, confidence: Decimal, timestamp: i64, price: Decimal) {
+    pub fn transition(
+        &mut self,
+        new_regime: MarketRegime,
+        confidence: Decimal,
+        timestamp: i64,
+        price: Decimal,
+    ) {
         self.current_regime = new_regime;
         self.confidence = confidence;
         self.duration = 1;
@@ -149,9 +157,9 @@ impl Default for RegimeConfig {
     fn default() -> Self {
         Self {
             lookback_period: 20,
-            bull_threshold: Decimal::new(2, 2),    // 0.02
-            bear_threshold: Decimal::new(-2, 2),   // -0.02
-            min_confidence: Decimal::new(6, 1),    // 0.6
+            bull_threshold: Decimal::new(2, 2),  // 0.02
+            bear_threshold: Decimal::new(-2, 2), // -0.02
+            min_confidence: Decimal::new(6, 1),  // 0.6
             use_volatility: true,
             window_size: 20,
         }
@@ -186,9 +194,9 @@ impl RegimeTracker {
                 self.transitions += 1;
             }
         }
-        
+
         self.history.push_back(state);
-        
+
         // Maintain max history size
         while self.history.len() > self.max_history {
             self.history.pop_front();
@@ -281,16 +289,26 @@ mod tests {
     #[test]
     fn test_regime_tracker() {
         let mut tracker = RegimeTracker::new(10);
-        
-        let state1 = RegimeState::new(MarketRegime::Bull, Decimal::new(8, 1), 1000, Decimal::new(100, 0));
-        let state2 = RegimeState::new(MarketRegime::Bear, Decimal::new(7, 1), 2000, Decimal::new(95, 0));
-        
+
+        let state1 = RegimeState::new(
+            MarketRegime::Bull,
+            Decimal::new(8, 1),
+            1000,
+            Decimal::new(100, 0),
+        );
+        let state2 = RegimeState::new(
+            MarketRegime::Bear,
+            Decimal::new(7, 1),
+            2000,
+            Decimal::new(95, 0),
+        );
+
         tracker.record(state1.clone());
         assert_eq!(tracker.transitions, 0);
-        
+
         tracker.record(state2);
         assert_eq!(tracker.transitions, 1);
-        
+
         tracker.record(state1);
         assert_eq!(tracker.transitions, 2);
     }

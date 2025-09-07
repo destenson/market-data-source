@@ -3,13 +3,12 @@
 
 #[cfg(feature = "json_export")]
 mod json_export_tests {
-    use market_data_source::export::{JsonExporter, JsonOptions, DataExporter};
     use market_data_source::export::{to_json_ohlc, to_json_ticks, to_jsonl_ohlc, to_jsonl_ticks};
-    use market_data_source::{GeneratorConfig, MarketDataGenerator, ConfigBuilder, TrendDirection};
-    use market_data_source::types::{OHLC, Tick};
+    use market_data_source::export::{DataExporter, JsonExporter, JsonOptions};
+    use market_data_source::types::{Tick, OHLC};
+    use market_data_source::{ConfigBuilder, GeneratorConfig, MarketDataGenerator, TrendDirection};
     use std::fs;
     use tempfile::tempdir;
-    
 
     #[test]
     fn test_generator_to_json_export() {
@@ -34,7 +33,7 @@ mod json_export_tests {
         assert!(json_path.exists());
         let content = fs::read_to_string(&json_path).unwrap();
         let parsed: Vec<OHLC> = serde_json::from_str(&content).unwrap();
-        
+
         assert_eq!(parsed.len(), 10);
         assert!(parsed[0].is_valid());
     }
@@ -59,9 +58,9 @@ mod json_export_tests {
         // Read and verify JSON Lines format
         let content = fs::read_to_string(&jsonl_path).unwrap();
         let lines: Vec<&str> = content.trim().split('\n').collect();
-        
+
         assert_eq!(lines.len(), 20);
-        
+
         // Each line should be valid JSON
         for line in lines {
             let tick: Tick = serde_json::from_str(line).unwrap();
@@ -87,11 +86,17 @@ mod json_export_tests {
 
         // Verify pretty formatting
         let content = fs::read_to_string(&pretty_path).unwrap();
-        
+
         // Pretty JSON should have multiple lines and indentation
-        assert!(content.lines().count() > 5, "Pretty JSON should have multiple lines");
-        assert!(content.contains("  "), "Pretty JSON should contain indentation");
-        
+        assert!(
+            content.lines().count() > 5,
+            "Pretty JSON should have multiple lines"
+        );
+        assert!(
+            content.contains("  "),
+            "Pretty JSON should contain indentation"
+        );
+
         // Should still be valid JSON
         let parsed: Vec<OHLC> = serde_json::from_str(&content).unwrap();
         assert_eq!(parsed.len(), 3);
@@ -118,7 +123,10 @@ mod json_export_tests {
 
         // Verify file size and content
         let metadata = fs::metadata(&json_path).unwrap();
-        assert!(metadata.len() > 1000, "Large dataset should produce substantial file");
+        assert!(
+            metadata.len() > 1000,
+            "Large dataset should produce substantial file"
+        );
 
         // Verify we can read it back
         let content = fs::read_to_string(&json_path).unwrap();
@@ -144,14 +152,14 @@ mod json_export_tests {
         // Simulate streaming read
         let content = fs::read_to_string(&jsonl_path).unwrap();
         let mut count = 0;
-        
+
         for line in content.lines() {
             if !line.trim().is_empty() {
                 let _: Tick = serde_json::from_str(line).unwrap();
                 count += 1;
             }
         }
-        
+
         assert_eq!(count, 100);
     }
 
@@ -164,29 +172,34 @@ mod json_export_tests {
 
         // Test different export options
         let dir = tempdir().unwrap();
-        
+
         // Standard JSON
         let standard_path = dir.path().join("standard.json");
         to_json_ohlc(&ohlc_data, &standard_path).unwrap();
-        
+
         // JSON Lines
         let jsonl_path = dir.path().join("lines.jsonl");
         to_jsonl_ohlc(&ohlc_data, &jsonl_path).unwrap();
-        
+
         // Pretty JSON
         let pretty_path = dir.path().join("pretty.json");
         let pretty_exporter = JsonExporter::with_options(JsonOptions::pretty());
-        pretty_exporter.export_ohlc(&ohlc_data, &pretty_path).unwrap();
-        
+        pretty_exporter
+            .export_ohlc(&ohlc_data, &pretty_path)
+            .unwrap();
+
         // Verify all formats
         assert!(standard_path.exists());
         assert!(jsonl_path.exists());
         assert!(pretty_path.exists());
-        
+
         // Verify different file sizes (pretty should be largest)
         let standard_size = fs::metadata(&standard_path).unwrap().len();
         let pretty_size = fs::metadata(&pretty_path).unwrap().len();
-        assert!(pretty_size > standard_size, "Pretty JSON should be larger than compact JSON");
+        assert!(
+            pretty_size > standard_size,
+            "Pretty JSON should be larger than compact JSON"
+        );
     }
 
     #[test]
@@ -203,11 +216,11 @@ mod json_export_tests {
 
         // Read and verify structure matches expected JavaScript format
         let content = fs::read_to_string(&json_path).unwrap();
-        
+
         // Should be a valid JSON array
         assert!(content.starts_with('['));
         assert!(content.ends_with(']'));
-        
+
         // Verify field names are correct for JavaScript consumption
         assert!(content.contains("\"open\""));
         assert!(content.contains("\"high\""));
@@ -227,32 +240,63 @@ mod json_export_tests {
         // Export and re-import
         let dir = tempdir().unwrap();
         let json_path = dir.path().join("roundtrip.json");
-        
+
         to_json_ohlc(&original_data, &json_path).unwrap();
-        
+
         let content = fs::read_to_string(&json_path).unwrap();
         let imported_data: Vec<OHLC> = serde_json::from_str(&content).unwrap();
-        
+
         // Verify structural integrity - data can be exported and imported successfully
-        assert_eq!(original_data.len(), imported_data.len(), "Data length should be preserved");
-        
+        assert_eq!(
+            original_data.len(),
+            imported_data.len(),
+            "Data length should be preserved"
+        );
+
         // Verify all required fields are present and valid
         for (i, ohlc) in imported_data.iter().enumerate() {
             assert!(ohlc.is_valid(), "OHLC at index {i} should be valid");
             use rust_decimal::Decimal;
-            assert!(ohlc.open > Decimal::from(0), "Open price should be positive");
-            assert!(ohlc.high >= ohlc.open || ohlc.high >= ohlc.close, "High should be highest");
-            assert!(ohlc.low <= ohlc.open || ohlc.low <= ohlc.close, "Low should be lowest");
-            assert!(ohlc.close > Decimal::from(0), "Close price should be positive");
+            assert!(
+                ohlc.open > Decimal::from(0),
+                "Open price should be positive"
+            );
+            assert!(
+                ohlc.high >= ohlc.open || ohlc.high >= ohlc.close,
+                "High should be highest"
+            );
+            assert!(
+                ohlc.low <= ohlc.open || ohlc.low <= ohlc.close,
+                "Low should be lowest"
+            );
+            assert!(
+                ohlc.close > Decimal::from(0),
+                "Close price should be positive"
+            );
             assert!(ohlc.timestamp > 0, "Timestamp should be positive");
         }
-        
+
         // Verify JSON structure is parseable and contains expected fields
-        assert!(content.contains("\"open\""), "JSON should contain open field");
-        assert!(content.contains("\"high\""), "JSON should contain high field");
+        assert!(
+            content.contains("\"open\""),
+            "JSON should contain open field"
+        );
+        assert!(
+            content.contains("\"high\""),
+            "JSON should contain high field"
+        );
         assert!(content.contains("\"low\""), "JSON should contain low field");
-        assert!(content.contains("\"close\""), "JSON should contain close field");
-        assert!(content.contains("\"timestamp\""), "JSON should contain timestamp field");
-        assert!(content.contains("\"volume\""), "JSON should contain volume field");
+        assert!(
+            content.contains("\"close\""),
+            "JSON should contain close field"
+        );
+        assert!(
+            content.contains("\"timestamp\""),
+            "JSON should contain timestamp field"
+        );
+        assert!(
+            content.contains("\"volume\""),
+            "JSON should contain volume field"
+        );
     }
 }

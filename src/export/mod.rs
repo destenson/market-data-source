@@ -54,10 +54,10 @@ pub mod error;
 
 pub use error::{ExportError, ExportResult};
 
-use crate::types::{OHLC, Tick};
+use crate::types::{Tick, OHLC};
 use std::fmt;
-use std::path::Path;
 use std::io::Write;
+use std::path::Path;
 
 /// Supported export formats
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -154,13 +154,13 @@ impl ExportOptions {
 pub trait DataExporter {
     /// Export OHLC data to a file
     fn export_ohlc<P: AsRef<Path>>(&self, data: &[OHLC], path: P) -> ExportResult<()>;
-    
+
     /// Export tick data to a file
     fn export_ticks<P: AsRef<Path>>(&self, data: &[Tick], path: P) -> ExportResult<()>;
-    
+
     /// Export OHLC data to a writer
     fn export_ohlc_to_writer<W: Write>(&self, data: &[OHLC], writer: W) -> ExportResult<()>;
-    
+
     /// Export tick data to a writer
     fn export_ticks_to_writer<W: Write>(&self, data: &[Tick], writer: W) -> ExportResult<()>;
 }
@@ -188,26 +188,27 @@ pub fn to_csv_string_ohlc(data: &[OHLC]) -> ExportResult<String> {
         let mut writer = WriterBuilder::new()
             .has_headers(true)
             .from_writer(&mut buffer);
-        
-        writer.write_record(["timestamp", "open", "high", "low", "close", "volume"])
+
+        writer
+            .write_record(["timestamp", "open", "high", "low", "close", "volume"])
             .map_err(ExportError::Csv)?;
-        
+
         for ohlc in data {
-            writer.write_record(&[
-                ohlc.timestamp.to_string(),
-                ohlc.open.to_string(),
-                ohlc.high.to_string(),
-                ohlc.low.to_string(),
-                ohlc.close.to_string(),
-                ohlc.volume.value.to_string(),
-            ])
-            .map_err(ExportError::Csv)?;
+            writer
+                .write_record(&[
+                    ohlc.timestamp.to_string(),
+                    ohlc.open.to_string(),
+                    ohlc.high.to_string(),
+                    ohlc.low.to_string(),
+                    ohlc.close.to_string(),
+                    ohlc.volume.value.to_string(),
+                ])
+                .map_err(ExportError::Csv)?;
         }
-        
-        writer.flush()
-            .map_err(ExportError::Io)?;
+
+        writer.flush().map_err(ExportError::Io)?;
     }
-    
+
     String::from_utf8(buffer)
         .map_err(|e| ExportError::Io(std::io::Error::new(std::io::ErrorKind::InvalidData, e)))
 }
@@ -271,7 +272,9 @@ pub fn to_couchdb_ticks_env(data: &[Tick]) -> ExportResult<()> {
 pub fn to_png_ohlc<P: AsRef<Path>>(data: &[OHLC], path: P) -> ExportResult<()> {
     let exporter = ChartExporter::default();
     exporter.export_ohlc(data, path).map_err(|e| {
-        ExportError::Io(std::io::Error::other(format!("Failed to export OHLC chart: {e}")))
+        ExportError::Io(std::io::Error::other(format!(
+            "Failed to export OHLC chart: {e}"
+        )))
     })
 }
 
@@ -280,7 +283,9 @@ pub fn to_png_ohlc<P: AsRef<Path>>(data: &[OHLC], path: P) -> ExportResult<()> {
 pub fn to_png_ticks<P: AsRef<Path>>(data: &[Tick], path: P) -> ExportResult<()> {
     let exporter = ChartExporter::default();
     exporter.export_ticks(data, path).map_err(|e| {
-        ExportError::Io(std::io::Error::other(format!("Failed to export tick chart: {e}")))
+        ExportError::Io(std::io::Error::other(format!(
+            "Failed to export tick chart: {e}"
+        )))
     })
 }
 
@@ -293,7 +298,9 @@ pub fn to_png_ohlc_with_builder<P: AsRef<Path>>(
 ) -> ExportResult<()> {
     let exporter = ChartExporter::with_builder(builder);
     exporter.export_ohlc(data, path).map_err(|e| {
-        ExportError::Io(std::io::Error::other(format!("Failed to export OHLC chart: {e}")))
+        ExportError::Io(std::io::Error::other(format!(
+            "Failed to export OHLC chart: {e}"
+        )))
     })
 }
 
@@ -306,6 +313,8 @@ pub fn to_png_ticks_with_builder<P: AsRef<Path>>(
 ) -> ExportResult<()> {
     let exporter = ChartExporter::with_builder(builder);
     exporter.export_ticks(data, path).map_err(|e| {
-        ExportError::Io(std::io::Error::other(format!("Failed to export tick chart: {e}")))
+        ExportError::Io(std::io::Error::other(format!(
+            "Failed to export tick chart: {e}"
+        )))
     })
 }

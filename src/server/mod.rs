@@ -8,8 +8,8 @@ pub use config::ServerConfig;
 pub use state::AppState;
 
 use axum::{
-    Router,
     routing::{get, post},
+    Router,
 };
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
@@ -31,9 +31,9 @@ pub async fn run_server(config: ServerConfig) -> Result<(), Box<dyn std::error::
 
     let addr = SocketAddr::from(([0, 0, 0, 0], config.port));
     info!("Server listening on http://{}", addr);
-    
+
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
-    
+
     Ok(())
 }

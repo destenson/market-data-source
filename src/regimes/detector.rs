@@ -1,8 +1,8 @@
 //! Trait definition for regime detection strategies
 
-use rust_decimal::Decimal;
+use super::{MarketRegime, RegimeConfig, RegimeState};
 use crate::types::OHLC;
-use super::{MarketRegime, RegimeState, RegimeConfig};
+use rust_decimal::Decimal;
 
 /// Trait for implementing different regime detection strategies
 pub trait RegimeDetector: Send + Sync {
@@ -50,9 +50,9 @@ pub trait RegimeDetector: Send + Sync {
 
 /// Helper functions for regime detection
 pub mod helpers {
-    use rust_decimal::Decimal;
-    use crate::types::OHLC;
     use super::MarketRegime;
+    use crate::types::OHLC;
+    use rust_decimal::Decimal;
 
     /// Calculates the simple return between two prices
     pub fn calculate_return(price_old: Decimal, price_new: Decimal) -> Decimal {
@@ -108,7 +108,8 @@ pub mod helpers {
                 let diff = r - mean;
                 diff * diff
             })
-            .sum::<Decimal>() / Decimal::from(returns.len() - 1);
+            .sum::<Decimal>()
+            / Decimal::from(returns.len() - 1);
 
         // Approximate square root calculation
         sqrt_approximation(variance)

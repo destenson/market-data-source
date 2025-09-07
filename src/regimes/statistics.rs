@@ -1,9 +1,9 @@
 //! Rolling window statistics calculator for regime detection
 
-use rust_decimal::Decimal;
-use rust_decimal::prelude::ToPrimitive;
-use std::collections::VecDeque;
 use crate::types::OHLC;
+use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
+use std::collections::VecDeque;
 
 /// Calculates rolling statistics over a sliding window
 pub struct RollingStatistics {
@@ -304,7 +304,9 @@ impl ReturnDistribution {
         let mut sorted = self.returns.clone();
         sorted.sort();
 
-        let index = ((p * Decimal::from(sorted.len() - 1)).round()).to_usize().unwrap_or(0);
+        let index = ((p * Decimal::from(sorted.len() - 1)).round())
+            .to_usize()
+            .unwrap_or(0);
         sorted[index.min(sorted.len() - 1)]
     }
 
@@ -316,7 +318,8 @@ impl ReturnDistribution {
     /// Gets Conditional Value at Risk (CVaR)
     pub fn cvar(&self, confidence: Decimal) -> Decimal {
         let var_threshold = self.var(confidence);
-        let tail_returns: Vec<Decimal> = self.returns
+        let tail_returns: Vec<Decimal> = self
+            .returns
             .iter()
             .filter(|&&r| r <= var_threshold)
             .copied()
@@ -414,9 +417,30 @@ mod tests {
         let mut dist = ReturnDistribution::new();
 
         let data = vec![
-            OHLC::new(Decimal::from(100), Decimal::from(102), Decimal::from(98), Decimal::from(100), 1000, 1000),
-            OHLC::new(Decimal::from(100), Decimal::from(103), Decimal::from(99), Decimal::from(102), 1000, 2000),
-            OHLC::new(Decimal::from(102), Decimal::from(105), Decimal::from(101), Decimal::from(104), 1000, 3000),
+            OHLC::new(
+                Decimal::from(100),
+                Decimal::from(102),
+                Decimal::from(98),
+                Decimal::from(100),
+                1000,
+                1000,
+            ),
+            OHLC::new(
+                Decimal::from(100),
+                Decimal::from(103),
+                Decimal::from(99),
+                Decimal::from(102),
+                1000,
+                2000,
+            ),
+            OHLC::new(
+                Decimal::from(102),
+                Decimal::from(105),
+                Decimal::from(101),
+                Decimal::from(104),
+                1000,
+                3000,
+            ),
         ];
 
         dist.add_from_ohlc(&data);

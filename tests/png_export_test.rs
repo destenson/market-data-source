@@ -4,8 +4,8 @@
 #[cfg(feature = "png_export")]
 mod png_export_tests {
     use market_data_source::{
-        MarketDataGenerator, GeneratorConfig,
-        export::{ChartBuilder, ChartExporter, to_png_ohlc, to_png_ticks},
+        export::{to_png_ohlc, to_png_ticks, ChartBuilder, ChartExporter},
+        GeneratorConfig, MarketDataGenerator,
     };
     use std::fs;
     use tempfile::tempdir;
@@ -24,7 +24,10 @@ mod png_export_tests {
 
         // Export to PNG
         let result = to_png_ohlc(&ohlc_data, &output_path);
-        assert!(result.is_ok(), "Failed to export candlestick chart: {result:?}");
+        assert!(
+            result.is_ok(),
+            "Failed to export candlestick chart: {result:?}"
+        );
 
         // Verify file exists and is valid PNG
         assert!(output_path.exists());
@@ -65,7 +68,10 @@ mod png_export_tests {
         // Check PNG header
         let contents = fs::read(&output_path).unwrap();
         assert!(contents.len() >= 8);
-        assert_eq!(&contents[0..8], &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        assert_eq!(
+            &contents[0..8],
+            &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+        );
     }
 
     #[test]
@@ -82,8 +88,7 @@ mod png_export_tests {
             .title("Custom Market Data Chart")
             .show_volume(true)
             .show_moving_average(true)
-            .ma_period(10)
-;
+            .ma_period(10);
 
         // Create temporary directory for output
         let temp_dir = tempdir().unwrap();
@@ -176,7 +181,7 @@ mod png_export_tests {
 
         assert!(result.is_ok());
         assert!(output_path.exists());
-        
+
         // Ensure it completes in reasonable time (< 10 seconds)
         assert!(
             duration.as_secs() < 10,

@@ -1,7 +1,7 @@
 //! Core data types for market data representation
 
-use std::fmt;
 use rust_decimal::Decimal;
+use std::fmt;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -30,7 +30,14 @@ pub struct OHLC {
 
 impl OHLC {
     /// Creates a new OHLC candle
-    pub fn new(open: Decimal, high: Decimal, low: Decimal, close: Decimal, volume: u64, timestamp: i64) -> Self {
+    pub fn new(
+        open: Decimal,
+        high: Decimal,
+        low: Decimal,
+        close: Decimal,
+        volume: u64,
+        timestamp: i64,
+    ) -> Self {
         Self {
             open,
             high,
@@ -46,11 +53,14 @@ impl OHLC {
         // High should be the highest value
         let max = self.open.max(self.close);
         let min = self.open.min(self.close);
-        
-        self.high >= max && self.low <= min && 
-        self.high >= self.low &&
-        self.open > Decimal::ZERO && self.high > Decimal::ZERO && 
-        self.low > Decimal::ZERO && self.close > Decimal::ZERO
+
+        self.high >= max
+            && self.low <= min
+            && self.high >= self.low
+            && self.open > Decimal::ZERO
+            && self.high > Decimal::ZERO
+            && self.low > Decimal::ZERO
+            && self.close > Decimal::ZERO
     }
 
     /// Returns the price range (high - low)
@@ -99,7 +109,13 @@ impl Tick {
     }
 
     /// Creates a new tick with bid/ask spread
-    pub fn with_spread(price: Decimal, volume: u64, timestamp: i64, bid: Decimal, ask: Decimal) -> Self {
+    pub fn with_spread(
+        price: Decimal,
+        volume: u64,
+        timestamp: i64,
+        bid: Decimal,
+        ask: Decimal,
+    ) -> Self {
         Self {
             price,
             volume: Volume::new(volume),
@@ -229,7 +245,8 @@ mod tests {
             Decimal::from_f64(105.0).unwrap(),
             Decimal::from_f64(99.0).unwrap(),
             Decimal::from_f64(103.0).unwrap(),
-            1000, 1234567890
+            1000,
+            1234567890,
         );
         assert_eq!(ohlc.open, Decimal::from_f64(100.0).unwrap());
         assert_eq!(ohlc.high, Decimal::from_f64(105.0).unwrap());
@@ -246,7 +263,8 @@ mod tests {
             Decimal::from_f64(105.0).unwrap(),
             Decimal::from_f64(99.0).unwrap(),
             Decimal::from_f64(103.0).unwrap(),
-            1000, 1234567890
+            1000,
+            1234567890,
         );
         assert!(valid_ohlc.is_valid());
 
@@ -256,7 +274,8 @@ mod tests {
             Decimal::from_f64(102.0).unwrap(),
             Decimal::from_f64(99.0).unwrap(),
             Decimal::from_f64(103.0).unwrap(),
-            1000, 1234567890
+            1000,
+            1234567890,
         );
         assert!(!invalid_ohlc.is_valid());
     }
@@ -268,7 +287,8 @@ mod tests {
             Decimal::from_f64(105.0).unwrap(),
             Decimal::from_f64(99.0).unwrap(),
             Decimal::from_f64(103.0).unwrap(),
-            1000, 1234567890
+            1000,
+            1234567890,
         );
         assert_eq!(ohlc.range(), Decimal::from_f64(6.0).unwrap());
         assert_eq!(ohlc.body(), Decimal::from_f64(3.0).unwrap());
@@ -279,17 +299,15 @@ mod tests {
             Decimal::from_f64(102.0).unwrap(),
             Decimal::from_f64(97.0).unwrap(),
             Decimal::from_f64(98.0).unwrap(),
-            1000, 1234567890
+            1000,
+            1234567890,
         );
         assert!(!bearish.is_bullish());
     }
 
     #[test]
     fn test_tick_creation() {
-        let tick = Tick::new(
-            Decimal::from_f64(100.5).unwrap(),
-            500, 1234567890
-        );
+        let tick = Tick::new(Decimal::from_f64(100.5).unwrap(), 500, 1234567890);
         assert_eq!(tick.price, Decimal::from_f64(100.5).unwrap());
         assert_eq!(tick.volume.value(), 500);
         assert_eq!(tick.timestamp, 1234567890);
@@ -301,13 +319,14 @@ mod tests {
     fn test_tick_with_spread() {
         let tick = Tick::with_spread(
             Decimal::from_f64(100.5).unwrap(),
-            500, 1234567890,
+            500,
+            1234567890,
             Decimal::from_f64(100.4).unwrap(),
-            Decimal::from_f64(100.6).unwrap()
+            Decimal::from_f64(100.6).unwrap(),
         );
         assert_eq!(tick.bid, Some(Decimal::from_f64(100.4).unwrap()));
         assert_eq!(tick.ask, Some(Decimal::from_f64(100.6).unwrap()));
-        
+
         // Decimal precision is exact, no epsilon needed
         let spread = tick.spread().unwrap();
         assert_eq!(spread, Decimal::from_f64(0.2).unwrap());
@@ -344,15 +363,16 @@ mod tests {
                 Decimal::from_f64(105.0).unwrap(),
                 Decimal::from_f64(99.0).unwrap(),
                 Decimal::from_f64(103.0).unwrap(),
-                1000, 1234567890
+                1000,
+                1234567890,
             );
-            
+
             // Serialize to JSON
             let json = serde_json::to_string(&ohlc).unwrap();
-            
+
             // Deserialize back
             let deserialized: OHLC = serde_json::from_str(&json).unwrap();
-            
+
             assert_eq!(ohlc, deserialized);
         }
 
@@ -360,24 +380,25 @@ mod tests {
         fn test_tick_serialization() {
             let tick = Tick::with_spread(
                 Decimal::from_f64(100.5).unwrap(),
-                500, 1234567890,
+                500,
+                1234567890,
                 Decimal::from_f64(100.4).unwrap(),
-                Decimal::from_f64(100.6).unwrap()
+                Decimal::from_f64(100.6).unwrap(),
             );
-            
+
             let json = serde_json::to_string(&tick).unwrap();
             let deserialized: Tick = serde_json::from_str(&json).unwrap();
-            
+
             assert_eq!(tick, deserialized);
         }
 
         #[test]
         fn test_volume_serialization() {
             let volume = Volume::new(1500);
-            
+
             let json = serde_json::to_string(&volume).unwrap();
             assert_eq!(json, "1500"); // Should serialize as transparent
-            
+
             let deserialized: Volume = serde_json::from_str(&json).unwrap();
             assert_eq!(volume, deserialized);
         }
@@ -388,10 +409,10 @@ mod tests {
             let interval = TimeInterval::OneMinute;
             let json = serde_json::to_string(&interval).unwrap();
             assert_eq!(json, r#""1m""#);
-            
+
             let deserialized: TimeInterval = serde_json::from_str(&json).unwrap();
             assert_eq!(interval, deserialized);
-            
+
             // Test custom interval
             let custom = TimeInterval::Custom(120);
             let json = serde_json::to_string(&custom).unwrap();

@@ -1,7 +1,7 @@
-use utoipa::{OpenApi, openapi};
 use super::models::*;
-use crate::types::{OHLC, Tick};
 use crate::config::GeneratorConfig;
+use crate::types::{Tick, OHLC};
+use utoipa::{openapi, OpenApi};
 
 #[derive(OpenApi)]
 #[openapi(

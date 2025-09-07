@@ -4,17 +4,15 @@
 #[cfg(feature = "couchdb")]
 mod couchdb_export_tests {
     use market_data_source::{
-        export::{CouchDbExporter, DataExporter, to_couchdb_ohlc, to_couchdb_ticks},
-        types::{OHLC, Tick},
-        MarketDataGenerator,
-        GeneratorConfig,
-        TimeInterval,
+        export::{to_couchdb_ohlc, to_couchdb_ticks, CouchDbExporter, DataExporter},
+        types::{Tick, OHLC},
+        GeneratorConfig, MarketDataGenerator, TimeInterval,
     };
 
     /// Generate test OHLC data
     fn generate_test_ohlc_data(count: usize) -> Vec<OHLC> {
-        use rust_decimal::{Decimal, prelude::FromPrimitive};
-        
+        use rust_decimal::{prelude::FromPrimitive, Decimal};
+
         let config = GeneratorConfig {
             starting_price: Decimal::from(100),
             volatility: Decimal::from_f64(0.02).unwrap(),
@@ -23,14 +21,15 @@ mod couchdb_export_tests {
             ..GeneratorConfig::default()
         };
 
-        let mut generator = MarketDataGenerator::with_config(config).expect("Failed to create generator");
+        let mut generator =
+            MarketDataGenerator::with_config(config).expect("Failed to create generator");
         generator.generate_series(count)
     }
 
     /// Generate test tick data
     fn generate_test_tick_data(count: usize) -> Vec<Tick> {
-        use rust_decimal::{Decimal, prelude::FromPrimitive};
-        
+        use rust_decimal::{prelude::FromPrimitive, Decimal};
+
         let config = GeneratorConfig {
             starting_price: Decimal::from(100),
             volatility: Decimal::from_f64(0.02).unwrap(),
@@ -38,7 +37,8 @@ mod couchdb_export_tests {
             ..GeneratorConfig::default()
         };
 
-        let mut generator = MarketDataGenerator::with_config(config).expect("Failed to create generator");
+        let mut generator =
+            MarketDataGenerator::with_config(config).expect("Failed to create generator");
         let mut ticks = Vec::new();
         for _ in 0..count {
             ticks.push(generator.generate_tick());
@@ -71,9 +71,13 @@ mod couchdb_export_tests {
     fn test_export_ohlc_to_couchdb() {
         let data = generate_test_ohlc_data(100);
         let exporter = CouchDbExporter::new("http://localhost:5984", "test_market_data");
-        
+
         let result = exporter.export_ohlc(&data, "");
-        assert!(result.is_ok(), "Failed to export OHLC data to CouchDB: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to export OHLC data to CouchDB: {:?}",
+            result.err()
+        );
     }
 
     #[test]
@@ -81,9 +85,13 @@ mod couchdb_export_tests {
     fn test_export_ticks_to_couchdb() {
         let data = generate_test_tick_data(100);
         let exporter = CouchDbExporter::new("http://localhost:5984", "test_market_data");
-        
+
         let result = exporter.export_ticks(&data, "");
-        assert!(result.is_ok(), "Failed to export tick data to CouchDB: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to export tick data to CouchDB: {:?}",
+            result.err()
+        );
     }
 
     #[test]
@@ -91,7 +99,11 @@ mod couchdb_export_tests {
     fn test_convenience_function_ohlc() {
         let data = generate_test_ohlc_data(50);
         let result = to_couchdb_ohlc(&data, "http://localhost:5984", "test_convenience_ohlc");
-        assert!(result.is_ok(), "Failed to export OHLC data using convenience function: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to export OHLC data using convenience function: {:?}",
+            result.err()
+        );
     }
 
     #[test]
@@ -99,7 +111,11 @@ mod couchdb_export_tests {
     fn test_convenience_function_ticks() {
         let data = generate_test_tick_data(50);
         let result = to_couchdb_ticks(&data, "http://localhost:5984", "test_convenience_ticks");
-        assert!(result.is_ok(), "Failed to export tick data using convenience function: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to export tick data using convenience function: {:?}",
+            result.err()
+        );
     }
 
     #[test]
@@ -108,21 +124,28 @@ mod couchdb_export_tests {
         let data = generate_test_ohlc_data(25);
         let exporter = CouchDbExporter::new("http://localhost:5984", "test_auth_db")
             .with_auth("admin", "password");
-        
+
         let result = exporter.export_ohlc(&data, "");
         // This test will fail if authentication is required and credentials are wrong
-        assert!(result.is_ok() || result.is_err(), "Authentication test completed");
+        assert!(
+            result.is_ok() || result.is_err(),
+            "Authentication test completed"
+        );
     }
 
     #[test]
     #[ignore]
     fn test_batch_export() {
         let data = generate_test_ohlc_data(2500); // Large dataset to test batching
-        let exporter = CouchDbExporter::new("http://localhost:5984", "test_batch_db")
-            .with_batch_size(500);
-        
+        let exporter =
+            CouchDbExporter::new("http://localhost:5984", "test_batch_db").with_batch_size(500);
+
         let result = exporter.export_ohlc(&data, "");
-        assert!(result.is_ok(), "Failed to export large batch of OHLC data: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to export large batch of OHLC data: {:?}",
+            result.err()
+        );
     }
 
     #[test]
@@ -130,13 +153,21 @@ mod couchdb_export_tests {
     fn test_mixed_data_export() {
         let ohlc_data = generate_test_ohlc_data(100);
         let tick_data = generate_test_tick_data(100);
-        
+
         let exporter = CouchDbExporter::new("http://localhost:5984", "test_mixed_db");
-        
+
         let ohlc_result = exporter.export_ohlc(&ohlc_data, "");
-        assert!(ohlc_result.is_ok(), "Failed to export OHLC data: {:?}", ohlc_result.err());
-        
+        assert!(
+            ohlc_result.is_ok(),
+            "Failed to export OHLC data: {:?}",
+            ohlc_result.err()
+        );
+
         let tick_result = exporter.export_ticks(&tick_data, "");
-        assert!(tick_result.is_ok(), "Failed to export tick data: {:?}", tick_result.err());
+        assert!(
+            tick_result.is_ok(),
+            "Failed to export tick data: {:?}",
+            tick_result.err()
+        );
     }
 }

@@ -1,11 +1,11 @@
 // Python bindings for market-data-source using PyO3 with automated code generation
 
-use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
 use ::market_data_source::{
-    MarketDataGenerator, GeneratorConfig, ConfigBuilder, OHLC, Tick, TimeInterval,
+    ConfigBuilder, GeneratorConfig, MarketDataGenerator, Tick, TimeInterval, OHLC,
 };
 
 // Helper function to convert OHLC to Python dict
@@ -15,7 +15,10 @@ fn ohlc_to_dict(ohlc: OHLC, py: Python<'_>) -> PyResult<Bound<'_, PyDict>> {
     dict.set_item("open", ohlc.open.to_string().parse::<f64>().unwrap_or(0.0))?;
     dict.set_item("high", ohlc.high.to_string().parse::<f64>().unwrap_or(0.0))?;
     dict.set_item("low", ohlc.low.to_string().parse::<f64>().unwrap_or(0.0))?;
-    dict.set_item("close", ohlc.close.to_string().parse::<f64>().unwrap_or(0.0))?;
+    dict.set_item(
+        "close",
+        ohlc.close.to_string().parse::<f64>().unwrap_or(0.0),
+    )?;
     dict.set_item("volume", ohlc.volume.value())?;
     Ok(dict)
 }
@@ -24,19 +27,25 @@ fn ohlc_to_dict(ohlc: OHLC, py: Python<'_>) -> PyResult<Bound<'_, PyDict>> {
 fn tick_to_dict(tick: Tick, py: Python<'_>) -> PyResult<Bound<'_, PyDict>> {
     let dict = PyDict::new(py);
     dict.set_item("timestamp", tick.timestamp)?;
-    dict.set_item("price", tick.price.to_string().parse::<f64>().unwrap_or(0.0))?;
-    
+    dict.set_item(
+        "price",
+        tick.price.to_string().parse::<f64>().unwrap_or(0.0),
+    )?;
+
     // Handle optional bid/ask
     if let (Some(bid), Some(ask)) = (tick.bid, tick.ask) {
         dict.set_item("bid", bid.to_string().parse::<f64>().unwrap_or(0.0))?;
         dict.set_item("ask", ask.to_string().parse::<f64>().unwrap_or(0.0))?;
-        dict.set_item("spread", (ask - bid).to_string().parse::<f64>().unwrap_or(0.0))?;
+        dict.set_item(
+            "spread",
+            (ask - bid).to_string().parse::<f64>().unwrap_or(0.0),
+        )?;
     } else {
         dict.set_item("bid", tick.price.to_string().parse::<f64>().unwrap_or(0.0))?;
         dict.set_item("ask", tick.price.to_string().parse::<f64>().unwrap_or(0.0))?;
         dict.set_item("spread", 0.0)?;
     }
-    
+
     dict.set_item("volume", tick.volume.value())?;
     Ok(dict)
 }
@@ -66,54 +75,74 @@ pub struct PyGeneratorConfig {
 impl PyGeneratorConfig {
     #[getter]
     fn initial_price(&self) -> f64 {
-        self.inner.starting_price.to_string().parse::<f64>().unwrap_or(0.0)
+        self.inner
+            .starting_price
+            .to_string()
+            .parse::<f64>()
+            .unwrap_or(0.0)
     }
-    
+
     #[getter]
     fn volatility(&self) -> f64 {
-        self.inner.volatility.to_string().parse::<f64>().unwrap_or(0.0)
+        self.inner
+            .volatility
+            .to_string()
+            .parse::<f64>()
+            .unwrap_or(0.0)
     }
-    
+
     #[getter]
     fn trend_strength(&self) -> f64 {
-        self.inner.trend_strength.to_string().parse::<f64>().unwrap_or(0.0)
+        self.inner
+            .trend_strength
+            .to_string()
+            .parse::<f64>()
+            .unwrap_or(0.0)
     }
-    
+
     #[getter]
     fn trend_direction(&self) -> String {
         format!("{:?}", self.inner.trend_direction)
     }
-    
+
     #[getter]
     fn min_price(&self) -> f64 {
-        self.inner.min_price.to_string().parse::<f64>().unwrap_or(0.0)
+        self.inner
+            .min_price
+            .to_string()
+            .parse::<f64>()
+            .unwrap_or(0.0)
     }
-    
+
     #[getter]
     fn max_price(&self) -> f64 {
-        self.inner.max_price.to_string().parse::<f64>().unwrap_or(0.0)
+        self.inner
+            .max_price
+            .to_string()
+            .parse::<f64>()
+            .unwrap_or(0.0)
     }
-    
+
     #[getter]
     fn base_volume(&self) -> u64 {
         self.inner.base_volume
     }
-    
+
     #[getter]
     fn volume_volatility(&self) -> f64 {
         self.inner.volume_volatility
     }
-    
+
     #[getter]
     fn time_interval(&self) -> String {
         time_interval_to_string(self.inner.time_interval)
     }
-    
+
     #[getter]
     fn seed(&self) -> Option<u64> {
         self.inner.seed
     }
-    
+
     fn __repr__(&self) -> String {
         format!(
             "GeneratorConfig(initial_price={}, volatility={}, trend_strength={})",
@@ -137,7 +166,7 @@ impl PyMarketDataGenerator {
     #[pyo3(signature = (**kwargs))]
     fn new(kwargs: Option<&Bound<'_, pyo3::types::PyDict>>) -> PyResult<Self> {
         let mut builder = ConfigBuilder::new();
-        
+
         if let Some(dict) = kwargs {
             // Automatically extract and set all parameters from kwargs
             if let Ok(Some(val)) = dict.get_item("initial_price") {
@@ -161,7 +190,8 @@ impl PyMarketDataGenerator {
             }
             if let Ok(Some(val)) = dict.get_item("min_price") {
                 if let Ok(Some(max_val)) = dict.get_item("max_price") {
-                    builder = builder.price_range_f64(val.extract::<f64>()?, max_val.extract::<f64>()?);
+                    builder =
+                        builder.price_range_f64(val.extract::<f64>()?, max_val.extract::<f64>()?);
                 } else {
                     builder = builder.price_range_f64(val.extract::<f64>()?, 1e15);
                 }
@@ -183,14 +213,15 @@ impl PyMarketDataGenerator {
                 builder = builder.time_interval(interval);
             }
         }
-        
-        let config = builder.build()
+
+        let config = builder
+            .build()
             .map_err(|e| PyValueError::new_err(format!("Configuration error: {e}")))?;
         let generator = MarketDataGenerator::with_config(config)
             .map_err(|e| PyValueError::new_err(format!("Failed to create generator: {e}")))?;
         Ok(PyMarketDataGenerator { generator })
     }
-    
+
     /// Generate OHLC data series - returns list of dicts
     fn generate_series(&mut self, py: Python<'_>, count: usize) -> PyResult<Vec<Py<PyDict>>> {
         let data = self.generator.generate_series(count);
@@ -201,7 +232,7 @@ impl PyMarketDataGenerator {
         }
         Ok(result)
     }
-    
+
     /// Generate tick data - returns list of dicts
     fn generate_ticks(&mut self, py: Python<'_>, count: usize) -> PyResult<Vec<Py<PyDict>>> {
         let data = self.generator.generate_ticks(count);
@@ -212,12 +243,17 @@ impl PyMarketDataGenerator {
         }
         Ok(result)
     }
-    
+
     /// Generate data between timestamps
-    fn generate_series_between(&mut self, py: Python<'_>, start: i64, end: i64) -> PyResult<Vec<Py<PyDict>>> {
+    fn generate_series_between(
+        &mut self,
+        py: Python<'_>,
+        start: i64,
+        end: i64,
+    ) -> PyResult<Vec<Py<PyDict>>> {
         // Set starting timestamp
         self.generator.set_timestamp(start);
-        
+
         // Calculate how many points to generate based on time interval
         let duration_ms = end - start;
         let interval_ms = match self.generator.config().time_interval {
@@ -230,7 +266,7 @@ impl PyMarketDataGenerator {
             TimeInterval::OneDay => 86_400_000,
             TimeInterval::Custom(secs) => secs as i64 * 1000,
         };
-        
+
         let count = (duration_ms / interval_ms).max(1) as usize;
         let data = self.generator.generate_series(count);
         let mut result = Vec::new();
@@ -240,7 +276,7 @@ impl PyMarketDataGenerator {
         }
         Ok(result)
     }
-    
+
     /// Get current configuration
     #[getter]
     fn config(&self) -> PyGeneratorConfig {
@@ -248,7 +284,7 @@ impl PyMarketDataGenerator {
             inner: self.generator.config().clone(),
         }
     }
-    
+
     /// Set a new seed for the random number generator
     fn set_seed(&mut self, seed: u64) -> PyResult<()> {
         // Recreate generator with same config but new seed
@@ -258,7 +294,7 @@ impl PyMarketDataGenerator {
             .map_err(|e| PyValueError::new_err(format!("Failed to set seed: {e}")))?;
         Ok(())
     }
-    
+
     /// Reset generator with new config
     fn reset(&mut self) -> PyResult<()> {
         let config = self.generator.config().clone();
@@ -266,7 +302,7 @@ impl PyMarketDataGenerator {
             .map_err(|e| PyValueError::new_err(format!("Failed to reset: {e}")))?;
         Ok(())
     }
-    
+
     fn __repr__(&self) -> String {
         format!("MarketDataGenerator(config={})", self.config().__repr__())
     }
@@ -310,16 +346,16 @@ fn market_data_source(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Auto-register classes
     m.add_class::<PyMarketDataGenerator>()?;
     m.add_class::<PyGeneratorConfig>()?;
-    
+
     // Auto-register preset functions
     m.add_function(wrap_pyfunction!(volatile_config, m)?)?;
     m.add_function(wrap_pyfunction!(stable_config, m)?)?;
     m.add_function(wrap_pyfunction!(bull_market_config, m)?)?;
     m.add_function(wrap_pyfunction!(bear_market_config, m)?)?;
-    
+
     // Add module metadata
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    m.add("__author__", "")?;  // Empty string if not set
-    
+    m.add("__author__", "")?; // Empty string if not set
+
     Ok(())
 }

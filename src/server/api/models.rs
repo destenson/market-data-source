@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
+use crate::{GeneratorConfig, Tick, OHLC};
 use rust_decimal::Decimal;
-use crate::{GeneratorConfig, OHLC, Tick};
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -33,10 +33,7 @@ pub struct GenerateResponse {
 pub enum MarketDataResponse {
     Ohlc(Vec<OHLC>),
     Tick(Vec<Tick>),
-    Both {
-        ohlc: Vec<OHLC>,
-        ticks: Vec<Tick>,
-    },
+    Both { ohlc: Vec<OHLC>, ticks: Vec<Tick> },
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

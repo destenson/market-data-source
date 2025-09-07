@@ -5,15 +5,14 @@
 //! pandas, or other CSV-compatible tools.
 
 use crate::export::{DataExporter, ExportResult};
-use crate::types::{OHLC, Tick};
+use crate::types::{Tick, OHLC};
 use csv::{Writer, WriterBuilder};
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
 /// CSV exporter for market data
-#[derive(Debug, Clone)]
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct CsvExporter {
     options: CsvOptions,
 }
@@ -52,7 +51,6 @@ impl Default for CsvOptions {
         }
     }
 }
-
 
 impl CsvExporter {
     /// Creates a new CSV exporter with default options
@@ -107,14 +105,7 @@ impl CsvExporter {
 
         // Write headers if configured
         if self.options.include_headers {
-            csv_writer.write_record([
-                "timestamp",
-                "open",
-                "high",
-                "low",
-                "close",
-                "volume",
-            ])?;
+            csv_writer.write_record(["timestamp", "open", "high", "low", "close", "volume"])?;
         }
 
         // Write data rows
@@ -139,13 +130,7 @@ impl CsvExporter {
 
         // Write headers if configured
         if self.options.include_headers {
-            csv_writer.write_record([
-                "timestamp",
-                "price",
-                "volume",
-                "bid",
-                "ask",
-            ])?;
+            csv_writer.write_record(["timestamp", "price", "volume", "bid", "ask"])?;
         }
 
         // Write data rows
@@ -174,14 +159,7 @@ impl CsvExporter {
 
         // Write headers if configured
         if self.options.include_headers {
-            csv_writer.write_record([
-                "timestamp",
-                "open",
-                "high",
-                "low",
-                "close",
-                "volume",
-            ])?;
+            csv_writer.write_record(["timestamp", "open", "high", "low", "close", "volume"])?;
         }
 
         // Stream write data
@@ -217,13 +195,7 @@ impl CsvExporter {
 
         // Write headers if configured
         if self.options.include_headers {
-            csv_writer.write_record([
-                "timestamp",
-                "price",
-                "volume",
-                "bid",
-                "ask",
-            ])?;
+            csv_writer.write_record(["timestamp", "price", "volume", "bid", "ask"])?;
         }
 
         // Stream write data
@@ -258,11 +230,11 @@ impl DataExporter for CsvExporter {
         let file = File::create(path)?;
         self.write_ticks(data, file)
     }
-    
+
     fn export_ohlc_to_writer<W: Write>(&self, data: &[OHLC], writer: W) -> ExportResult<()> {
         self.write_ohlc(data, writer)
     }
-    
+
     fn export_ticks_to_writer<W: Write>(&self, data: &[Tick], writer: W) -> ExportResult<()> {
         self.write_ticks(data, writer)
     }
@@ -272,9 +244,9 @@ impl DataExporter for CsvExporter {
 mod tests {
     use super::*;
     use std::io::Cursor;
-    
+
+    use crate::types::{Tick, OHLC};
     use rust_decimal::Decimal;
-    use crate::types::{OHLC, Tick};
     use std::str::FromStr;
 
     #[test]
@@ -299,8 +271,22 @@ mod tests {
     fn test_write_ohlc_to_buffer() {
         let exporter = CsvExporter::new();
         let data = vec![
-            OHLC::new(Decimal::from(100), Decimal::from(105), Decimal::from(99), Decimal::from(103), 1000, 1234567890000),
-            OHLC::new(Decimal::from(103), Decimal::from(104), Decimal::from(101), Decimal::from(102), 1500, 1234567891000),
+            OHLC::new(
+                Decimal::from(100),
+                Decimal::from(105),
+                Decimal::from(99),
+                Decimal::from(103),
+                1000,
+                1234567890000,
+            ),
+            OHLC::new(
+                Decimal::from(103),
+                Decimal::from(104),
+                Decimal::from(101),
+                Decimal::from(102),
+                1500,
+                1234567891000,
+            ),
         ];
 
         let mut buffer = Cursor::new(Vec::new());
@@ -317,7 +303,13 @@ mod tests {
         let exporter = CsvExporter::new();
         let data = vec![
             Tick::new(Decimal::from_str("100.5").unwrap(), 500, 1234567890000),
-            Tick::with_spread(Decimal::from(101), 750, 1234567891000, Decimal::from_str("100.9").unwrap(), Decimal::from_str("101.1").unwrap()),
+            Tick::with_spread(
+                Decimal::from(101),
+                750,
+                1234567891000,
+                Decimal::from_str("100.9").unwrap(),
+                Decimal::from_str("101.1").unwrap(),
+            ),
         ];
 
         let mut buffer = Cursor::new(Vec::new());
@@ -332,7 +324,14 @@ mod tests {
     #[test]
     fn test_no_headers() {
         let exporter = CsvExporter::new().include_headers(false);
-        let data = vec![OHLC::new(Decimal::from(100), Decimal::from(105), Decimal::from(99), Decimal::from(103), 1000, 1234567890000)];
+        let data = vec![OHLC::new(
+            Decimal::from(100),
+            Decimal::from(105),
+            Decimal::from(99),
+            Decimal::from(103),
+            1000,
+            1234567890000,
+        )];
 
         let mut buffer = Cursor::new(Vec::new());
         exporter.write_ohlc(&data, &mut buffer).unwrap();
@@ -345,7 +344,14 @@ mod tests {
     #[test]
     fn test_custom_delimiter() {
         let exporter = CsvExporter::new().delimiter(b';');
-        let data = vec![OHLC::new(Decimal::from(100), Decimal::from(105), Decimal::from(99), Decimal::from(103), 1000, 1234567890000)];
+        let data = vec![OHLC::new(
+            Decimal::from(100),
+            Decimal::from(105),
+            Decimal::from(99),
+            Decimal::from(103),
+            1000,
+            1234567890000,
+        )];
 
         let mut buffer = Cursor::new(Vec::new());
         exporter.write_ohlc(&data, &mut buffer).unwrap();

@@ -2,15 +2,18 @@ pub mod handlers;
 pub mod models;
 pub mod openapi;
 
-use axum::{
-    Router,
-    routing::{get, post, delete},
-};
 use super::state::AppState;
+use axum::{
+    routing::{delete, get, post},
+    Router,
+};
 
 pub fn routes() -> Router<AppState> {
     Router::new()
-        .route("/symbols", get(handlers::list_symbols).post(handlers::create_symbol))
+        .route(
+            "/symbols",
+            get(handlers::list_symbols).post(handlers::create_symbol),
+        )
         .route("/symbols/{symbol}", delete(handlers::delete_symbol))
         .route("/generate/{symbol}", post(handlers::generate_data))
         .route("/stream/{symbol}", get(handlers::stream_data))

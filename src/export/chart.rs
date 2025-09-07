@@ -1,9 +1,9 @@
 //! PNG chart generation module for market data visualization
-//! 
+//!
 //! This module provides functionality to generate candlestick and line charts
 //! from market data using the plotters library.
 
-use crate::types::{OHLC, Tick};
+use crate::types::{Tick, OHLC};
 use plotters::prelude::*;
 use rust_decimal::prelude::ToPrimitive;
 use std::error::Error;
@@ -84,7 +84,7 @@ impl Default for ChartBuilder {
             font_family: if cfg!(target_os = "windows") {
                 "Arial".to_string()
             } else if cfg!(target_os = "macos") {
-                "Helvetica".to_string()  
+                "Helvetica".to_string()
             } else {
                 "sans-serif".to_string()
             },
@@ -124,9 +124,9 @@ impl ChartBuilder {
     }
 
     /// Set background color (accepts RGBColor or (u8, u8, u8) tuple)
-    pub fn background_color<C>(mut self, color: C) -> Self 
-    where 
-        C: ToRgbColor
+    pub fn background_color<C>(mut self, color: C) -> Self
+    where
+        C: ToRgbColor,
     {
         self.background_color = color.to_rgb();
         self
@@ -157,7 +157,11 @@ impl ChartBuilder {
     }
 
     /// Set candlestick colors
-    pub fn candlestick_colors<B: ToRgbColor, R: ToRgbColor>(mut self, bullish: B, bearish: R) -> Self {
+    pub fn candlestick_colors<B: ToRgbColor, R: ToRgbColor>(
+        mut self,
+        bullish: B,
+        bearish: R,
+    ) -> Self {
         self.bullish_color = bullish.to_rgb();
         self.bearish_color = bearish.to_rgb();
         self
@@ -211,7 +215,7 @@ impl ChartBuilder {
 
         // Create buffer for bitmap
         let mut bitmap_buffer = vec![0u8; (self.width * self.height * 3) as usize];
-        
+
         {
             let root = BitMapBackend::with_buffer(&mut bitmap_buffer, (self.width, self.height))
                 .into_drawing_area();
@@ -227,17 +231,24 @@ impl ChartBuilder {
             };
 
             // Find price range
-            let min_price = data.iter()
+            let min_price = data
+                .iter()
                 .map(|ohlc| ohlc.low.to_f64().unwrap_or(0.0))
                 .fold(f64::INFINITY, f64::min);
-            let max_price = data.iter()
+            let max_price = data
+                .iter()
                 .map(|ohlc| ohlc.high.to_f64().unwrap_or(0.0))
                 .fold(f64::NEG_INFINITY, f64::max);
             let price_margin = (max_price - min_price) * 0.1;
 
             // Build the price chart
             let mut price_chart = plotters::chart::ChartBuilder::on(&upper)
-                .caption(&self.title, (self.font_family.as_str(), 40).into_font().color(&self.text_color))
+                .caption(
+                    &self.title,
+                    (self.font_family.as_str(), 40)
+                        .into_font()
+                        .color(&self.text_color),
+                )
                 .margin(10)
                 .x_label_area_size(30)
                 .y_label_area_size(60)
@@ -260,7 +271,7 @@ impl ChartBuilder {
                 let high = ohlc.high.to_f64().unwrap_or(0.0);
                 let low = ohlc.low.to_f64().unwrap_or(0.0);
                 let close = ohlc.close.to_f64().unwrap_or(0.0);
-                
+
                 let color = if close >= open {
                     self.bullish_color
                 } else {
@@ -280,19 +291,22 @@ impl ChartBuilder {
                     (close, open)
                 };
 
-                price_chart.draw_series(std::iter::once(Rectangle::new([
-                    (x - candle_width / 2.0, rect_bottom),
-                    (x + candle_width / 2.0, rect_top),
-                ], color.filled())))?;
+                price_chart.draw_series(std::iter::once(Rectangle::new(
+                    [
+                        (x - candle_width / 2.0, rect_bottom),
+                        (x + candle_width / 2.0, rect_top),
+                    ],
+                    color.filled(),
+                )))?;
             }
 
             root.present()?;
         }
-        
+
         // Create PNG image from bitmap buffer
         let img = image::RgbImage::from_raw(self.width, self.height, bitmap_buffer)
             .ok_or("Failed to create image from buffer")?;
-        
+
         // Encode as PNG to the provided buffer
         use image::ImageEncoder;
         let encoder = image::codecs::png::PngEncoder::new(buffer);
@@ -302,10 +316,9 @@ impl ChartBuilder {
             self.height,
             image::ExtendedColorType::Rgb8,
         )?;
-        
+
         Ok(())
     }
-
 
     /// Generate a candlestick chart from OHLC data
     pub fn draw_candlestick_chart<P: AsRef<Path>>(
@@ -319,149 +332,187 @@ impl ChartBuilder {
 
         // Create buffer for bitmap
         let mut buffer = vec![0u8; (self.width * self.height * 3) as usize];
-        
+
         {
             let root = BitMapBackend::with_buffer(&mut buffer, (self.width, self.height))
                 .into_drawing_area();
             root.fill(&self.background_color)?;
 
-        // Calculate the layout - if showing volume, split the chart
-        let (upper, lower) = if self.show_volume {
-            let areas = root.split_evenly((2, 1));
-            (areas[0].clone(), areas[1].clone())
-        } else {
-            let areas = root.split_evenly((1, 1));
-            (areas[0].clone(), areas[0].clone())
-        };
-
-        // Find price range
-        let min_price = data.iter()
-            .map(|ohlc| ohlc.low.to_f64().unwrap_or(0.0))
-            .fold(f64::INFINITY, f64::min);
-        let max_price = data.iter()
-            .map(|ohlc| ohlc.high.to_f64().unwrap_or(0.0))
-            .fold(f64::NEG_INFINITY, f64::max);
-        let price_margin = (max_price - min_price) * 0.1;
-
-        // Build the price chart with TTF font support
-        let mut price_chart = plotters::chart::ChartBuilder::on(&upper)
-            .caption(&self.title, (self.font_family.as_str(), 40).into_font().color(&self.text_color))
-            .margin(10)
-            .x_label_area_size(30)
-            .y_label_area_size(60)
-            .build_cartesian_2d(
-                0f64..(data.len() as f64),
-                (min_price - price_margin)..(max_price + price_margin),
-            )?;
-
-        if self.show_grid {
-            price_chart
-                .configure_mesh()
-                .x_desc("Time")
-                .y_desc("Price")
-                .label_style((self.font_family.as_str(), 15).into_font().color(&self.text_color))
-                .axis_style(self.grid_color)
-                .draw()?;
-        }
-
-        // Draw candlesticks
-        let candle_width = 0.7;
-        for (idx, ohlc) in data.iter().enumerate() {
-            let x = idx as f64;
-            let color = if ohlc.close >= ohlc.open {
-                self.bullish_color
+            // Calculate the layout - if showing volume, split the chart
+            let (upper, lower) = if self.show_volume {
+                let areas = root.split_evenly((2, 1));
+                (areas[0].clone(), areas[1].clone())
             } else {
-                self.bearish_color
+                let areas = root.split_evenly((1, 1));
+                (areas[0].clone(), areas[0].clone())
             };
 
-            // Draw the high-low line (wick)
-            price_chart.draw_series(LineSeries::new(
-                vec![(x, ohlc.low.to_f64().unwrap_or(0.0)), (x, ohlc.high.to_f64().unwrap_or(0.0))],
-                &color,
-            ))?;
+            // Find price range
+            let min_price = data
+                .iter()
+                .map(|ohlc| ohlc.low.to_f64().unwrap_or(0.0))
+                .fold(f64::INFINITY, f64::min);
+            let max_price = data
+                .iter()
+                .map(|ohlc| ohlc.high.to_f64().unwrap_or(0.0))
+                .fold(f64::NEG_INFINITY, f64::max);
+            let price_margin = (max_price - min_price) * 0.1;
 
-            // Draw the open-close rectangle (body)
-            let (body_bottom, body_top) = if ohlc.close >= ohlc.open {
-                (ohlc.open.to_f64().unwrap_or(0.0), ohlc.close.to_f64().unwrap_or(0.0))
-            } else {
-                (ohlc.close.to_f64().unwrap_or(0.0), ohlc.open.to_f64().unwrap_or(0.0))
-            };
-
-            price_chart.draw_series(std::iter::once(Rectangle::new([
-                (x - candle_width / 2.0, body_bottom),
-                (x + candle_width / 2.0, body_top),
-            ], color.filled())))?;
-        }
-
-        // Draw moving average if enabled
-        if self.show_moving_average && data.len() >= self.ma_period {
-            let ma_values = self.calculate_sma(data);
-            if !ma_values.is_empty() {
-                price_chart.draw_series(LineSeries::new(
-                    ma_values.iter().enumerate()
-                        .map(|(idx, &val)| ((idx + self.ma_period - 1) as f64, val)),
-                    &self.ma_color,
-                ))?
-                .label(format!("SMA({})", self.ma_period))
-                .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], self.ma_color));
-                
-                price_chart.configure_series_labels()
-                    .label_font((self.font_family.as_str(), 15).into_font().color(&self.text_color))
-                    .background_style(WHITE.mix(0.8))
-                    .border_style(BLACK)
-                    .draw()?;
-            }
-        }
-
-        // Draw volume chart if enabled
-        if self.show_volume {
-            let max_volume = data.iter()
-                .map(|ohlc| ohlc.volume.as_f64())
-                .fold(0f64, f64::max);
-
-            let mut volume_chart = plotters::chart::ChartBuilder::on(&lower)
+            // Build the price chart with TTF font support
+            let mut price_chart = plotters::chart::ChartBuilder::on(&upper)
+                .caption(
+                    &self.title,
+                    (self.font_family.as_str(), 40)
+                        .into_font()
+                        .color(&self.text_color),
+                )
                 .margin(10)
                 .x_label_area_size(30)
                 .y_label_area_size(60)
                 .build_cartesian_2d(
                     0f64..(data.len() as f64),
-                    0f64..(max_volume * 1.1),
+                    (min_price - price_margin)..(max_price + price_margin),
                 )?;
 
             if self.show_grid {
-                volume_chart
+                price_chart
                     .configure_mesh()
                     .x_desc("Time")
-                    .y_desc("Volume")
-                    .label_style((self.font_family.as_str(), 15).into_font().color(&self.text_color))
+                    .y_desc("Price")
+                    .label_style(
+                        (self.font_family.as_str(), 15)
+                            .into_font()
+                            .color(&self.text_color),
+                    )
                     .axis_style(self.grid_color)
                     .draw()?;
             }
 
-            // Draw volume bars
+            // Draw candlesticks
+            let candle_width = 0.7;
             for (idx, ohlc) in data.iter().enumerate() {
                 let x = idx as f64;
                 let color = if ohlc.close >= ohlc.open {
-                    self.bullish_color.mix(0.5)
+                    self.bullish_color
                 } else {
-                    self.bearish_color.mix(0.5)
+                    self.bearish_color
                 };
 
-                volume_chart.draw_series(std::iter::once(Rectangle::new([
-                    (x - candle_width / 2.0, 0.0),
-                    (x + candle_width / 2.0, ohlc.volume.as_f64()),
-                ], color.filled())))?;
+                // Draw the high-low line (wick)
+                price_chart.draw_series(LineSeries::new(
+                    vec![
+                        (x, ohlc.low.to_f64().unwrap_or(0.0)),
+                        (x, ohlc.high.to_f64().unwrap_or(0.0)),
+                    ],
+                    &color,
+                ))?;
+
+                // Draw the open-close rectangle (body)
+                let (body_bottom, body_top) = if ohlc.close >= ohlc.open {
+                    (
+                        ohlc.open.to_f64().unwrap_or(0.0),
+                        ohlc.close.to_f64().unwrap_or(0.0),
+                    )
+                } else {
+                    (
+                        ohlc.close.to_f64().unwrap_or(0.0),
+                        ohlc.open.to_f64().unwrap_or(0.0),
+                    )
+                };
+
+                price_chart.draw_series(std::iter::once(Rectangle::new(
+                    [
+                        (x - candle_width / 2.0, body_bottom),
+                        (x + candle_width / 2.0, body_top),
+                    ],
+                    color.filled(),
+                )))?;
             }
-        }
+
+            // Draw moving average if enabled
+            if self.show_moving_average && data.len() >= self.ma_period {
+                let ma_values = self.calculate_sma(data);
+                if !ma_values.is_empty() {
+                    price_chart
+                        .draw_series(LineSeries::new(
+                            ma_values
+                                .iter()
+                                .enumerate()
+                                .map(|(idx, &val)| ((idx + self.ma_period - 1) as f64, val)),
+                            &self.ma_color,
+                        ))?
+                        .label(format!("SMA({})", self.ma_period))
+                        .legend(|(x, y)| {
+                            PathElement::new(vec![(x, y), (x + 10, y)], self.ma_color)
+                        });
+
+                    price_chart
+                        .configure_series_labels()
+                        .label_font(
+                            (self.font_family.as_str(), 15)
+                                .into_font()
+                                .color(&self.text_color),
+                        )
+                        .background_style(WHITE.mix(0.8))
+                        .border_style(BLACK)
+                        .draw()?;
+                }
+            }
+
+            // Draw volume chart if enabled
+            if self.show_volume {
+                let max_volume = data
+                    .iter()
+                    .map(|ohlc| ohlc.volume.as_f64())
+                    .fold(0f64, f64::max);
+
+                let mut volume_chart = plotters::chart::ChartBuilder::on(&lower)
+                    .margin(10)
+                    .x_label_area_size(30)
+                    .y_label_area_size(60)
+                    .build_cartesian_2d(0f64..(data.len() as f64), 0f64..(max_volume * 1.1))?;
+
+                if self.show_grid {
+                    volume_chart
+                        .configure_mesh()
+                        .x_desc("Time")
+                        .y_desc("Volume")
+                        .label_style(
+                            (self.font_family.as_str(), 15)
+                                .into_font()
+                                .color(&self.text_color),
+                        )
+                        .axis_style(self.grid_color)
+                        .draw()?;
+                }
+
+                // Draw volume bars
+                for (idx, ohlc) in data.iter().enumerate() {
+                    let x = idx as f64;
+                    let color = if ohlc.close >= ohlc.open {
+                        self.bullish_color.mix(0.5)
+                    } else {
+                        self.bearish_color.mix(0.5)
+                    };
+
+                    volume_chart.draw_series(std::iter::once(Rectangle::new(
+                        [
+                            (x - candle_width / 2.0, 0.0),
+                            (x + candle_width / 2.0, ohlc.volume.as_f64()),
+                        ],
+                        color.filled(),
+                    )))?;
+                }
+            }
 
             root.present()?;
         }
-        
+
         // Save buffer as PNG using image crate
         let img = image::RgbImage::from_raw(self.width, self.height, buffer)
             .ok_or("Failed to create image from buffer")?;
         img.save(output_path.as_ref())?;
-        
+
         Ok(())
     }
 
@@ -477,88 +528,118 @@ impl ChartBuilder {
 
         // Create buffer for bitmap
         let mut buffer = vec![0u8; (self.width * self.height * 3) as usize];
-        
+
         {
             let root = BitMapBackend::with_buffer(&mut buffer, (self.width, self.height))
                 .into_drawing_area();
             root.fill(&self.background_color)?;
 
-        // Find price range
-        let min_price = data.iter()
-            .map(|tick| tick.price.to_f64().unwrap_or(0.0))
-            .fold(f64::INFINITY, f64::min);
-        let max_price = data.iter()
-            .map(|tick| tick.price.to_f64().unwrap_or(0.0))
-            .fold(f64::NEG_INFINITY, f64::max);
-        let price_margin = (max_price - min_price) * 0.1;
+            // Find price range
+            let min_price = data
+                .iter()
+                .map(|tick| tick.price.to_f64().unwrap_or(0.0))
+                .fold(f64::INFINITY, f64::min);
+            let max_price = data
+                .iter()
+                .map(|tick| tick.price.to_f64().unwrap_or(0.0))
+                .fold(f64::NEG_INFINITY, f64::max);
+            let price_margin = (max_price - min_price) * 0.1;
 
-        // Build the chart with TTF font support
-        let mut chart = plotters::chart::ChartBuilder::on(&root)
-            .caption(&self.title, (self.font_family.as_str(), 40).into_font().color(&self.text_color))
-            .margin(10)
-            .x_label_area_size(30)
-            .y_label_area_size(60)
-            .build_cartesian_2d(
-                0f64..(data.len() as f64),
-                (min_price - price_margin)..(max_price + price_margin),
-            )?;
+            // Build the chart with TTF font support
+            let mut chart = plotters::chart::ChartBuilder::on(&root)
+                .caption(
+                    &self.title,
+                    (self.font_family.as_str(), 40)
+                        .into_font()
+                        .color(&self.text_color),
+                )
+                .margin(10)
+                .x_label_area_size(30)
+                .y_label_area_size(60)
+                .build_cartesian_2d(
+                    0f64..(data.len() as f64),
+                    (min_price - price_margin)..(max_price + price_margin),
+                )?;
 
-        if self.show_grid {
+            if self.show_grid {
+                chart
+                    .configure_mesh()
+                    .x_desc("Time")
+                    .y_desc("Price")
+                    .label_style(
+                        (self.font_family.as_str(), 15)
+                            .into_font()
+                            .color(&self.text_color),
+                    )
+                    .axis_style(self.grid_color)
+                    .draw()?;
+            }
+
+            // Draw the price line
             chart
-                .configure_mesh()
-                .x_desc("Time")
-                .y_desc("Price")
-                .label_style((self.font_family.as_str(), 15).into_font().color(&self.text_color))
-                .axis_style(self.grid_color)
+                .draw_series(LineSeries::new(
+                    data.iter()
+                        .enumerate()
+                        .map(|(idx, tick)| (idx as f64, tick.price.to_f64().unwrap_or(0.0))),
+                    &self.ma_color,
+                ))?
+                .label("Price")
+                .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], self.ma_color));
+
+            // Draw bid/ask lines if available
+            let has_bid_ask = data
+                .iter()
+                .any(|tick| tick.bid.is_some() && tick.ask.is_some());
+            if has_bid_ask {
+                // Draw bid line
+                chart
+                    .draw_series(LineSeries::new(
+                        data.iter().enumerate().filter_map(|(idx, tick)| {
+                            tick.bid
+                                .map(|bid| (idx as f64, bid.to_f64().unwrap_or(0.0)))
+                        }),
+                        &self.bearish_color,
+                    ))?
+                    .label("Bid")
+                    .legend(|(x, y)| {
+                        PathElement::new(vec![(x, y), (x + 10, y)], self.bearish_color)
+                    });
+
+                // Draw ask line
+                chart
+                    .draw_series(LineSeries::new(
+                        data.iter().enumerate().filter_map(|(idx, tick)| {
+                            tick.ask
+                                .map(|ask| (idx as f64, ask.to_f64().unwrap_or(0.0)))
+                        }),
+                        &self.bullish_color,
+                    ))?
+                    .label("Ask")
+                    .legend(|(x, y)| {
+                        PathElement::new(vec![(x, y), (x + 10, y)], self.bullish_color)
+                    });
+            }
+
+            //
+            chart
+                .configure_series_labels()
+                .label_font(
+                    (self.font_family.as_str(), 15)
+                        .into_font()
+                        .color(&self.text_color),
+                )
+                .background_style(WHITE.mix(0.8))
+                .border_style(BLACK)
                 .draw()?;
-        }
-
-        // Draw the price line
-        chart.draw_series(LineSeries::new(
-            data.iter().enumerate()
-                .map(|(idx, tick)| (idx as f64, tick.price.to_f64().unwrap_or(0.0))),
-            &self.ma_color,
-        ))?
-        .label("Price")
-        .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], self.ma_color));
-
-        // Draw bid/ask lines if available
-        let has_bid_ask = data.iter().any(|tick| tick.bid.is_some() && tick.ask.is_some());
-        if has_bid_ask {
-            // Draw bid line
-            chart.draw_series(LineSeries::new(
-                data.iter().enumerate()
-                    .filter_map(|(idx, tick)| tick.bid.map(|bid| (idx as f64, bid.to_f64().unwrap_or(0.0)))),
-                &self.bearish_color,
-            ))?
-            .label("Bid")
-            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], self.bearish_color));
-
-            // Draw ask line
-            chart.draw_series(LineSeries::new(
-                data.iter().enumerate()
-                    .filter_map(|(idx, tick)| tick.ask.map(|ask| (idx as f64, ask.to_f64().unwrap_or(0.0)))),
-                &self.bullish_color,
-            ))?
-            .label("Ask")
-            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 10, y)], self.bullish_color));
-        }
-
-        //
-        chart.configure_series_labels()
-            .label_font((self.font_family.as_str(), 15).into_font().color(&self.text_color))
-            .background_style(WHITE.mix(0.8))
-            .border_style(BLACK)
-            .draw()?;
 
             root.present()?;
         }
-        
+
         // Save buffer as PNG using image crate
         let img = image::RgbImage::from_raw(self.width, self.height, buffer)
             .ok_or("Failed to create image from buffer")?;
         img.save(output_path.as_ref())?;
-        
+
         Ok(())
     }
 
@@ -585,7 +666,6 @@ impl ChartBuilder {
 pub struct ChartExporter {
     builder: ChartBuilder,
 }
-
 
 impl ChartExporter {
     /// Create a new chart exporter with default settings
@@ -620,11 +700,11 @@ impl ChartExporter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
-    use tempfile::tempdir;
+    use crate::types::{Tick, OHLC};
     use rust_decimal::Decimal;
+    use std::fs;
     use std::str::FromStr;
-    use crate::types::{OHLC, Tick};
+    use tempfile::tempdir;
 
     #[test]
     fn test_chart_builder_default() {
@@ -659,9 +739,30 @@ mod tests {
         let output_path = temp_dir.path().join("test_candlestick.png");
 
         let data = vec![
-            OHLC::new(Decimal::from(100), Decimal::from(105), Decimal::from(99), Decimal::from(103), 1000, 1640995200),
-            OHLC::new(Decimal::from(103), Decimal::from(106), Decimal::from(102), Decimal::from(105), 1200, 1640995260),
-            OHLC::new(Decimal::from(105), Decimal::from(107), Decimal::from(104), Decimal::from(106), 1100, 1640995320),
+            OHLC::new(
+                Decimal::from(100),
+                Decimal::from(105),
+                Decimal::from(99),
+                Decimal::from(103),
+                1000,
+                1640995200,
+            ),
+            OHLC::new(
+                Decimal::from(103),
+                Decimal::from(106),
+                Decimal::from(102),
+                Decimal::from(105),
+                1200,
+                1640995260,
+            ),
+            OHLC::new(
+                Decimal::from(105),
+                Decimal::from(107),
+                Decimal::from(104),
+                Decimal::from(106),
+                1100,
+                1640995320,
+            ),
         ];
 
         let exporter = ChartExporter::new();
@@ -670,11 +771,14 @@ mod tests {
 
         // Verify the file was created
         assert!(output_path.exists());
-        
+
         // Verify it's a valid PNG (check magic bytes)
         let contents = fs::read(&output_path).unwrap();
         assert!(contents.len() > 8);
-        assert_eq!(&contents[0..8], &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        assert_eq!(
+            &contents[0..8],
+            &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+        );
     }
 
     #[test]
@@ -683,9 +787,27 @@ mod tests {
         let output_path = temp_dir.path().join("test_line.png");
 
         let data = vec![
-            Tick::with_spread(Decimal::from(100), 10, 1640995200, Decimal::from_str("99.5").unwrap(), Decimal::from_str("100.5").unwrap()),
-            Tick::with_spread(Decimal::from_str("100.5").unwrap(), 15, 1640995201, Decimal::from(100), Decimal::from(101)),
-            Tick::with_spread(Decimal::from(101), 20, 1640995202, Decimal::from_str("100.5").unwrap(), Decimal::from_str("101.5").unwrap()),
+            Tick::with_spread(
+                Decimal::from(100),
+                10,
+                1640995200,
+                Decimal::from_str("99.5").unwrap(),
+                Decimal::from_str("100.5").unwrap(),
+            ),
+            Tick::with_spread(
+                Decimal::from_str("100.5").unwrap(),
+                15,
+                1640995201,
+                Decimal::from(100),
+                Decimal::from(101),
+            ),
+            Tick::with_spread(
+                Decimal::from(101),
+                20,
+                1640995202,
+                Decimal::from_str("100.5").unwrap(),
+                Decimal::from_str("101.5").unwrap(),
+            ),
         ];
 
         let exporter = ChartExporter::new();
@@ -694,11 +816,14 @@ mod tests {
 
         // Verify the file was created
         assert!(output_path.exists());
-        
+
         // Verify it's a valid PNG
         let contents = fs::read(&output_path).unwrap();
         assert!(contents.len() > 8);
-        assert_eq!(&contents[0..8], &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        assert_eq!(
+            &contents[0..8],
+            &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+        );
     }
 
     #[test]
@@ -709,25 +834,56 @@ mod tests {
         let data: Vec<OHLC> = vec![];
         let exporter = ChartExporter::new();
         let result = exporter.export_ohlc(&data, &output_path);
-        
+
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Cannot create chart from empty data");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Cannot create chart from empty data"
+        );
     }
 
     #[test]
     fn test_sma_calculation() {
         let builder = ChartBuilder::new().ma_period(3);
         let data = vec![
-            OHLC::new(Decimal::from(100), Decimal::from(105), Decimal::from(99), Decimal::from(103), 1000, 1640995200),
-            OHLC::new(Decimal::from(103), Decimal::from(106), Decimal::from(102), Decimal::from(105), 1200, 1640995260),
-            OHLC::new(Decimal::from(105), Decimal::from(107), Decimal::from(104), Decimal::from(106), 1100, 1640995320),
-            OHLC::new(Decimal::from(106), Decimal::from(108), Decimal::from(105), Decimal::from(107), 1300, 1640995380),
+            OHLC::new(
+                Decimal::from(100),
+                Decimal::from(105),
+                Decimal::from(99),
+                Decimal::from(103),
+                1000,
+                1640995200,
+            ),
+            OHLC::new(
+                Decimal::from(103),
+                Decimal::from(106),
+                Decimal::from(102),
+                Decimal::from(105),
+                1200,
+                1640995260,
+            ),
+            OHLC::new(
+                Decimal::from(105),
+                Decimal::from(107),
+                Decimal::from(104),
+                Decimal::from(106),
+                1100,
+                1640995320,
+            ),
+            OHLC::new(
+                Decimal::from(106),
+                Decimal::from(108),
+                Decimal::from(105),
+                Decimal::from(107),
+                1300,
+                1640995380,
+            ),
         ];
 
         let sma_values = builder.calculate_sma(&data);
         assert_eq!(sma_values.len(), 2);
         assert!((sma_values[0] - 104.666).abs() < 0.01); // (103 + 105 + 106) / 3
-        assert!((sma_values[1] - 106.0).abs() < 0.01);    // (105 + 106 + 107) / 3
+        assert!((sma_values[1] - 106.0).abs() < 0.01); // (105 + 106 + 107) / 3
     }
 
     #[test]
@@ -740,8 +896,22 @@ mod tests {
             .title("Custom Colors Chart");
 
         let data = vec![
-            OHLC::new(Decimal::from(100), Decimal::from(105), Decimal::from(99), Decimal::from(103), 1000, 1640995200),
-            OHLC::new(Decimal::from(103), Decimal::from(106), Decimal::from(102), Decimal::from(101), 1200, 1640995260),
+            OHLC::new(
+                Decimal::from(100),
+                Decimal::from(105),
+                Decimal::from(99),
+                Decimal::from(103),
+                1000,
+                1640995200,
+            ),
+            OHLC::new(
+                Decimal::from(103),
+                Decimal::from(106),
+                Decimal::from(102),
+                Decimal::from(101),
+                1200,
+                1640995260,
+            ),
         ];
 
         let exporter = ChartExporter::with_builder(builder);
