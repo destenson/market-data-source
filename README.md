@@ -1,10 +1,12 @@
 # Market Data Source
 
-Market Data Source is a rust library for fetching and processing market data from various financial APIs. It provides a unified interface to access real-time and historical market data, making it easier for developers to integrate market data into their applications.
+Market Data Source is a high-performance Rust library for generating realistic synthetic market data with Python bindings. It provides a unified interface to generate real-time and historical market data, making it easier for developers to integrate market data into their applications for backtesting, research, and development.
 
-One of its key features is its extensible architecture, allowing users to easily add support for new data sources as needed.
-
-Another key feature is realistic data generation, enabling users to simulate market conditions and test their trading strategies without risking real capital. It includes various algorithms to generate synthetic market data that mimics real-world behavior. It also supports customization of data generation parameters to fit specific testing scenarios.
+Key features:
+- **High-performance** Rust implementation with Python bindings via PyO3
+- **Realistic data generation** using advanced algorithms to simulate market conditions
+- **Multiple export formats** including CSV, JSON, CouchDB, and PNG charts
+- **Extensible architecture** allowing users to easily add custom algorithms
 
 ## Features
 
@@ -22,11 +24,54 @@ Another key feature is realistic data generation, enabling users to simulate mar
 
 ## Getting Started
 
+### Python Installation (Recommended with UV)
+
+The easiest way to use Market Data Source is through Python using [UV](https://github.com/astral-sh/uv):
+
+```bash
+# Install UV (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh  # macOS/Linux
+# or
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
+
+# Install market-data-source
+uv pip install market-data-source
+
+# Or build from source
+uv pip install maturin
+uv run maturin develop --features python
+```
+
+Quick Python example:
+
+```python
+import market_data_source as mds
+
+# Create generator
+generator = mds.MarketDataGenerator(
+    initial_price=100.0,
+    volatility=0.02,
+    seed=42
+)
+
+# Generate OHLC data
+data = generator.generate_series(100)
+
+# Export to files
+generator.to_csv("output.csv", count=1000)
+generator.to_json("output.json", count=1000)
+generator.to_png("chart.png", count=500)
+```
+
+See [PYTHON_SETUP.md](PYTHON_SETUP.md) for detailed Python setup instructions.
+
+### Rust Installation
+
 To use Market Data Source in your Rust project, add the following dependency to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-market-data-source = { version = "0.1.0", features = ["csv_export", "json_export", "png_export", "couchdb", "dotenvy", "serde"] }
+market-data-source = { version = "0.2.0", features = ["csv_export", "json_export", "png_export", "couchdb", "dotenvy", "serde"] }
 ```
 
 ### Environment Variables
@@ -49,7 +94,51 @@ See `.env.example` for the complete list of available environment variables.
 
 ## Usage
 
-Here's a simple example of how to use Market Data Source to generate synthetic market data:
+### Python Usage
+
+Market Data Source provides a Pythonic API for generating market data:
+
+```python
+import market_data_source as mds
+import pandas as pd
+
+# Create generator with configuration
+generator = mds.MarketDataGenerator(
+    initial_price=100.0,
+    volatility=0.02,      # 2% volatility
+    trend=0.0001,         # Slight upward trend
+    volume_base=1000000,  # Base volume
+    interval="1m",        # 1-minute bars
+    seed=42              # Reproducible results
+)
+
+# Generate OHLC data
+ohlc_data = generator.generate_series(100)
+
+# Convert to pandas DataFrame
+df = pd.DataFrame(ohlc_data)
+df['datetime'] = pd.to_datetime(df['timestamp'], unit='s')
+
+# Generate tick data
+ticks = generator.generate_ticks(1000)
+
+# Use preset configurations
+volatile_gen = mds.volatile_config()
+stable_gen = mds.stable_config()
+bull_gen = mds.bull_market_config()
+bear_gen = mds.bear_market_config()
+
+# Export data
+generator.to_csv("data.csv", count=1000)
+generator.to_json("data.json", count=1000)
+generator.to_png("chart.png", count=500, width=1200, height=800)
+```
+
+See `examples/python/` for more complete examples including pandas integration.
+
+### Rust Usage
+
+Here's a simple example of how to use Market Data Source in Rust:
 
 ```rust
 use market_data_source::{MarketDataGenerator, ConfigBuilder, TrendDirection};
@@ -67,11 +156,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Create a generator with custom configuration
     let config = ConfigBuilder::new()
-        .starting_price(100.0)
-        .volatility(0.02)  // 2% volatility
-        .trend(TrendDirection::Bullish, 0.001)  // Slight upward trend
+        .initial_price_f64(100.0)
+        .volatility_f64(0.02)  // 2% volatility
+        .trend_f64(0.001)  // Slight upward trend
         .seed(42)  // For reproducible results
-        .build()?;
+        .build();
     
     let mut custom_generator = MarketDataGenerator::with_config(config)?;
     let custom_candles = custom_generator.generate_series(5);
