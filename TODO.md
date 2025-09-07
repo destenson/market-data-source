@@ -104,9 +104,8 @@ generator.to_csv("output.csv", count=1000)
 
 ### Secondary - Complete PRP-19 Cleanup
 1. **PRP-19 Completion**: Fully completed rust_decimal migration
-2. [ ] **CouchDB placeholders** - Remove unused parameters (src/export/couchdb.rs:429-441, 198-204)  
+2. [x] **CouchDB placeholders** - Removed unused parameter underscores
 3. [ ] **Volume volatility type** - Convert to Decimal (src/config.rs:90)
-4. [ ] **Make algorithms public** - Remove "internal for now" (src/lib.rs:51)
 
 ### High Priority - Export Infrastructure ✅ **COMPLETED**
 1. ⚠️ **Skip PRP-14**: CouchDB export blocked by dependency issue (currently fixed by commenting out simd feature)
