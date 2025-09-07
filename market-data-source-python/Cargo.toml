@@ -10,8 +10,9 @@ homepage = "https://github.com/destenson/market-data-source"
 publish = false  # This crate is not published to crates.io
 
 [features]
-default = ["synthetic"]
+default = ["python", "synthetic"]
 synthetic = ["market-data-source/synthetic"]
+python = []  # Python bindings feature
 
 [lib]
 name = "market_data_source"
