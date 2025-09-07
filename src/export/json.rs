@@ -211,20 +211,22 @@ mod tests {
     use super::*;
     use std::fs;
     use tempfile::tempdir;
+    use rust_decimal::Decimal;
+    use std::str::FromStr;
 
     fn create_sample_ohlc() -> Vec<OHLC> {
         vec![
-            OHLC::new(100.0, 105.0, 99.0, 103.0, 1000, 1640995200000),
-            OHLC::new(103.0, 107.0, 102.0, 106.0, 1500, 1640998800000),
-            OHLC::new(106.0, 108.0, 104.0, 105.0, 1200, 1641002400000),
+            OHLC::new(Decimal::from(100), Decimal::from(105), Decimal::from(99), Decimal::from(103), 1000, 1640995200000),
+            OHLC::new(Decimal::from(103), Decimal::from(107), Decimal::from(102), Decimal::from(106), 1500, 1640998800000),
+            OHLC::new(Decimal::from(106), Decimal::from(108), Decimal::from(104), Decimal::from(105), 1200, 1641002400000),
         ]
     }
 
     fn create_sample_ticks() -> Vec<Tick> {
         vec![
-            Tick::new(100.0, 100, 1640995200000),
-            Tick::new(100.5, 150, 1640995201000),
-            Tick::new(101.0, 200, 1640995202000),
+            Tick::new(Decimal::from(100), 100, 1640995200000),
+            Tick::new(Decimal::from_str("100.5").unwrap(), 150, 1640995201000),
+            Tick::new(Decimal::from(101), 200, 1640995202000),
         ]
     }
 
@@ -244,8 +246,8 @@ mod tests {
         
         assert_eq!(parsed.len(), 3);
         assert!(parsed[0].is_valid());
-        assert!(parsed[0].open > 0.0);
-        assert!(parsed[0].close > 0.0);
+        assert!(parsed[0].open > Decimal::from(0));
+        assert!(parsed[0].close > Decimal::from(0));
     }
 
     #[test]
@@ -268,8 +270,8 @@ mod tests {
         // Parse first line
         let first: OHLC = serde_json::from_str(lines[0]).unwrap();
         assert!(first.is_valid());
-        assert!(first.open > 0.0);
-        assert!(first.close > 0.0);
+        assert!(first.open > Decimal::from(0));
+        assert!(first.close > Decimal::from(0));
     }
 
     #[test]
@@ -307,8 +309,8 @@ mod tests {
         let parsed: Vec<Tick> = serde_json::from_str(&content).unwrap();
         
         assert_eq!(parsed.len(), 3);
-        assert!(parsed[0].price > 0.0);
-        assert!(parsed[1].price > 0.0);
+        assert!(parsed[0].price > Decimal::from(0));
+        assert!(parsed[1].price > Decimal::from(0));
     }
 
     #[test]
@@ -331,7 +333,7 @@ mod tests {
         // Parse each line and verify structure
         for line in lines.iter() {
             let tick: Tick = serde_json::from_str(line).unwrap();
-            assert!(tick.price > 0.0, "Price should be positive");
+            assert!(tick.price > Decimal::from(0), "Price should be positive");
             assert!(tick.volume.value() >= 0, "Volume should be non-negative");
         }
     }

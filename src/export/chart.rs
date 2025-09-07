@@ -628,6 +628,9 @@ mod tests {
     use super::*;
     use std::fs;
     use tempfile::tempdir;
+    use rust_decimal::Decimal;
+    use std::str::FromStr;
+    use crate::types::{OHLC, Tick};
 
     #[test]
     fn test_chart_builder_default() {
@@ -662,9 +665,9 @@ mod tests {
         let output_path = temp_dir.path().join("test_candlestick.png");
 
         let data = vec![
-            OHLC::new(100.0, 105.0, 99.0, 103.0, 1000, 1640995200),
-            OHLC::new(103.0, 106.0, 102.0, 105.0, 1200, 1640995260),
-            OHLC::new(105.0, 107.0, 104.0, 106.0, 1100, 1640995320),
+            OHLC::new(Decimal::from(100), Decimal::from(105), Decimal::from(99), Decimal::from(103), 1000, 1640995200),
+            OHLC::new(Decimal::from(103), Decimal::from(106), Decimal::from(102), Decimal::from(105), 1200, 1640995260),
+            OHLC::new(Decimal::from(105), Decimal::from(107), Decimal::from(104), Decimal::from(106), 1100, 1640995320),
         ];
 
         let exporter = ChartExporter::new();
@@ -686,9 +689,9 @@ mod tests {
         let output_path = temp_dir.path().join("test_line.png");
 
         let data = vec![
-            Tick::with_spread(100.0, 10, 1640995200, 99.5, 100.5),
-            Tick::with_spread(100.5, 15, 1640995201, 100.0, 101.0),
-            Tick::with_spread(101.0, 20, 1640995202, 100.5, 101.5),
+            Tick::with_spread(Decimal::from(100), 10, 1640995200, Decimal::from_str("99.5").unwrap(), Decimal::from_str("100.5").unwrap()),
+            Tick::with_spread(Decimal::from_str("100.5").unwrap(), 15, 1640995201, Decimal::from(100), Decimal::from(101)),
+            Tick::with_spread(Decimal::from(101), 20, 1640995202, Decimal::from_str("100.5").unwrap(), Decimal::from_str("101.5").unwrap()),
         ];
 
         let exporter = ChartExporter::new();
@@ -721,10 +724,10 @@ mod tests {
     fn test_sma_calculation() {
         let builder = ChartBuilder::new().ma_period(3);
         let data = vec![
-            OHLC::new(100.0, 105.0, 99.0, 103.0, 1000, 1640995200),
-            OHLC::new(103.0, 106.0, 102.0, 105.0, 1200, 1640995260),
-            OHLC::new(105.0, 107.0, 104.0, 106.0, 1100, 1640995320),
-            OHLC::new(106.0, 108.0, 105.0, 107.0, 1300, 1640995380),
+            OHLC::new(Decimal::from(100), Decimal::from(105), Decimal::from(99), Decimal::from(103), 1000, 1640995200),
+            OHLC::new(Decimal::from(103), Decimal::from(106), Decimal::from(102), Decimal::from(105), 1200, 1640995260),
+            OHLC::new(Decimal::from(105), Decimal::from(107), Decimal::from(104), Decimal::from(106), 1100, 1640995320),
+            OHLC::new(Decimal::from(106), Decimal::from(108), Decimal::from(105), Decimal::from(107), 1300, 1640995380),
         ];
 
         let sma_values = builder.calculate_sma(&data);
@@ -743,8 +746,8 @@ mod tests {
             .title("Custom Colors Chart");
 
         let data = vec![
-            OHLC::new(100.0, 105.0, 99.0, 103.0, 1000, 1640995200),
-            OHLC::new(103.0, 106.0, 102.0, 101.0, 1200, 1640995260),
+            OHLC::new(Decimal::from(100), Decimal::from(105), Decimal::from(99), Decimal::from(103), 1000, 1640995200),
+            OHLC::new(Decimal::from(103), Decimal::from(106), Decimal::from(102), Decimal::from(101), 1200, 1640995260),
         ];
 
         let exporter = ChartExporter::with_builder(builder);

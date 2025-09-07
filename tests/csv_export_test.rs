@@ -15,7 +15,7 @@ fn test_export_ohlc_to_csv() {
     // Create generator and generate data
     let config = ConfigBuilder::new()
         .starting_price_f64(100.0)
-        .volatility(0.02)
+        .volatility_f64(0.02)
         .seed(42)
         .build()
         .unwrap();

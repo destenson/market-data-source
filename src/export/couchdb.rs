@@ -457,6 +457,8 @@ impl CouchDbOptions {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rust_decimal::Decimal;
+    use std::str::FromStr;
 
     #[test]
     fn test_couchdb_exporter_creation() {
@@ -496,10 +498,10 @@ mod tests {
         use crate::types::Volume;
         let ohlc = OHLC {
             timestamp: 1234567890,
-            open: 100.0,
-            high: 110.0,
-            low: 95.0,
-            close: 105.0,
+            open: Decimal::from(100),
+            high: Decimal::from(110),
+            low: Decimal::from(95),
+            close: Decimal::from(105),
             volume: Volume::new(1000),
         };
         
@@ -519,9 +521,9 @@ mod tests {
         use crate::types::Volume;
         let tick = Tick {
             timestamp: 1234567890,
-            price: 100.0,
-            bid: Some(99.5),
-            ask: Some(100.5),
+            price: Decimal::from(100),
+            bid: Some(Decimal::from_str("99.5").unwrap()),
+            ask: Some(Decimal::from_str("100.5").unwrap()),
             volume: Volume::new(100),
         };
         

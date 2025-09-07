@@ -15,8 +15,8 @@ mod json_export_tests {
         // Generate market data
         let config = ConfigBuilder::new()
             .starting_price_f64(100.0)
-            .volatility(0.02)
-            .trend(TrendDirection::Bullish, 0.001)
+            .volatility_f64(0.02)
+            .trend_f64(TrendDirection::Bullish, 0.001)
             .build()
             .unwrap();
 
@@ -64,7 +64,8 @@ mod json_export_tests {
         // Each line should be valid JSON
         for line in lines {
             let tick: Tick = serde_json::from_str(line).unwrap();
-            assert!(tick.price > 0.0);
+            use rust_decimal::Decimal;
+            assert!(tick.price > Decimal::from(0));
         }
     }
 
@@ -100,7 +101,7 @@ mod json_export_tests {
         // Generate large dataset
         let config = ConfigBuilder::new()
             .starting_price_f64(1000.0)
-            .volatility(0.03)
+            .volatility_f64(0.03)
             .build()
             .unwrap();
 
@@ -238,10 +239,11 @@ mod json_export_tests {
         // Verify all required fields are present and valid
         for (i, ohlc) in imported_data.iter().enumerate() {
             assert!(ohlc.is_valid(), "OHLC at index {} should be valid", i);
-            assert!(ohlc.open > 0.0, "Open price should be positive");
+            use rust_decimal::Decimal;
+            assert!(ohlc.open > Decimal::from(0), "Open price should be positive");
             assert!(ohlc.high >= ohlc.open || ohlc.high >= ohlc.close, "High should be highest");
             assert!(ohlc.low <= ohlc.open || ohlc.low <= ohlc.close, "Low should be lowest");
-            assert!(ohlc.close > 0.0, "Close price should be positive");
+            assert!(ohlc.close > Decimal::from(0), "Close price should be positive");
             assert!(ohlc.timestamp > 0, "Timestamp should be positive");
             assert!(ohlc.volume.value() >= 0, "Volume should be non-negative");
         }

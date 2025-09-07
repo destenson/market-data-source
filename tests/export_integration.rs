@@ -108,10 +108,11 @@ mod csv_integration_tests {
         
         // Compare key fields (allowing for float precision differences)
         for (original, parsed) in fixture.ohlc_data.iter().zip(parsed_data.iter()) {
-            assert!((original.open - parsed.open).abs() < 0.001);
-            assert!((original.high - parsed.high).abs() < 0.001);
-            assert!((original.low - parsed.low).abs() < 0.001);
-            assert!((original.close - parsed.close).abs() < 0.001);
+            use rust_decimal::prelude::*;
+            assert!((original.open - parsed.open).abs() < Decimal::from_str("0.001").unwrap());
+            assert!((original.high - parsed.high).abs() < Decimal::from_str("0.001").unwrap());
+            assert!((original.low - parsed.low).abs() < Decimal::from_str("0.001").unwrap());
+            assert!((original.close - parsed.close).abs() < Decimal::from_str("0.001").unwrap());
             assert_eq!(original.volume, parsed.volume);
         }
     }
@@ -175,10 +176,11 @@ mod json_integration_tests {
         
         // JSON should preserve values with reasonable precision
         for (original, parsed) in fixture.ohlc_data.iter().zip(parsed_data.iter()) {
-            assert!((original.open - parsed.open).abs() < 1e-10);
-            assert!((original.high - parsed.high).abs() < 1e-10);
-            assert!((original.low - parsed.low).abs() < 1e-10);
-            assert!((original.close - parsed.close).abs() < 1e-10);
+            use rust_decimal::prelude::*;
+            assert!((original.open - parsed.open).abs() < Decimal::from_str("0.0000000001").unwrap());
+            assert!((original.high - parsed.high).abs() < Decimal::from_str("0.0000000001").unwrap());
+            assert!((original.low - parsed.low).abs() < Decimal::from_str("0.0000000001").unwrap());
+            assert!((original.close - parsed.close).abs() < Decimal::from_str("0.0000000001").unwrap());
             assert_eq!(original.volume, parsed.volume);
             assert_eq!(original.timestamp, parsed.timestamp);
         }
@@ -455,7 +457,7 @@ fn test_export_integration_summary() {
     println!("=====================================");
     
     let mut enabled_features: Vec<&str> = vec![];
-    let mut disabled_features = vec![];
+    let mut disabled_features: Vec<&str> = vec![];
     
     #[cfg(feature = "csv_export")]
     enabled_features.push("csv_export");

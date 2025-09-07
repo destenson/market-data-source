@@ -278,6 +278,10 @@ impl DataExporter for CsvExporter {
 mod tests {
     use super::*;
     use std::io::Cursor;
+    use rust_decimal::prelude::*;
+    use rust_decimal::Decimal;
+    use crate::types::{OHLC, Tick};
+    use std::str::FromStr;
 
     #[test]
     fn test_csv_exporter_creation() {
@@ -301,8 +305,8 @@ mod tests {
     fn test_write_ohlc_to_buffer() {
         let exporter = CsvExporter::new();
         let data = vec![
-            OHLC::new(100.0, 105.0, 99.0, 103.0, 1000, 1234567890000),
-            OHLC::new(103.0, 104.0, 101.0, 102.0, 1500, 1234567891000),
+            OHLC::new(Decimal::from(100), Decimal::from(105), Decimal::from(99), Decimal::from(103), 1000, 1234567890000),
+            OHLC::new(Decimal::from(103), Decimal::from(104), Decimal::from(101), Decimal::from(102), 1500, 1234567891000),
         ];
 
         let mut buffer = Cursor::new(Vec::new());
@@ -318,8 +322,8 @@ mod tests {
     fn test_write_ticks_to_buffer() {
         let exporter = CsvExporter::new();
         let data = vec![
-            Tick::new(100.5, 500, 1234567890000),
-            Tick::with_spread(101.0, 750, 1234567891000, 100.9, 101.1),
+            Tick::new(Decimal::from_str("100.5").unwrap(), 500, 1234567890000),
+            Tick::with_spread(Decimal::from(101), 750, 1234567891000, Decimal::from_str("100.9").unwrap(), Decimal::from_str("101.1").unwrap()),
         ];
 
         let mut buffer = Cursor::new(Vec::new());
@@ -334,7 +338,7 @@ mod tests {
     #[test]
     fn test_no_headers() {
         let exporter = CsvExporter::new().include_headers(false);
-        let data = vec![OHLC::new(100.0, 105.0, 99.0, 103.0, 1000, 1234567890000)];
+        let data = vec![OHLC::new(Decimal::from(100), Decimal::from(105), Decimal::from(99), Decimal::from(103), 1000, 1234567890000)];
 
         let mut buffer = Cursor::new(Vec::new());
         exporter.write_ohlc(&data, &mut buffer).unwrap();
@@ -347,7 +351,7 @@ mod tests {
     #[test]
     fn test_custom_delimiter() {
         let exporter = CsvExporter::new().delimiter(b';');
-        let data = vec![OHLC::new(100.0, 105.0, 99.0, 103.0, 1000, 1234567890000)];
+        let data = vec![OHLC::new(Decimal::from(100), Decimal::from(105), Decimal::from(99), Decimal::from(103), 1000, 1234567890000)];
 
         let mut buffer = Cursor::new(Vec::new());
         exporter.write_ohlc(&data, &mut buffer).unwrap();
