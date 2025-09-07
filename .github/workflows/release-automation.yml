@@ -1,0 +1,485 @@
+name: Automated Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.3.1)'
+        required: true
+        type: string
+      dry-run:
+        description: 'Run in dry-run mode'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: write
+  id-token: write  # Required for OIDC trusted publishing
+  packages: write
+  pull-requests: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # Phase 1: Pre-flight validation
+  validate-release:
+    name: Pre-flight Validation
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release_notes: ${{ steps.changelog.outputs.notes }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.event.inputs.version }}" != "" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+            VERSION=${VERSION#v}
+          else
+            VERSION=$(grep "^version" Cargo.toml | head -1 | cut -d'"' -f2)
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Release version: $VERSION"
+      
+      - name: Validate version format
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if ! echo "$VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9\.]+)?(\+[a-zA-Z0-9\.]+)?$'; then
+            echo "Invalid version format: $VERSION"
+            exit 1
+          fi
+      
+      - name: Check version consistency
+        run: |
+          cargo_version=$(grep "^version" Cargo.toml | head -1 | cut -d'"' -f2)
+          py_version=$(grep "^version" pyproject.toml | head -1 | cut -d'"' -f2)
+          expected_version="${{ steps.version.outputs.version }}"
+          
+          if [ "$cargo_version" != "$expected_version" ]; then
+            echo "Version mismatch: Cargo.toml has $cargo_version, expected $expected_version"
+            exit 1
+          fi
+          
+          if [ "$py_version" != "$expected_version" ]; then
+            echo "Version mismatch: pyproject.toml has $py_version, expected $expected_version"
+            exit 1
+          fi
+          
+          echo "✅ All versions consistent: $expected_version"
+      
+      - name: Extract changelog
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Extract changelog section for this version
+          awk -v ver="$VERSION" '
+            /^## \[.*\]/ {
+              if (found) exit
+              if (index($0, ver) > 0) found=1
+              next
+            }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+          
+          if [ ! -s release_notes.md ]; then
+            echo "## Release v$VERSION" > release_notes.md
+            echo "" >> release_notes.md
+            echo "### What's New" >> release_notes.md
+            echo "- Updated to version $VERSION" >> release_notes.md
+          fi
+          
+          # Store for later use
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  # Phase 2: Quality gates
+  quality-gates:
+    name: Quality Assurance
+    needs: validate-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.os }}
+      
+      - name: Format check
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo fmt --all -- --check
+      
+      - name: Clippy check
+        run: cargo clippy --all-features --all-targets -- -D warnings
+      
+      - name: Run tests
+        run: cargo test --all-features --verbose
+        env:
+          CARGO_BUILD_JOBS: ${{ runner.os == 'Windows' && '1' || '4' }}
+      
+      - name: Build documentation
+        run: cargo doc --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: -D warnings
+      
+      - name: Verify package
+        run: cargo package --list
+
+  # Phase 3: Build release artifacts
+  build-rust:
+    name: Build Rust Artifacts
+    needs: quality-gates
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      
+      - name: Build release binary
+        run: cargo build --release --all-features --target ${{ matrix.target }}
+        env:
+          CARGO_BUILD_JOBS: ${{ runner.os == 'Windows' && '1' || '4' }}
+      
+      - name: Package artifacts
+        shell: bash
+        run: |
+          cd target/${{ matrix.target }}/release
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            7z a ../../../market-data-source-${{ needs.validate-release.outputs.version }}-${{ matrix.target }}.zip *.exe *.dll
+          else
+            tar czf ../../../market-data-source-${{ needs.validate-release.outputs.version }}-${{ matrix.target }}.tar.gz market_data_source*
+          fi
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-${{ matrix.target }}
+          path: |
+            market-data-source-*.tar.gz
+            market-data-source-*.zip
+
+  # Phase 4: Build Python wheels
+  build-python:
+    name: Build Python Wheels
+    needs: quality-gates
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fontconfig libfontconfig1-dev
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install maturin twine
+      
+      - name: Build wheels
+        shell: bash
+        run: |
+          cd market-data-source-python
+          maturin build --release --out ../dist --interpreter python3.8 python3.9 python3.10 python3.11 python3.12
+        env:
+          CARGO_BUILD_JOBS: ${{ runner.os == 'Windows' && '1' || '4' }}
+      
+      - name: Validate wheels
+        run: |
+          twine check dist/*.whl
+          pip install dist/*.whl --force-reinstall
+          python -c "import market_data_source; print(f'Version: {market_data_source.__version__}')"
+      
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-wheels-${{ matrix.os }}
+          path: dist/*.whl
+
+  # Phase 5: Publish to crates.io
+  publish-crates:
+    name: Publish to crates.io
+    needs: [validate-release, build-rust]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.dry-run != 'true'
+    environment:
+      name: release
+      url: https://crates.io/crates/market-data-source
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Verify publication readiness
+        run: cargo publish --dry-run --all-features
+      
+      - name: Authenticate with crates.io (OIDC)
+        uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+      
+      - name: Publish to crates.io
+        run: cargo publish --all-features --token ${{ steps.auth.outputs.token }}
+      
+      - name: Verify publication
+        run: |
+          sleep 30  # Give crates.io time to index
+          cargo search market-data-source --limit 1
+
+  # Phase 6: Publish to PyPI
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [validate-release, build-python, publish-crates]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.dry-run != 'true'
+    environment:
+      name: release
+      url: https://pypi.org/project/market-data-source/
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Python wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: python-wheels-*
+          merge-multiple: true
+          path: dist/
+      
+      - name: List wheels
+        run: |
+          echo "Wheels to publish:"
+          ls -la dist/
+      
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+          verbose: true
+          verify-metadata: true
+
+  # Phase 7: Create GitHub release
+  create-github-release:
+    name: Create GitHub Release
+    needs: [validate-release, publish-crates, publish-pypi, build-rust, build-python]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.dry-run != 'true'
+    permissions:
+      contents: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+      
+      - name: Organize release assets
+        run: |
+          mkdir -p release-assets
+          
+          # Move Rust binaries
+          find artifacts -name "*.tar.gz" -o -name "*.zip" | while read file; do
+            mv "$file" release-assets/
+          done
+          
+          # Move Python wheels
+          find artifacts -name "*.whl" | while read file; do
+            mv "$file" release-assets/
+          done
+          
+          echo "Release assets:"
+          ls -la release-assets/
+      
+      - name: Generate release body
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          cat > release_body.md << 'EOF'
+          ## Release v${{ needs.validate-release.outputs.version }}
+          
+          ${{ needs.validate-release.outputs.release_notes }}
+          
+          ### Installation
+          
+          #### Rust (via Cargo)
+          ```bash
+          cargo install market-data-source
+          ```
+          
+          #### Python (via pip)
+          ```bash
+          pip install market-data-source
+          ```
+          
+          ### Package Links
+          - 📦 [crates.io](https://crates.io/crates/market-data-source)
+          - 🐍 [PyPI](https://pypi.org/project/market-data-source/)
+          - 📚 [Documentation](https://docs.rs/market-data-source)
+          
+          ### Checksums
+          ```
+          EOF
+          
+          # Add checksums
+          cd release-assets
+          sha256sum * >> ../release_body.md
+          cd ..
+          echo '```' >> release_body.md
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.validate-release.outputs.version }}
+          name: v${{ needs.validate-release.outputs.version }}
+          body_path: release_body.md
+          files: release-assets/*
+          draft: false
+          prerelease: ${{ contains(needs.validate-release.outputs.version, '-') }}
+          fail_on_unmatched_files: false
+
+  # Phase 8: Post-release tasks
+  post-release:
+    name: Post-Release Tasks
+    needs: [create-github-release]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.dry-run != 'true'
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      
+      - name: Update version for next development cycle
+        run: |
+          # Get current version
+          current_version="${{ needs.validate-release.outputs.version }}"
+          
+          # Calculate next development version (bump patch and add -dev)
+          IFS='.' read -r major minor patch <<< "$current_version"
+          next_patch=$((patch + 1))
+          next_version="${major}.${minor}.${next_patch}-dev"
+          
+          # Update versions using sync script
+          if [ -f "scripts/sync-version.py" ]; then
+            python scripts/sync-version.py --set-version "$next_version"
+          fi
+          
+          # Create PR for version bump
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          branch_name="chore/bump-version-${next_version}"
+          git checkout -b "$branch_name"
+          git add Cargo.toml pyproject.toml
+          git commit -m "chore: bump version to ${next_version} for development"
+          git push origin "$branch_name"
+          
+          # Create pull request
+          gh pr create \
+            --title "chore: bump version to ${next_version}" \
+            --body "Automated version bump after release v${current_version}" \
+            --base main \
+            --head "$branch_name"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Release summary
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          
+          echo "## 🎉 Release v${VERSION} Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Published Packages" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **crates.io**: [market-data-source v${VERSION}](https://crates.io/crates/market-data-source)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **PyPI**: [market-data-source v${VERSION}](https://pypi.org/project/market-data-source/)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **GitHub**: [Release v${VERSION}](https://github.com/${{ github.repository }}/releases/tag/v${VERSION})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Monitor package download metrics" >> $GITHUB_STEP_SUMMARY
+          echo "2. Respond to user feedback and issues" >> $GITHUB_STEP_SUMMARY
+          echo "3. Review and merge the version bump PR" >> $GITHUB_STEP_SUMMARY
+
+  # Dry run summary
+  dry-run-summary:
+    name: Dry Run Summary
+    needs: [validate-release, quality-gates, build-rust, build-python]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.dry-run == 'true'
+    
+    steps:
+      - name: Summary
+        run: |
+          echo "## 🔍 Dry Run Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Version: **${{ needs.validate-release.outputs.version }}**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Version validation passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Quality gates passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Rust artifacts built successfully" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Python wheels built successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### What would happen in a real release:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Publish to crates.io" >> $GITHUB_STEP_SUMMARY
+          echo "2. Publish to PyPI" >> $GITHUB_STEP_SUMMARY
+          echo "3. Create GitHub release with assets" >> $GITHUB_STEP_SUMMARY
+          echo "4. Bump version for next development cycle" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To perform the actual release, run this workflow again with dry-run set to false." >> $GITHUB_STEP_SUMMARY

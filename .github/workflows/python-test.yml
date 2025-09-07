@@ -96,7 +96,7 @@ jobs:
       - name: Test with pytest (if tests exist)
         run: |
           if [ -d "tests" ]; then
-            pytest tests/ -v || echo "No Python tests found"
+            pytest tests/ -v
           else
             echo "No tests directory found"
           fi

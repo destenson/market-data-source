@@ -1,0 +1,96 @@
+name: Version Consistency Check
+
+on:
+  push:
+    paths:
+      - 'Cargo.toml'
+      - 'pyproject.toml'
+      - 'market-data-source-python/Cargo.toml'
+  pull_request:
+    paths:
+      - 'Cargo.toml'
+      - 'pyproject.toml'
+      - 'market-data-source-python/Cargo.toml'
+
+jobs:
+  check-versions:
+    name: Verify Version Consistency
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Extract versions
+        id: versions
+        run: |
+          # Extract version from root Cargo.toml
+          cargo_version=$(grep "^version" Cargo.toml | head -1 | cut -d'"' -f2)
+          echo "cargo_version=$cargo_version" >> $GITHUB_OUTPUT
+          
+          # Extract version from pyproject.toml
+          py_version=$(grep "^version" pyproject.toml | head -1 | cut -d'"' -f2)
+          echo "py_version=$py_version" >> $GITHUB_OUTPUT
+          
+          # Check if workspace member uses workspace version
+          workspace_check=$(grep "version.workspace = true" market-data-source-python/Cargo.toml || echo "")
+          echo "workspace_check=$workspace_check" >> $GITHUB_OUTPUT
+          
+          echo "### Version Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cargo.toml**: $cargo_version" >> $GITHUB_STEP_SUMMARY
+          echo "- **pyproject.toml**: $py_version" >> $GITHUB_STEP_SUMMARY
+          echo "- **Python crate uses workspace**: $([ -n '$workspace_check' ] && echo 'Yes' || echo 'No')" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Check version consistency
+        run: |
+          cargo_version="${{ steps.versions.outputs.cargo_version }}"
+          py_version="${{ steps.versions.outputs.py_version }}"
+          
+          if [ "$cargo_version" != "$py_version" ]; then
+            echo "❌ Version mismatch detected!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Action Required**: Versions must be synchronized." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Run the following command to fix:" >> $GITHUB_STEP_SUMMARY
+            echo '```bash' >> $GITHUB_STEP_SUMMARY
+            echo "python scripts/sync-version.py" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            
+            echo "::error::Version mismatch: Cargo.toml has $cargo_version but pyproject.toml has $py_version"
+            exit 1
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Version consistency check passed!**" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Check version format
+        run: |
+          version="${{ steps.versions.outputs.cargo_version }}"
+          
+          # Check if version follows semantic versioning
+          if ! echo "$version" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9\.]+)?(\+[a-zA-Z0-9\.]+)?$'; then
+            echo "::error::Invalid version format: $version. Must follow semantic versioning (e.g., 1.2.3, 1.2.3-alpha.1)"
+            exit 1
+          fi
+          
+          echo "✅ Version format is valid: $version"
+      
+      - name: Suggest next versions
+        if: success()
+        run: |
+          current="${{ steps.versions.outputs.cargo_version }}"
+          
+          # Parse version components
+          IFS='.' read -r major minor patch <<< "${current%-*}"
+          
+          # Calculate next versions
+          next_major="$((major + 1)).0.0"
+          next_minor="${major}.$((minor + 1)).0"
+          next_patch="${major}.${minor}.$((patch + 1))"
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Suggested Next Versions" >> $GITHUB_STEP_SUMMARY
+          echo "Current version: **$current**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Next patch (bug fixes): `$next_patch`" >> $GITHUB_STEP_SUMMARY
+          echo "- Next minor (new features): `$next_minor`" >> $GITHUB_STEP_SUMMARY
+          echo "- Next major (breaking changes): `$next_major`" >> $GITHUB_STEP_SUMMARY
