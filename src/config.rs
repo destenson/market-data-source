@@ -457,24 +457,32 @@ mod tests {
         assert!(config.validate().is_err());
 
         // Invalid price range
-        config = GeneratorConfig::default();
-        config.min_price = Decimal::from_f64(100.0).unwrap();
-        config.max_price = Decimal::from_f64(50.0).unwrap();
+        let config = GeneratorConfig {
+            min_price: Decimal::from_f64(100.0).unwrap(),
+            max_price: Decimal::from_f64(50.0).unwrap(),
+            ..Default::default()
+        };
         assert!(config.validate().is_err());
 
         // Invalid volatility
-        config = GeneratorConfig::default();
-        config.volatility = Decimal::from_f64(-0.1).unwrap();
+        let config = GeneratorConfig {
+            volatility: Decimal::from_f64(-0.1).unwrap(),
+            ..Default::default()
+        };
         assert!(config.validate().is_err());
 
         // Invalid trend strength
-        config = GeneratorConfig::default();
-        config.trend_strength = Decimal::from_f64(1.5).unwrap();
+        let config = GeneratorConfig {
+            trend_strength: Decimal::from_f64(1.5).unwrap(),
+            ..Default::default()
+        };
         assert!(config.validate().is_err());
 
         // Zero points
-        config = GeneratorConfig::default();
-        config.num_points = 0;
+        let config = GeneratorConfig {
+            num_points: 0,
+            ..Default::default()
+        };
         assert!(config.validate().is_err());
     }
 
