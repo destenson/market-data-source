@@ -1,0 +1,62 @@
+# Pre-commit hooks for market-data-source
+# Run manually: pre-commit run --all-files
+# Install: pre-commit install
+
+repos:
+  # Local hooks for version consistency
+  - repo: local
+    hooks:
+      - id: check-version-consistency
+        name: Check version consistency
+        entry: python scripts/sync-version.py --check
+        language: system
+        pass_filenames: false
+        files: '(Cargo\.toml|pyproject\.toml)$'
+        description: Ensure versions are consistent between Cargo.toml and pyproject.toml
+
+      - id: validate-cargo-toml
+        name: Validate Cargo.toml
+        entry: cargo verify-project
+        language: system
+        pass_filenames: false
+        files: '^Cargo\.toml$'
+        description: Validate Cargo.toml structure
+
+      - id: check-rust-format
+        name: Check Rust formatting
+        entry: cargo fmt -- --check
+        language: system
+        pass_filenames: false
+        files: '\.rs$'
+        description: Check Rust code formatting
+
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'
+      - id: end-of-file-fixer
+        exclude: '\.md$'
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  # Python-specific hooks
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+        files: '\.py$'
+        language_version: python3.10
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.1.14
+    hooks:
+      - id: ruff
+        files: '\.py$'
+        args: ['--fix']
