@@ -76,22 +76,37 @@ The primary focus of v0.1.0 is providing best-in-class synthetic market data gen
 
 ## 🎯 Immediate Priorities (Next Sprint)
 
-### High Priority - Technical Debt Resolution 🚨 **URGENT**
-Based on codebase scan, the following items need immediate attention:
+### **HIGHEST PRIORITY - Python Bindings** 
+**Critical for making the library usable from Python applications**
 
-1. ✅ **PRP-19 Completion**: Fully completed rust_decimal migration including:
-   - Fixed config serialization for Decimal types (src/config.rs)
-   - Updated CouchDB export to handle Decimal→f64 conversion (src/export/couchdb.rs)  
-   - Fixed chart export Decimal→f64 conversion for plotters library (src/export/chart.rs)
-   - Updated all examples to use consistent API (export_csv.rs, export_couchdb.rs, export_charts.rs)
-   - All examples build and run successfully with --all-features
-2. [ ] **Clean up CouchDB placeholder code** (src/export/couchdb.rs):
-   - Lines 429-441: Implement `timeout_seconds()` and `auto_create_database()` methods or remove placeholders
-   - Lines 198-204: Remove unused `_path` parameters from export methods
-3. [ ] **Complete JSON compression feature** (src/export/json.rs:20): Currently marked "not implemented in this version"
-4. [ ] **Fix volume volatility consistency** (src/config.rs:90): Convert f64 "for now" comment to rust_decimal for consistency
-5. [ ] **Public API decision**: Make algorithms module public or document why it's internal (src/lib.rs:51)
-6. [ ] **Remove dead code**: Unused `current_price()` and `set_price()` methods (src/algorithms/random_walk.rs:101-108)
+#### Immediate PyO3 Tasks
+1. [ ] **Setup PyO3 build system** - Add PyO3 dependencies and maturin build configuration
+2. [ ] **Create Python module wrapper** - Expose MarketDataGenerator class to Python
+3. [ ] **Basic Python API** - generate_series(), generate_ticks() methods
+4. [ ] **DataFrame support** - Return pandas DataFrames from generation methods  
+5. [ ] **Export methods** - to_csv(), to_json() accessible from Python
+6. [ ] **Package setup** - Configure for `pip install market-data-source`
+7. [ ] **Basic Python example** - Show usage in Python script
+
+#### Target Python API
+```python
+import market_data_source as mds
+
+# Create generator
+generator = mds.MarketDataGenerator()
+
+# Generate OHLC data as DataFrame
+df = generator.generate_series(100)  # Returns pandas DataFrame
+
+# Export directly
+generator.to_csv("output.csv", count=1000)
+```
+
+### Secondary - Complete PRP-19 Cleanup
+1. **PRP-19 Completion**: Fully completed rust_decimal migration
+2. [ ] **CouchDB placeholders** - Remove unused parameters (src/export/couchdb.rs:429-441, 198-204)  
+3. [ ] **Volume volatility type** - Convert to Decimal (src/config.rs:90)
+4. [ ] **Make algorithms public** - Remove "internal for now" (src/lib.rs:51)
 
 ### High Priority - Export Infrastructure ✅ **COMPLETED**
 1. ⚠️ **Skip PRP-14**: CouchDB export blocked by dependency issue (packed_simd_2 requires nightly Rust)
@@ -100,17 +115,10 @@ Based on codebase scan, the following items need immediate attention:
 4. ✅ **Execute PRP-17**: Create comprehensive export examples - **COMPLETED**  
 5. ✅ **Execute PRP-18**: Add integration tests for all exporters - **COMPLETED**
 
-### Critical Bug Fixes & Improvements  
-1. ✅ **Error Handling**: Replace String errors with proper error enum - **COMPLETED** (ExportError implemented in PRP-16)
-2. [ ] **Dead Code Cleanup**: Remove unused `current_price()` and `set_price()` methods (src/algorithms/random_walk.rs:101-108)
-3. [ ] **Unwrap Reduction**: Replace 202 unwrap() calls in production code with proper error handling
-4. [ ] **CouchDB Implementation Completion**:
-   - Complete placeholder builder methods `timeout_seconds()` and `auto_create_database()` (src/export/couchdb.rs:429-441)
-   - Remove unused `_path` parameters from export methods (src/export/couchdb.rs:198-204)
-5. [ ] **JSON Export Features**: Implement compression feature marked as "not implemented" (src/export/json.rs:20)
-6. [ ] **Volume Volatility Precision**: Convert remaining f64 volume volatility to Decimal consistency (src/config.rs:90)
-7. [ ] **CouchDB Dependency**: Update to couch_rs 0.10+ or remove problematic dependency
-8. [ ] **Public API**: Consider making algorithms module public (currently internal "for now" - src/lib.rs:51)
+### Lower Priority - Technical Debt
+1. [ ] **Unwrap Reduction**: Replace 202 unwrap() calls in production code  
+2. [ ] **JSON compression**: Implement feature (src/export/json.rs:20)
+3. [ ] **CouchDB Dependency**: Update to couch_rs 0.10+ or fix dependency issue
 
 ## 🚀 Next Priority - Enhanced Realism
 
@@ -154,22 +162,15 @@ Based on codebase scan, the following items need immediate attention:
 - [x] **Export Examples**: Comprehensive usage examples (PRP-17) ✅ **COMPLETED**
 - [x] **Integration Tests**: Full test coverage for exports (PRP-18) ✅ **COMPLETED**
 
-## 🐍 Python Bindings (Critical for Adoption)
+## Python Bindings - Extended Roadmap
 
-### PyO3 Integration
-- [ ] **Python Package**: `pip install market-data-source`
-- [ ] **Pythonic API**: Native Python classes and methods
+### Next Phase - Enhanced Python Features  
 - [ ] **NumPy Integration**: Direct conversion to NumPy arrays
-- [ ] **Pandas DataFrames**: Return data as DataFrames
 - [ ] **Async Support**: Python async/await compatibility
 - [ ] **Type Hints**: Full Python type annotations
 - [ ] **Jupyter Support**: Interactive notebook examples
-
-### Python-Specific Features
 - [ ] **Matplotlib Integration**: Built-in charting functions
 - [ ] **Backtrader Compatibility**: Direct integration with backtrading frameworks
-- [ ] **Zipline Format**: Compatible with Quantopian/Zipline
-- [ ] **QuantLib Integration**: Work with Python quant libraries
 - [ ] **ML Framework Support**: Easy integration with TensorFlow/PyTorch
 
 ## 🚀 Standalone Executable Server (Game Changer)
