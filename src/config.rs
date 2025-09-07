@@ -40,13 +40,13 @@ where
 #[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 #[cfg_attr(feature = "api-server", derive(ToSchema))]
 pub enum TrendDirection {
-    #[serde(alias = "up")]
+    #[cfg_attr(feature = "serde", serde(alias = "up"))]
     /// Upward trend (bullish)
     Bullish,
-    #[serde(alias = "down")]
+    #[cfg_attr(feature = "serde", serde(alias = "down"))]
     /// Downward trend (bearish)
     Bearish,
-    #[serde(alias = "flat")]
+    #[cfg_attr(feature = "serde", serde(alias = "flat"))]
     /// No clear trend (sideways/ranging)
     Sideways,
 }

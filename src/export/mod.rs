@@ -182,7 +182,7 @@ pub fn to_csv_ticks<P: AsRef<Path>>(data: &[Tick], path: P) -> ExportResult<()> 
 /// Convenience function to export OHLC data to CSV string
 #[cfg(feature = "csv_export")]
 pub fn to_csv_string_ohlc(data: &[OHLC]) -> ExportResult<String> {
-    use csv::WriterBuilder;
+    use csv::writer::WriterBuilder;
     let mut buffer = Vec::new();
     let mut writer = WriterBuilder::new()
         .has_headers(true)
@@ -193,7 +193,7 @@ pub fn to_csv_string_ohlc(data: &[OHLC]) -> ExportResult<String> {
     
     for ohlc in data {
         writer.write_record(&[
-            ohlc.timestamp.to_rfc3339(),
+            ohlc.timestamp.to_string(),
             ohlc.open.to_string(),
             ohlc.high.to_string(),
             ohlc.low.to_string(),

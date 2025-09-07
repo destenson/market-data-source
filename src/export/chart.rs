@@ -199,6 +199,113 @@ impl ChartBuilder {
         self
     }
 
+    /// Build a chart to a buffer (PNG format)
+    pub fn build_to_buffer(
+        &self,
+        data: &[OHLC],
+        buffer: &mut Vec<u8>,
+    ) -> Result<(), Box<dyn Error>> {
+        if data.is_empty() {
+            return Err("Cannot create chart from empty data".into());
+        }
+
+        // Create buffer for bitmap
+        let mut bitmap_buffer = vec![0u8; (self.width * self.height * 3) as usize];
+        
+        {
+            let root = BitMapBackend::with_buffer(&mut bitmap_buffer, (self.width, self.height))
+                .into_drawing_area();
+            root.fill(&self.background_color)?;
+
+            // Calculate the layout - if showing volume, split the chart
+            let (upper, _lower) = if self.show_volume {
+                let areas = root.split_evenly((2, 1));
+                (areas[0].clone(), areas[1].clone())
+            } else {
+                let areas = root.split_evenly((1, 1));
+                (areas[0].clone(), areas[0].clone())
+            };
+
+            // Find price range
+            let min_price = data.iter()
+                .map(|ohlc| ohlc.low.to_f64().unwrap_or(0.0))
+                .fold(f64::INFINITY, f64::min);
+            let max_price = data.iter()
+                .map(|ohlc| ohlc.high.to_f64().unwrap_or(0.0))
+                .fold(f64::NEG_INFINITY, f64::max);
+            let price_margin = (max_price - min_price) * 0.1;
+
+            // Build the price chart
+            let mut price_chart = plotters::chart::ChartBuilder::on(&upper)
+                .caption(&self.title, (self.font_family.as_str(), 40).into_font().color(&self.text_color))
+                .margin(10)
+                .x_label_area_size(30)
+                .y_label_area_size(60)
+                .build_cartesian_2d(
+                    0f64..(data.len() as f64),
+                    (min_price - price_margin)..(max_price + price_margin),
+                )?;
+
+            price_chart
+                .configure_mesh()
+                .disable_x_mesh()
+                .y_desc("Price")
+                .draw()?;
+
+            // Draw candlesticks
+            let candle_width = 0.8;
+            for (idx, ohlc) in data.iter().enumerate() {
+                let x = idx as f64;
+                let open = ohlc.open.to_f64().unwrap_or(0.0);
+                let high = ohlc.high.to_f64().unwrap_or(0.0);
+                let low = ohlc.low.to_f64().unwrap_or(0.0);
+                let close = ohlc.close.to_f64().unwrap_or(0.0);
+                
+                let color = if close >= open {
+                    self.bullish_color
+                } else {
+                    self.bearish_color
+                };
+
+                // Draw the high-low line
+                price_chart.draw_series(std::iter::once(PathElement::new(
+                    vec![(x, low), (x, high)],
+                    &color,
+                )))?;
+
+                // Draw the open-close rectangle
+                let (rect_bottom, rect_top) = if close >= open {
+                    (open, close)
+                } else {
+                    (close, open)
+                };
+
+                price_chart.draw_series(std::iter::once(Rectangle::new([
+                    (x - candle_width / 2.0, rect_bottom),
+                    (x + candle_width / 2.0, rect_top),
+                ], color.filled())))?;
+            }
+
+            root.present()?;
+        }
+        
+        // Create PNG image from bitmap buffer
+        let img = image::RgbImage::from_raw(self.width, self.height, bitmap_buffer)
+            .ok_or("Failed to create image from buffer")?;
+        
+        // Encode as PNG to the provided buffer
+        use image::ImageEncoder;
+        let encoder = image::codecs::png::PngEncoder::new(buffer);
+        encoder.write_image(
+            img.as_raw(),
+            self.width,
+            self.height,
+            image::ExtendedColorType::Rgb8,
+        )?;
+        
+        Ok(())
+    }
+
 
     /// Generate a candlestick chart from OHLC data
     pub fn draw_candlestick_chart<P: AsRef<Path>>(
