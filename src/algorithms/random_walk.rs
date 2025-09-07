@@ -122,9 +122,11 @@ mod tests {
 
     #[test]
     fn test_price_generation() {
-        let mut config = GeneratorConfig::default();
-        config.seed = Some(42);
-        config.volatility = Decimal::from_f64(0.01).unwrap();
+        let config = GeneratorConfig {
+            seed: Some(42),
+            volatility: Decimal::from_f64(0.01).unwrap(),
+            ..Default::default()
+        };
         
         let mut generator = RandomWalkGenerator::new(config).unwrap();
         let mut rng = StdRng::seed_from_u64(42);
@@ -139,12 +141,14 @@ mod tests {
 
     #[test]
     fn test_bullish_trend() {
-        let mut config = GeneratorConfig::default();
-        config.seed = Some(42);
-        config.trend_direction = TrendDirection::Bullish;
-        config.trend_strength = Decimal::from_f64(0.01).unwrap();
-        config.volatility = Decimal::from_f64(0.001).unwrap(); // Low volatility to see trend clearly
-        config.starting_price = Decimal::from_f64(100.0).unwrap();
+        let config = GeneratorConfig {
+            seed: Some(42),
+            trend_direction: TrendDirection::Bullish,
+            trend_strength: Decimal::from_f64(0.01).unwrap(),
+            volatility: Decimal::from_f64(0.001).unwrap(), // Low volatility to see trend clearly
+            starting_price: Decimal::from_f64(100.0).unwrap(),
+            ..Default::default()
+        };
         
         let mut generator = RandomWalkGenerator::new(config).unwrap();
         let mut rng = StdRng::seed_from_u64(42);
@@ -163,11 +167,13 @@ mod tests {
 
     #[test]
     fn test_price_boundaries() {
-        let mut config = GeneratorConfig::default();
-        config.min_price = Decimal::from_f64(50.0).unwrap();
-        config.max_price = Decimal::from_f64(150.0).unwrap();
-        config.starting_price = Decimal::from_f64(100.0).unwrap();
-        config.volatility = Decimal::from_f64(0.5).unwrap(); // High volatility to test boundaries
+        let config = GeneratorConfig {
+            min_price: Decimal::from_f64(50.0).unwrap(),
+            max_price: Decimal::from_f64(150.0).unwrap(),
+            starting_price: Decimal::from_f64(100.0).unwrap(),
+            volatility: Decimal::from_f64(0.5).unwrap(), // High volatility to test boundaries
+            ..Default::default()
+        };
         
         let mut generator = RandomWalkGenerator::new(config).unwrap();
         let mut rng = StdRng::seed_from_u64(42);
@@ -199,9 +205,11 @@ mod tests {
 
     #[test]
     fn test_volume_generation() {
-        let mut config = GeneratorConfig::default();
-        config.base_volume = 100000;
-        config.volume_volatility = 0.2;
+        let config = GeneratorConfig {
+            base_volume: 100000,
+            volume_volatility: 0.2,
+            ..Default::default()
+        };
         
         let mut generator = RandomWalkGenerator::new(config).unwrap();
         let mut rng = StdRng::seed_from_u64(42);
