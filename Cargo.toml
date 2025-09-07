@@ -4,6 +4,12 @@ version = "0.3.0"
 edition = "2024"
 repository = "https://github.com/destenson/market-data-source.git"
 authors = ["Market Data Source Contributors"]
+description = "High-performance synthetic market data generation library"
+documentation = "https://github.com/destenson/market-data-source#readme"
+license = "MIT"
+readme = "README.md"
+keywords = ["market-data", "synthetic-data", "financial-data", "trading", "backtesting", "quantitative-finance", "ohlc", "tick-data"]
+categories = ["financial", "data-processing", "science", "simulation"]
 
 [features]
 default = ["std", "synthetic", "serde"]

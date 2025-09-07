@@ -43,10 +43,10 @@ keywords = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/market-data-source"
-Documentation = "https://github.com/yourusername/market-data-source#readme"
-Repository = "https://github.com/yourusername/market-data-source"
-Issues = "https://github.com/yourusername/market-data-source/issues"
+Homepage = "https://github.com/destenson/market-data-source"
+Documentation = "https://github.com/destenson/market-data-source#readme"
+Repository = "https://github.com/destenson/market-data-source"
+Issues = "https://github.com/destenson/market-data-source/issues"
 
 [tool.maturin]
 features = ["python", "synthetic"]
