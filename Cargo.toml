@@ -141,3 +141,13 @@ crate-type = ["rlib"]
 name = "market-data-server"
 path = "src/bin/server.rs"
 required-features = ["api-server"]
+
+exclude = [
+    "PRPs/**",
+    "scripts/**",
+    "dist/**",
+    ".venv/**",
+    ".github/**",
+    ".claude/**",
+    ".vscode/**",
+]
