@@ -7,4 +7,5 @@ target/
 **/*.csv
 **/*.json
 **/*.jsonl
-
+.venv
+**/__pycache__/
