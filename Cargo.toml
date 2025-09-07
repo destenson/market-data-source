@@ -4,12 +4,13 @@ version = "0.3.0"
 edition = "2024"
 repository = "https://github.com/destenson/market-data-source.git"
 authors = ["Market Data Source Contributors"]
-description = "High-performance synthetic market data generation library"
-documentation = "https://github.com/destenson/market-data-source#readme"
+description = "High-performance synthetic market data generator with financial precision. Generate unlimited OHLC candles, tick data, and realistic trading scenarios for backtesting and research."
+documentation = "https://docs.rs/market-data-source"
+homepage = "https://github.com/destenson/market-data-source"
 license = "MIT"
 readme = "README.md"
-keywords = ["market-data", "synthetic-data", "financial-data", "trading", "backtesting", "quantitative-finance", "ohlc", "tick-data"]
-categories = ["financial", "data-processing", "science", "simulation"]
+keywords = ["market-data", "synthetic-data", "trading", "finance", "backtesting"]
+categories = ["finance", "simulation", "api-bindings"]
 
 [features]
 default = ["std", "synthetic", "serde"]
