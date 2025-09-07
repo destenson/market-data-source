@@ -14,7 +14,7 @@ fn test_export_ohlc_to_csv() {
     
     // Create generator and generate data
     let config = ConfigBuilder::new()
-        .starting_price(100.0)
+        .starting_price_f64(100.0)
         .volatility(0.02)
         .seed(42)
         .build()
@@ -76,7 +76,7 @@ fn test_generator_direct_csv_export() {
     let file_path = temp_dir.path().join("direct_export.csv");
     
     let config = ConfigBuilder::new()
-        .starting_price(50.0)
+        .starting_price_f64(50.0)
         .seed(123)
         .build()
         .unwrap();

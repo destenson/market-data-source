@@ -1,6 +1,7 @@
 //! Core data types for market data representation
 
 use std::fmt;
+use rust_decimal::Decimal;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -10,13 +11,13 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct OHLC {
     /// Opening price of the period
-    pub open: f64,
+    pub open: Decimal,
     /// Highest price during the period
-    pub high: f64,
+    pub high: Decimal,
     /// Lowest price during the period
-    pub low: f64,
+    pub low: Decimal,
     /// Closing price of the period
-    pub close: f64,
+    pub close: Decimal,
     /// Volume traded during the period
     pub volume: Volume,
     /// Unix timestamp in milliseconds
@@ -25,7 +26,7 @@ pub struct OHLC {
 
 impl OHLC {
     /// Creates a new OHLC candle
-    pub fn new(open: f64, high: f64, low: f64, close: f64, volume: u64, timestamp: i64) -> Self {
+    pub fn new(open: Decimal, high: Decimal, low: Decimal, close: Decimal, volume: u64, timestamp: i64) -> Self {
         Self {
             open,
             high,
@@ -44,17 +45,17 @@ impl OHLC {
         
         self.high >= max && self.low <= min && 
         self.high >= self.low &&
-        self.open > 0.0 && self.high > 0.0 && 
-        self.low > 0.0 && self.close > 0.0
+        self.open > Decimal::ZERO && self.high > Decimal::ZERO && 
+        self.low > Decimal::ZERO && self.close > Decimal::ZERO
     }
 
     /// Returns the price range (high - low)
-    pub fn range(&self) -> f64 {
+    pub fn range(&self) -> Decimal {
         self.high - self.low
     }
 
     /// Returns the body size (|close - open|)
-    pub fn body(&self) -> f64 {
+    pub fn body(&self) -> Decimal {
         (self.close - self.open).abs()
     }
 
@@ -69,20 +70,20 @@ impl OHLC {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Tick {
     /// Price of the tick
-    pub price: f64,
+    pub price: Decimal,
     /// Volume of the tick
     pub volume: Volume,
     /// Unix timestamp in milliseconds
     pub timestamp: i64,
     /// Optional bid price
-    pub bid: Option<f64>,
+    pub bid: Option<Decimal>,
     /// Optional ask price
-    pub ask: Option<f64>,
+    pub ask: Option<Decimal>,
 }
 
 impl Tick {
     /// Creates a new tick with just price and volume
-    pub fn new(price: f64, volume: u64, timestamp: i64) -> Self {
+    pub fn new(price: Decimal, volume: u64, timestamp: i64) -> Self {
         Self {
             price,
             volume: Volume::new(volume),
@@ -93,7 +94,7 @@ impl Tick {
     }
 
     /// Creates a new tick with bid/ask spread
-    pub fn with_spread(price: f64, volume: u64, timestamp: i64, bid: f64, ask: f64) -> Self {
+    pub fn with_spread(price: Decimal, volume: u64, timestamp: i64, bid: Decimal, ask: Decimal) -> Self {
         Self {
             price,
             volume: Volume::new(volume),
@@ -104,7 +105,7 @@ impl Tick {
     }
 
     /// Returns the spread if bid and ask are available
-    pub fn spread(&self) -> Option<f64> {
+    pub fn spread(&self) -> Option<Decimal> {
         match (self.bid, self.ask) {
             (Some(bid), Some(ask)) => Some(ask - bid),
             _ => None,
@@ -212,43 +213,77 @@ impl fmt::Display for TimeInterval {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rust_decimal::prelude::FromPrimitive;
 
     #[test]
     fn test_ohlc_creation() {
-        let ohlc = OHLC::new(100.0, 105.0, 99.0, 103.0, 1000, 1234567890);
-        assert_eq!(ohlc.open, 100.0);
-        assert_eq!(ohlc.high, 105.0);
-        assert_eq!(ohlc.low, 99.0);
-        assert_eq!(ohlc.close, 103.0);
+        let ohlc = OHLC::new(
+            Decimal::from_f64(100.0).unwrap(),
+            Decimal::from_f64(105.0).unwrap(),
+            Decimal::from_f64(99.0).unwrap(),
+            Decimal::from_f64(103.0).unwrap(),
+            1000, 1234567890
+        );
+        assert_eq!(ohlc.open, Decimal::from_f64(100.0).unwrap());
+        assert_eq!(ohlc.high, Decimal::from_f64(105.0).unwrap());
+        assert_eq!(ohlc.low, Decimal::from_f64(99.0).unwrap());
+        assert_eq!(ohlc.close, Decimal::from_f64(103.0).unwrap());
         assert_eq!(ohlc.volume.value(), 1000);
         assert_eq!(ohlc.timestamp, 1234567890);
     }
 
     #[test]
     fn test_ohlc_validation() {
-        let valid_ohlc = OHLC::new(100.0, 105.0, 99.0, 103.0, 1000, 1234567890);
+        let valid_ohlc = OHLC::new(
+            Decimal::from_f64(100.0).unwrap(),
+            Decimal::from_f64(105.0).unwrap(),
+            Decimal::from_f64(99.0).unwrap(),
+            Decimal::from_f64(103.0).unwrap(),
+            1000, 1234567890
+        );
         assert!(valid_ohlc.is_valid());
 
         // Invalid: high < close
-        let invalid_ohlc = OHLC::new(100.0, 102.0, 99.0, 103.0, 1000, 1234567890);
+        let invalid_ohlc = OHLC::new(
+            Decimal::from_f64(100.0).unwrap(),
+            Decimal::from_f64(102.0).unwrap(),
+            Decimal::from_f64(99.0).unwrap(),
+            Decimal::from_f64(103.0).unwrap(),
+            1000, 1234567890
+        );
         assert!(!invalid_ohlc.is_valid());
     }
 
     #[test]
     fn test_ohlc_calculations() {
-        let ohlc = OHLC::new(100.0, 105.0, 99.0, 103.0, 1000, 1234567890);
-        assert_eq!(ohlc.range(), 6.0);
-        assert_eq!(ohlc.body(), 3.0);
+        let ohlc = OHLC::new(
+            Decimal::from_f64(100.0).unwrap(),
+            Decimal::from_f64(105.0).unwrap(),
+            Decimal::from_f64(99.0).unwrap(),
+            Decimal::from_f64(103.0).unwrap(),
+            1000, 1234567890
+        );
+        assert_eq!(ohlc.range(), Decimal::from_f64(6.0).unwrap());
+        assert_eq!(ohlc.body(), Decimal::from_f64(3.0).unwrap());
         assert!(ohlc.is_bullish());
 
-        let bearish = OHLC::new(100.0, 102.0, 97.0, 98.0, 1000, 1234567890);
+        let bearish = OHLC::new(
+            Decimal::from_f64(100.0).unwrap(),
+            Decimal::from_f64(102.0).unwrap(),
+            Decimal::from_f64(97.0).unwrap(),
+            Decimal::from_f64(98.0).unwrap(),
+            1000, 1234567890
+        );
         assert!(!bearish.is_bullish());
     }
 
     #[test]
     fn test_tick_creation() {
-        let tick = Tick::new(100.5, 500, 1234567890);
-        assert_eq!(tick.price, 100.5);
+        let tick = Tick::new(
+            Decimal::from_f64(100.5).unwrap(),
+            500, 1234567890
+        );
+        assert_eq!(tick.price, Decimal::from_f64(100.5).unwrap());
         assert_eq!(tick.volume.value(), 500);
         assert_eq!(tick.timestamp, 1234567890);
         assert!(tick.bid.is_none());
@@ -257,13 +292,18 @@ mod tests {
 
     #[test]
     fn test_tick_with_spread() {
-        let tick = Tick::with_spread(100.5, 500, 1234567890, 100.4, 100.6);
-        assert_eq!(tick.bid, Some(100.4));
-        assert_eq!(tick.ask, Some(100.6));
+        let tick = Tick::with_spread(
+            Decimal::from_f64(100.5).unwrap(),
+            500, 1234567890,
+            Decimal::from_f64(100.4).unwrap(),
+            Decimal::from_f64(100.6).unwrap()
+        );
+        assert_eq!(tick.bid, Some(Decimal::from_f64(100.4).unwrap()));
+        assert_eq!(tick.ask, Some(Decimal::from_f64(100.6).unwrap()));
         
-        // Use epsilon comparison for floating point
+        // Decimal precision is exact, no epsilon needed
         let spread = tick.spread().unwrap();
-        assert!((spread - 0.2).abs() < 1e-10);
+        assert_eq!(spread, Decimal::from_f64(0.2).unwrap());
     }
 
     #[test]
@@ -292,7 +332,13 @@ mod tests {
 
         #[test]
         fn test_ohlc_serialization() {
-            let ohlc = OHLC::new(100.0, 105.0, 99.0, 103.0, 1000, 1234567890);
+            let ohlc = OHLC::new(
+                Decimal::from_f64(100.0).unwrap(),
+                Decimal::from_f64(105.0).unwrap(),
+                Decimal::from_f64(99.0).unwrap(),
+                Decimal::from_f64(103.0).unwrap(),
+                1000, 1234567890
+            );
             
             // Serialize to JSON
             let json = serde_json::to_string(&ohlc).unwrap();
@@ -305,7 +351,12 @@ mod tests {
 
         #[test]
         fn test_tick_serialization() {
-            let tick = Tick::with_spread(100.5, 500, 1234567890, 100.4, 100.6);
+            let tick = Tick::with_spread(
+                Decimal::from_f64(100.5).unwrap(),
+                500, 1234567890,
+                Decimal::from_f64(100.4).unwrap(),
+                Decimal::from_f64(100.6).unwrap()
+            );
             
             let json = serde_json::to_string(&tick).unwrap();
             let deserialized: Tick = serde_json::from_str(&json).unwrap();

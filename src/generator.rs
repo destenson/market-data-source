@@ -2,6 +2,8 @@
 
 use rand::SeedableRng;
 use rand::rngs::StdRng;
+use rust_decimal::Decimal;
+use rust_decimal::prelude::FromPrimitive;
 use crate::algorithms::RandomWalkGenerator;
 use crate::config::GeneratorConfig;
 use crate::types::{OHLC, Tick};
@@ -90,8 +92,8 @@ impl MarketDataGenerator {
         self.current_timestamp += 1000;
         
         // Optionally generate bid/ask spread
-        let spread = 0.001; // 0.1% spread
-        let half_spread = price * spread / 2.0;
+        let spread = Decimal::from_f64(0.001).unwrap(); // 0.1% spread
+        let half_spread = price * spread / Decimal::from(2);
         
         Tick::with_spread(
             price,
@@ -227,14 +229,14 @@ mod tests {
     #[test]
     fn test_generator_creation() {
         let generator = MarketDataGenerator::new();
-        assert_eq!(generator.config().starting_price, 100.0);
+        assert_eq!(generator.config().starting_price, Decimal::from_f64(100.0).unwrap());
     }
 
     #[test]
     fn test_generator_with_config() {
         let config = ConfigBuilder::new()
-            .starting_price(50.0)
-            .volatility(0.03)
+            .starting_price_f64(50.0)
+            .volatility_f64(0.03)
             .seed(42)
             .build()
             .unwrap();
@@ -281,7 +283,7 @@ mod tests {
         let mut generator = MarketDataGenerator::new();
         let tick = generator.generate_tick();
         
-        assert!(tick.price > 0.0);
+        assert!(tick.price > Decimal::ZERO);
         assert!(tick.volume.value() > 0);
         assert!(tick.bid.is_some());
         assert!(tick.ask.is_some());
@@ -315,7 +317,7 @@ mod tests {
     fn test_reset() {
         let config = ConfigBuilder::new()
             .seed(42)
-            .starting_price(100.0)
+            .starting_price_f64(100.0)
             .build()
             .unwrap();
         

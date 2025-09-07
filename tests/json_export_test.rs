@@ -14,7 +14,7 @@ mod json_export_tests {
     fn test_generator_to_json_export() {
         // Generate market data
         let config = ConfigBuilder::new()
-            .starting_price(100.0)
+            .starting_price_f64(100.0)
             .volatility(0.02)
             .trend(TrendDirection::Bullish, 0.001)
             .build()
@@ -42,7 +42,7 @@ mod json_export_tests {
     fn test_json_lines_export() {
         // Generate tick data
         let config = ConfigBuilder::new()
-            .starting_price(50.0)
+            .starting_price_f64(50.0)
             .build()
             .unwrap();
 
@@ -99,7 +99,7 @@ mod json_export_tests {
     fn test_large_dataset_json_export() {
         // Generate large dataset
         let config = ConfigBuilder::new()
-            .starting_price(1000.0)
+            .starting_price_f64(1000.0)
             .volatility(0.03)
             .build()
             .unwrap();

@@ -23,9 +23,9 @@ struct ExportTestFixture {
 impl ExportTestFixture {
     fn new() -> Self {
         let config = ConfigBuilder::new()
-            .starting_price(100.0)
-            .volatility(0.02)
-            .trend(TrendDirection::Bullish, 0.001)
+            .starting_price_f64(100.0)
+            .volatility_f64(0.02)
+            .trend_f64(TrendDirection::Bullish, 0.001)
             .seed(12345)  // Fixed seed for reproducible tests
             .build()
             .unwrap();
@@ -288,7 +288,7 @@ mod performance_tests {
     #[test]
     fn test_large_dataset_performance() {
         let config = ConfigBuilder::new()
-            .starting_price(100.0)
+            .starting_price_f64(100.0)
             .seed(99999)
             .build()
             .unwrap();
@@ -454,7 +454,7 @@ fn test_export_integration_summary() {
     println!("Running Export Integration Test Summary");
     println!("=====================================");
     
-    let mut enabled_features = vec![];
+    let mut enabled_features: Vec<&str> = vec![];
     let mut disabled_features = vec![];
     
     #[cfg(feature = "csv_export")]

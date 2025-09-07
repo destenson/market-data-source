@@ -14,9 +14,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Create a generator with interesting data for demonstration
     let config = ConfigBuilder::new()
-        .starting_price(250.0)
-        .volatility(0.03)
-        .trend(TrendDirection::Bullish, 0.001)
+        .starting_price_f64(250.0)
+        .volatility_f64(0.03)
+        .trend_f64(TrendDirection::Bullish, 0.001)
         .seed(777)  // Lucky number for reproducible results
         .build()?;
     

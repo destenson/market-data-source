@@ -1,30 +1,34 @@
 //! Configuration structures for market data generation
 
 use crate::types::TimeInterval;
+use rust_decimal::Decimal;
+use rust_decimal::prelude::FromPrimitive;
 use std::fmt;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize, Serializer, Deserializer};
 
 #[cfg(feature = "serde")]
-fn serialize_f64_inf<S>(value: &f64, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_decimal_inf<S>(value: &Decimal, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    if value.is_infinite() {
+    // For Decimal, we use a very large number to represent "infinity"
+    let max_decimal = Decimal::from_f64(1e15).unwrap();
+    if *value >= max_decimal {
         serializer.serialize_none()
     } else {
-        serializer.serialize_f64(*value)
+        value.serialize(serializer)
     }
 }
 
 #[cfg(feature = "serde")]
-fn deserialize_f64_inf<'de, D>(deserializer: D) -> Result<f64, D::Error>
+fn deserialize_decimal_inf<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let opt: Option<f64> = Option::deserialize(deserializer)?;
-    Ok(opt.unwrap_or(f64::INFINITY))
+    let opt: Option<Decimal> = Option::deserialize(deserializer)?;
+    Ok(opt.unwrap_or_else(|| Decimal::from_f64(1e15).unwrap()))
 }
 
 /// Direction of market trend
@@ -45,19 +49,19 @@ pub enum TrendDirection {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct GeneratorConfig {
     /// Starting price for generation
-    pub starting_price: f64,
+    pub starting_price: Decimal,
     /// Minimum price boundary
-    pub min_price: f64,
+    pub min_price: Decimal,
     /// Maximum price boundary
-    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_f64_inf"))]
-    #[cfg_attr(feature = "serde", serde(deserialize_with = "deserialize_f64_inf"))]
-    pub max_price: f64,
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_decimal_inf"))]
+    #[cfg_attr(feature = "serde", serde(deserialize_with = "deserialize_decimal_inf"))]
+    pub max_price: Decimal,
     /// Trend direction
     pub trend_direction: TrendDirection,
     /// Trend strength as percentage per period (e.g., 0.01 = 1% per period)
-    pub trend_strength: f64,
+    pub trend_strength: Decimal,
     /// Volatility (standard deviation of price changes)
-    pub volatility: f64,
+    pub volatility: Decimal,
     /// Time interval for each data point
     pub time_interval: TimeInterval,
     /// Number of data points to generate
@@ -73,17 +77,17 @@ pub struct GeneratorConfig {
 impl Default for GeneratorConfig {
     fn default() -> Self {
         Self {
-            starting_price: 100.0,
-            min_price: 1.0,
-            max_price: f64::INFINITY,
+            starting_price: Decimal::from_f64(100.0).unwrap(),
+            min_price: Decimal::from_f64(1.0).unwrap(),
+            max_price: Decimal::from_f64(1e15).unwrap(), // Very large number as "infinity"
             trend_direction: TrendDirection::Sideways,
-            trend_strength: 0.0,
-            volatility: 0.02, // 2% volatility
+            trend_strength: Decimal::ZERO,
+            volatility: Decimal::from_f64(0.02).unwrap(), // 2% volatility
             time_interval: TimeInterval::OneMinute,
             num_points: 100,
             seed: None,
             base_volume: 100000,
-            volume_volatility: 0.3, // 30% volume volatility
+            volume_volatility: 0.3, // 30% volume volatility (keep as f64 for now)
         }
     }
 }
@@ -101,19 +105,20 @@ impl GeneratorConfig {
 
     /// Validates the configuration
     pub fn validate(&self) -> Result<(), ConfigError> {
-        if self.starting_price <= 0.0 {
+        if self.starting_price <= Decimal::ZERO {
             return Err(ConfigError::InvalidPrice("Starting price must be positive".into()));
         }
-        if self.min_price <= 0.0 {
+        if self.min_price <= Decimal::ZERO {
             return Err(ConfigError::InvalidPrice("Minimum price must be positive".into()));
         }
         if self.min_price >= self.max_price {
             return Err(ConfigError::InvalidPrice("Minimum price must be less than maximum price".into()));
         }
-        if self.volatility < 0.0 {
+        if self.volatility < Decimal::ZERO {
             return Err(ConfigError::InvalidVolatility("Volatility must be non-negative".into()));
         }
-        if self.trend_strength < -1.0 || self.trend_strength > 1.0 {
+        let one = Decimal::ONE;
+        if self.trend_strength < -one || self.trend_strength > one {
             return Err(ConfigError::InvalidTrend("Trend strength must be between -100% and +100%".into()));
         }
         if self.num_points == 0 {
@@ -143,28 +148,54 @@ impl ConfigBuilder {
     }
 
     /// Sets the starting price
-    pub fn starting_price(mut self, price: f64) -> Self {
+    pub fn starting_price(mut self, price: Decimal) -> Self {
         self.config.starting_price = price;
         self
     }
 
+    /// Sets the starting price from f64 (convenience method)
+    pub fn starting_price_f64(mut self, price: f64) -> Self {
+        self.config.starting_price = Decimal::from_f64(price).unwrap_or_else(|| Decimal::from_f64(100.0).unwrap());
+        self
+    }
+
     /// Sets the price boundaries
-    pub fn price_range(mut self, min: f64, max: f64) -> Self {
+    pub fn price_range(mut self, min: Decimal, max: Decimal) -> Self {
         self.config.min_price = min;
         self.config.max_price = max;
         self
     }
 
+    /// Sets the price boundaries from f64 (convenience method)
+    pub fn price_range_f64(mut self, min: f64, max: f64) -> Self {
+        self.config.min_price = Decimal::from_f64(min).unwrap_or_else(|| Decimal::from_f64(1.0).unwrap());
+        self.config.max_price = Decimal::from_f64(max).unwrap_or_else(|| Decimal::from_f64(1e15).unwrap());
+        self
+    }
+
     /// Sets the trend direction and strength
-    pub fn trend(mut self, direction: TrendDirection, strength: f64) -> Self {
+    pub fn trend(mut self, direction: TrendDirection, strength: Decimal) -> Self {
         self.config.trend_direction = direction;
         self.config.trend_strength = strength;
         self
     }
 
+    /// Sets the trend direction and strength from f64 (convenience method)
+    pub fn trend_f64(mut self, direction: TrendDirection, strength: f64) -> Self {
+        self.config.trend_direction = direction;
+        self.config.trend_strength = Decimal::from_f64(strength).unwrap_or(Decimal::ZERO);
+        self
+    }
+
     /// Sets the volatility
-    pub fn volatility(mut self, volatility: f64) -> Self {
+    pub fn volatility(mut self, volatility: Decimal) -> Self {
         self.config.volatility = volatility;
+        self
+    }
+
+    /// Sets the volatility from f64 (convenience method)
+    pub fn volatility_f64(mut self, volatility: f64) -> Self {
+        self.config.volatility = Decimal::from_f64(volatility).unwrap_or_else(|| Decimal::from_f64(0.02).unwrap());
         self
     }
 
@@ -232,7 +263,7 @@ impl GeneratorConfig {
     /// Creates a configuration for a volatile market
     pub fn volatile() -> Self {
         Self {
-            volatility: 0.05, // 5% volatility
+            volatility: Decimal::from_f64(0.05).unwrap(), // 5% volatility
             volume_volatility: 0.5, // 50% volume volatility
             ..Self::default()
         }
@@ -241,7 +272,7 @@ impl GeneratorConfig {
     /// Creates a configuration for a stable market
     pub fn stable() -> Self {
         Self {
-            volatility: 0.005, // 0.5% volatility
+            volatility: Decimal::from_f64(0.005).unwrap(), // 0.5% volatility
             volume_volatility: 0.1, // 10% volume volatility
             ..Self::default()
         }
@@ -251,8 +282,8 @@ impl GeneratorConfig {
     pub fn bull_market() -> Self {
         Self {
             trend_direction: TrendDirection::Bullish,
-            trend_strength: 0.002, // 0.2% per period
-            volatility: 0.02,
+            trend_strength: Decimal::from_f64(0.002).unwrap(), // 0.2% per period
+            volatility: Decimal::from_f64(0.02).unwrap(),
             ..Self::default()
         }
     }
@@ -261,8 +292,8 @@ impl GeneratorConfig {
     pub fn bear_market() -> Self {
         Self {
             trend_direction: TrendDirection::Bearish,
-            trend_strength: 0.002, // 0.2% per period
-            volatility: 0.03, // Slightly higher volatility in bear markets
+            trend_strength: Decimal::from_f64(0.002).unwrap(), // 0.2% per period
+            volatility: Decimal::from_f64(0.03).unwrap(), // Slightly higher volatility in bear markets
             ..Self::default()
         }
     }
@@ -275,8 +306,8 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = GeneratorConfig::default();
-        assert_eq!(config.starting_price, 100.0);
-        assert_eq!(config.min_price, 1.0);
+        assert_eq!(config.starting_price, Decimal::from_f64(100.0).unwrap());
+        assert_eq!(config.min_price, Decimal::from_f64(1.0).unwrap());
         assert_eq!(config.trend_direction, TrendDirection::Sideways);
         assert!(config.validate().is_ok());
     }
@@ -284,21 +315,21 @@ mod tests {
     #[test]
     fn test_config_builder() {
         let config = GeneratorConfig::builder()
-            .starting_price(50.0)
-            .price_range(10.0, 200.0)
-            .trend(TrendDirection::Bullish, 0.01)
-            .volatility(0.03)
+            .starting_price_f64(50.0)
+            .price_range_f64(10.0, 200.0)
+            .trend_f64(TrendDirection::Bullish, 0.01)
+            .volatility_f64(0.03)
             .num_points(500)
             .seed(42)
             .build()
             .unwrap();
 
-        assert_eq!(config.starting_price, 50.0);
-        assert_eq!(config.min_price, 10.0);
-        assert_eq!(config.max_price, 200.0);
+        assert_eq!(config.starting_price, Decimal::from_f64(50.0).unwrap());
+        assert_eq!(config.min_price, Decimal::from_f64(10.0).unwrap());
+        assert_eq!(config.max_price, Decimal::from_f64(200.0).unwrap());
         assert_eq!(config.trend_direction, TrendDirection::Bullish);
-        assert_eq!(config.trend_strength, 0.01);
-        assert_eq!(config.volatility, 0.03);
+        assert_eq!(config.trend_strength, Decimal::from_f64(0.01).unwrap());
+        assert_eq!(config.volatility, Decimal::from_f64(0.03).unwrap());
         assert_eq!(config.num_points, 500);
         assert_eq!(config.seed, Some(42));
     }
@@ -307,23 +338,23 @@ mod tests {
     fn test_config_validation() {
         // Invalid starting price
         let mut config = GeneratorConfig::default();
-        config.starting_price = -10.0;
+        config.starting_price = Decimal::from_f64(-10.0).unwrap();
         assert!(config.validate().is_err());
 
         // Invalid price range
         config = GeneratorConfig::default();
-        config.min_price = 100.0;
-        config.max_price = 50.0;
+        config.min_price = Decimal::from_f64(100.0).unwrap();
+        config.max_price = Decimal::from_f64(50.0).unwrap();
         assert!(config.validate().is_err());
 
         // Invalid volatility
         config = GeneratorConfig::default();
-        config.volatility = -0.1;
+        config.volatility = Decimal::from_f64(-0.1).unwrap();
         assert!(config.validate().is_err());
 
         // Invalid trend strength
         config = GeneratorConfig::default();
-        config.trend_strength = 1.5;
+        config.trend_strength = Decimal::from_f64(1.5).unwrap();
         assert!(config.validate().is_err());
 
         // Zero points
@@ -335,11 +366,11 @@ mod tests {
     #[test]
     fn test_preset_configs() {
         let volatile = GeneratorConfig::volatile();
-        assert_eq!(volatile.volatility, 0.05);
+        assert_eq!(volatile.volatility, Decimal::from_f64(0.05).unwrap());
         assert!(volatile.validate().is_ok());
 
         let stable = GeneratorConfig::stable();
-        assert_eq!(stable.volatility, 0.005);
+        assert_eq!(stable.volatility, Decimal::from_f64(0.005).unwrap());
         assert!(stable.validate().is_ok());
 
         let bull = GeneratorConfig::bull_market();
@@ -369,10 +400,10 @@ mod tests {
         #[test]
         fn test_generator_config_serialization() {
             let config = GeneratorConfig::builder()
-                .starting_price(50.0)
-                .price_range(10.0, 200.0)
-                .trend(TrendDirection::Bullish, 0.01)
-                .volatility(0.03)
+                .starting_price_f64(50.0)
+                .price_range_f64(10.0, 200.0)
+                .trend_f64(TrendDirection::Bullish, 0.01)
+                .volatility_f64(0.03)
                 .num_points(500)
                 .seed(42)
                 .base_volume(100000)

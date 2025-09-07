@@ -14,9 +14,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Create a generator with custom configuration
     let config = ConfigBuilder::new()
-        .starting_price(200.0)
-        .volatility(0.03)
-        .trend(TrendDirection::Sideways, 0.0)
+        .starting_price_f64(200.0)
+        .volatility_f64(0.03)
+        .trend_f64(TrendDirection::Sideways, 0.0)
         .seed(456)  // For reproducible results
         .build()?;
     
@@ -120,7 +120,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Create fresh generator for performance test
     let perf_config = ConfigBuilder::new()
-        .starting_price(100.0)
+        .starting_price_f64(100.0)
         .seed(789)
         .build()?;
     
