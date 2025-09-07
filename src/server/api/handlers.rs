@@ -11,7 +11,7 @@ use std::convert::Infallible;
 use std::time::Duration;
 use super::models::*;
 use crate::server::state::AppState;
-use crate::{GeneratorConfig, ConfigBuilder};
+use crate::GeneratorConfig;
 
 pub async fn list_symbols(State(state): State<AppState>) -> impl IntoResponse {
     let symbols = state.list_symbols().await;
