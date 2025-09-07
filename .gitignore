@@ -6,4 +6,5 @@ target/
 **/*.svg
 **/*.csv
 **/*.json
+**/*.jsonl
 
