@@ -1,5 +1,5 @@
 [workspace]
-members = ["market-data-source", "market-data-source-python"]
+members = ["market_data_source", "market-data-source-python"]
 resolver = "3"
 
 [workspace.package]
@@ -23,7 +23,7 @@ tracing = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 
 # Internal dependencies
-market-data-source = { path = "./market-data-source" }
+market_data_source = { path = "./market_data_source" }
 
 [profile.release]
 opt-level = "z"

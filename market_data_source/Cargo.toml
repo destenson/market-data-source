@@ -1,5 +1,5 @@
 [package]
-name = "market-data-source"
+name = "market_data_source"
 version.workspace = true
 edition.workspace = true
 repository.workspace = true
