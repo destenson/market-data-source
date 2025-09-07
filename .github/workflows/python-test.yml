@@ -62,7 +62,7 @@ jobs:
       
       - name: Install package
         run: |
-          uv pip install --system dist/*-*.whl --force-reinstall
+          uv pip install --system dist/*.*.whl --force-reinstall
       
       - name: Run Python tests
         run: |
