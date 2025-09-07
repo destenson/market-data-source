@@ -115,9 +115,9 @@ PRPs 41-43, 47-50, 56-58 have been created for implementation:
 ### Minor Enhancements
 
 #### Code Quality & Automation
-1. [ ] **Automated CHANGELOG generation** - Script to generate CHANGELOG.md from git commits
-2. [ ] **Uptime tracking** (src/server/routes.rs:101) - Add actual uptime calculation
-3. [ ] **Environment configuration expansion** (src/env.rs:157) - More env var options
+1. [ ] **Automated CHANGELOG generation** (scripts/generate-changelog.py:260) - Implement dry-run mode for changelog script
+2. [ ] **Uptime tracking** (src/server/routes.rs:101) - Add actual uptime calculation to health endpoint
+3. [ ] **Environment configuration expansion** (src/env.rs:157) - Add more optional environment variables for configuration
 
 ## 📊 Current Architecture Status
 
