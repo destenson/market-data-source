@@ -49,6 +49,14 @@ Repository = "https://github.com/yourusername/market-data-source"
 Issues = "https://github.com/yourusername/market-data-source/issues"
 
 [tool.maturin]
-features = ["python"]
+features = ["python", "synthetic"]
 python-source = "python"
 module-name = "market_data_source._market_data_source"
+
+# Feature variants for different capabilities
+[tool.maturin.feature-set]
+synthetic = ["python", "synthetic"]
+live = ["python", "live"]
+api-emulator = ["python", "api-emulator"]
+api-bridge = ["python", "api-bridge"]
+full = ["python", "synthetic", "live", "api-emulator", "api-bridge"]

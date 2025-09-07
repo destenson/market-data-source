@@ -4,6 +4,7 @@ version = "0.2.0"
 edition = "2024"
 
 [features]
+default = ["std", "synthetic", "serde"]
 std = [
     "serde?/std",
     "serde_json?/std",
@@ -29,7 +30,9 @@ plotters-svg = ["plotters?/plotters-svg", "plotters?/svg_backend"]
 plotters-errorbar = ["plotters?/errorbar"]
 plotters-image = ["plotters?/image"]
 plotters-ttf = ["plotters?/ttf"]
-python = ["dep:pyo3", "csv_export", "json_export", "png_export"]
+python = ["dep:pyo3", "csv_export", "json_export", "png_export", "synthetic"]
+synthetic = []  # Default synthetic data generation
+live = []  # Live data API emulation features
 api-server = [
     "dep:axum",
     "dep:axum-extra",
@@ -46,6 +49,9 @@ api-server = [
     "serde",
     "serde_json",
 ]
+api-bridge = ["api-server"]
+api-bridge-yfinance = ["api-bridge"]
+api-bridge-tdameritrade = ["api-bridge"]
 api-emulator = []
 api-emulator-yfinance = ["api-emulator"]
 api-emulator-tdameritrade = ["api-emulator"]

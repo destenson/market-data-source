@@ -39,7 +39,7 @@ uv pip install market-data-source
 
 # Or build from source
 uv pip install maturin
-uv run maturin develop --features python
+uv run maturin develop --features python,synthetic,live,api-emulator,api-bridge --release
 ```
 
 Quick Python example:
@@ -63,7 +63,7 @@ generator.to_json("output.json", count=1000)
 generator.to_png("chart.png", count=500)
 ```
 
-See [PYTHON_SETUP.md](PYTHON_SETUP.md) for detailed Python setup instructions.
+See [PYTHON_SETUP.md](docs/PYTHON_SETUP.md) for detailed Python setup instructions.
 
 ### Rust Installation
 

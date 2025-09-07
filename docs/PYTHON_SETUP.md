@@ -21,10 +21,17 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv pip install maturin
 
 # Build and install the package in development mode
-uv run maturin develop --features python
+# With synthetic data generation only
+uv run maturin develop --features python,synthetic
+
+# With live data capabilities  
+uv run maturin develop --features python,live
+
+# With all features
+uv run maturin develop --features python,synthetic,live
 
 # Or build a wheel
-uv run maturin build --features python --release
+uv run maturin build --features python,synthetic,live --release
 ```
 
 ### Run Examples
