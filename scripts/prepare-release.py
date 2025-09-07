@@ -61,7 +61,7 @@ class ReleasePreparation:
     
     def validate_code_quality(self) -> bool:
         """Run all code quality checks."""
-        print("\n📋 Running code quality checks...")
+        print("\nRunning code quality checks...")
         
         checks = [
             ("Cargo format check", ["cargo", "fmt", "--all", "--", "--check"]),
@@ -72,12 +72,12 @@ class ReleasePreparation:
         
         all_passed = True
         for name, cmd in checks:
-            print(f"\n  ▶ {name}...")
+            print(f"\n  > {name}...")
             try:
                 self.run_command(cmd)
-                print(f"  ✅ {name} passed")
+                print(f"  [OK] {name} passed")
             except subprocess.CalledProcessError as e:
-                print(f"  ❌ {name} failed")
+                print(f"  [ERROR] {name} failed")
                 self.errors.append(f"{name} failed: {e}")
                 all_passed = False
         
@@ -85,14 +85,14 @@ class ReleasePreparation:
     
     def validate_python_package(self) -> bool:
         """Validate Python package can be built."""
-        print("\n🐍 Validating Python package...")
+        print("\nValidating Python package...")
         
         try:
             # Check if maturin is available
             self.run_command(["python", "-m", "pip", "show", "maturin"], check=False)
             
             # Try to build the Python package
-            print("  ▶ Building Python wheel...")
+            print("  > Building Python wheel...")
             result = self.run_command(
                 ["maturin", "build", "--release", "-o", "dist"],
                 cwd=self.root_dir / "market-data-source-python",
@@ -100,54 +100,54 @@ class ReleasePreparation:
             )
             
             if result.returncode == 0:
-                print("  ✅ Python package build successful")
+                print("  [OK] Python package build successful")
                 return True
             else:
-                print("  ⚠️ Python package build failed (non-critical)")
+                print("  [WARNING] Python package build failed (non-critical)")
                 return True  # Non-critical for now
                 
         except Exception as e:
-            print(f"  ⚠️ Could not validate Python package: {e}")
+            print(f"  [WARNING] Could not validate Python package: {e}")
             return True  # Non-critical
     
     def validate_version_consistency(self) -> bool:
         """Check that versions are consistent across all files."""
-        print("\n🔍 Checking version consistency...")
+        print("\nChecking version consistency...")
         
         # Run the sync-version script in check mode
         sync_script = self.root_dir / "scripts" / "sync-version.py"
         if sync_script.exists():
             try:
                 self.run_command(["python", str(sync_script), "--check"])
-                print("  ✅ Versions are consistent")
+                print("  [OK] Versions are consistent")
                 return True
             except subprocess.CalledProcessError:
-                print("  ❌ Version mismatch detected")
+                print("  [ERROR] Version mismatch detected")
                 self.errors.append("Version mismatch between Cargo.toml and pyproject.toml")
                 return False
         else:
-            print("  ⚠️ Version sync script not found, skipping check")
+            print("  [WARNING] Version sync script not found, skipping check")
             return True
     
     def check_git_status(self) -> bool:
         """Check if git working directory is clean."""
-        print("\n📦 Checking git status...")
+        print("\nChecking git status...")
         
         result = self.run_command(["git", "status", "--porcelain"], check=False)
         if result.stdout.strip():
-            print("  ⚠️ Uncommitted changes detected:")
+            print("  [WARNING] Uncommitted changes detected:")
             print(result.stdout)
             return False
         
-        print("  ✅ Working directory is clean")
+        print("  [OK] Working directory is clean")
         return True
     
     def update_changelog(self, new_version: str, dry_run: bool = False) -> bool:
         """Update CHANGELOG.md with the new version."""
-        print(f"\n📝 Updating CHANGELOG.md for version {new_version}...")
+        print(f"\nUpdating CHANGELOG.md for version {new_version}...")
         
         if not self.changelog.exists():
-            print("  ⚠️ CHANGELOG.md not found")
+            print("  [WARNING] CHANGELOG.md not found")
             return True
         
         with open(self.changelog, 'r') as f:
@@ -155,7 +155,7 @@ class ReleasePreparation:
         
         # Check if version already exists
         if f"## [{new_version}]" in content:
-            print(f"  ℹ️ Version {new_version} already in CHANGELOG.md")
+            print(f"  [INFO] Version {new_version} already in CHANGELOG.md")
             return True
         
         # Add new version section
@@ -174,36 +174,36 @@ class ReleasePreparation:
             lines.insert(insert_index, new_section)
             with open(self.changelog, 'w') as f:
                 f.write('\n'.join(lines))
-            print(f"  ✅ Added section for version {new_version}")
+            print(f"  [OK] Added section for version {new_version}")
         else:
-            print(f"  🔍 Would add section for version {new_version}")
+            print(f"  [DRY-RUN] Would add section for version {new_version}")
         
         return True
     
     def create_git_tag(self, version: str, dry_run: bool = False) -> bool:
         """Create a git tag for the release."""
         tag = f"v{version}"
-        print(f"\n🏷️ Creating git tag {tag}...")
+        print(f"\nCreating git tag {tag}...")
         
         # Check if tag already exists
         result = self.run_command(["git", "tag", "-l", tag], check=False)
         if result.stdout.strip():
-            print(f"  ⚠️ Tag {tag} already exists")
+            print(f"  [WARNING] Tag {tag} already exists")
             return False
         
         if not dry_run:
             # Create annotated tag
             message = f"Release version {version}"
             self.run_command(["git", "tag", "-a", tag, "-m", message])
-            print(f"  ✅ Created tag {tag}")
+            print(f"  [OK] Created tag {tag}")
         else:
-            print(f"  🔍 Would create tag {tag}")
+            print(f"  [DRY-RUN] Would create tag {tag}")
         
         return True
     
     def prepare_release(self, version: str = None, bump_type: str = None, dry_run: bool = False):
         """Main release preparation workflow."""
-        print("🚀 Starting release preparation...\n")
+        print("Starting release preparation...\n")
         
         # Determine new version
         current_version = self.get_current_version()
@@ -220,30 +220,30 @@ class ReleasePreparation:
         
         # Run validation checks
         if not self.validate_code_quality():
-            print("\n❌ Code quality checks failed. Please fix issues before releasing.")
+            print("\n[ERROR] Code quality checks failed. Please fix issues before releasing.")
             return False
         
         if not self.validate_python_package():
-            print("\n⚠️ Python package validation had issues (continuing)")
+            print("\n[WARNING] Python package validation had issues (continuing)")
         
         # Update version if needed
         if new_version != current_version:
-            print(f"\n📝 Updating version from {current_version} to {new_version}...")
+            print(f"\nUpdating version from {current_version} to {new_version}...")
             
             if not dry_run:
                 # Use sync-version script to update versions
                 sync_script = self.root_dir / "scripts" / "sync-version.py"
                 if sync_script.exists():
                     self.run_command(["python", str(sync_script), "--set-version", new_version])
-                    print(f"  ✅ Updated version to {new_version}")
+                    print(f"  [OK] Updated version to {new_version}")
                 else:
-                    print("  ❌ Version sync script not found")
+                    print("  [ERROR] Version sync script not found")
                     return False
             else:
-                print(f"  🔍 Would update version to {new_version}")
+                print(f"  [DRY-RUN] Would update version to {new_version}")
         
         if not self.validate_version_consistency():
-            print("\n❌ Version consistency check failed")
+            print("\n[ERROR] Version consistency check failed")
             return False
         
         # Update changelog
@@ -251,7 +251,7 @@ class ReleasePreparation:
         
         # Check git status
         if not dry_run and not self.check_git_status():
-            print("\n⚠️ Uncommitted changes detected. Please commit changes before creating tag.")
+            print("\n[WARNING] Uncommitted changes detected. Please commit changes before creating tag.")
             print("Suggested commit message:")
             print(f'  git add -A && git commit -m "chore: prepare release v{new_version}"')
             return False
@@ -261,11 +261,11 @@ class ReleasePreparation:
         
         # Summary
         print("\n" + "="*50)
-        print("✅ Release preparation complete!")
+        print("[OK] Release preparation complete!")
         print(f"Version: {new_version}")
         
         if dry_run:
-            print("\n🔍 This was a dry run. No changes were made.")
+            print("\n[DRY-RUN] This was a dry run. No changes were made.")
         else:
             print("\nNext steps:")
             print(f"  1. Review and update CHANGELOG.md with actual changes")
@@ -327,7 +327,7 @@ def main():
             sys.exit(1)
             
     except Exception as e:
-        print(f"\n❌ Error during release preparation: {e}")
+        print(f"\n[ERROR] Error during release preparation: {e}")
         sys.exit(1)
 
 
