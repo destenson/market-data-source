@@ -17,7 +17,7 @@ where
     S: Serializer,
 {
     // For Decimal, we use a very large number to represent "infinity"
-    let max_decimal = Decimal::from_f64(1e15).unwrap();
+    let max_decimal = Decimal::from_f64(1e15).expect("1e15 should always convert to Decimal");
     if *value >= max_decimal {
         serializer.serialize_none()
     } else {
@@ -31,7 +31,7 @@ where
     D: Deserializer<'de>,
 {
     let opt: Option<Decimal> = Option::deserialize(deserializer)?;
-    Ok(opt.unwrap_or_else(|| Decimal::from_f64(1e15).unwrap()))
+    Ok(opt.unwrap_or_else(|| Decimal::from_f64(1e15).expect("1e15 should always convert to Decimal")))
 }
 
 /// Direction of market trend
@@ -96,15 +96,15 @@ pub struct GeneratorConfig {
 
 // Default value functions for serde
 fn default_starting_price() -> Decimal {
-    Decimal::from_f64(100.0).unwrap()
+    Decimal::from_f64(100.0).expect("100.0 should always convert to Decimal")
 }
 
 fn default_min_price() -> Decimal {
-    Decimal::from_f64(1.0).unwrap()
+    Decimal::from_f64(1.0).expect("1.0 should always convert to Decimal")
 }
 
 fn default_max_price() -> Decimal {
-    Decimal::from_f64(1e15).unwrap()
+    Decimal::from_f64(1e15).expect("1e15 should always convert to Decimal")
 }
 
 fn default_trend_direction() -> TrendDirection {
@@ -116,7 +116,7 @@ fn default_trend_strength() -> Decimal {
 }
 
 fn default_volatility() -> Decimal {
-    Decimal::from_f64(0.02).unwrap()
+    Decimal::from_f64(0.02).expect("0.02 should always convert to Decimal")
 }
 
 fn default_time_interval() -> TimeInterval {
@@ -169,7 +169,7 @@ impl GeneratorConfig {
     pub fn apply_smart_defaults(&mut self) {
         // If min_price is still at default but starting_price is high, adjust min_price
         if self.min_price == default_min_price() && self.starting_price > Decimal::from(1000) {
-            self.min_price = self.starting_price * Decimal::from_f64(0.01).unwrap(); // 1% of starting price
+            self.min_price = self.starting_price * Decimal::from_f64(0.01).expect("0.01 should always convert to Decimal"); // 1% of starting price
         }
         
         // If max_price is still at default but starting_price is set, adjust max_price
@@ -179,7 +179,7 @@ impl GeneratorConfig {
         
         // Ensure min < starting < max
         if self.min_price >= self.starting_price {
-            self.min_price = self.starting_price * Decimal::from_f64(0.5).unwrap();
+            self.min_price = self.starting_price * Decimal::from_f64(0.5).expect("0.5 should always convert to Decimal");
         }
         if self.max_price <= self.starting_price {
             self.max_price = self.starting_price * Decimal::from(2);
@@ -189,18 +189,18 @@ impl GeneratorConfig {
         if self.volatility == default_volatility() {
             if self.starting_price > Decimal::from(10000) {
                 // Likely crypto (BTC, ETH)
-                self.volatility = Decimal::from_f64(0.05).unwrap(); // 5% volatility
+                self.volatility = Decimal::from_f64(0.05).expect("0.05 should always convert to Decimal"); // 5% volatility
             } else if self.starting_price < Decimal::from(10) {
                 // Likely forex or penny stocks
-                self.volatility = Decimal::from_f64(0.005).unwrap(); // 0.5% volatility
+                self.volatility = Decimal::from_f64(0.005).expect("0.005 should always convert to Decimal"); // 0.5% volatility
             }
         }
         
         // If trend direction is up/down but strength is zero, set a reasonable strength
         if self.trend_strength == Decimal::ZERO {
             match self.trend_direction {
-                TrendDirection::Bullish => self.trend_strength = Decimal::from_f64(0.0001).unwrap(),
-                TrendDirection::Bearish => self.trend_strength = Decimal::from_f64(-0.0001).unwrap(),
+                TrendDirection::Bullish => self.trend_strength = Decimal::from_f64(0.0001).expect("0.0001 should always convert to Decimal"),
+                TrendDirection::Bearish => self.trend_strength = Decimal::from_f64(-0.0001).expect("-0.0001 should always convert to Decimal"),
                 TrendDirection::Sideways => {}
             }
         }
@@ -264,7 +264,8 @@ impl ConfigBuilder {
 
     /// Sets the starting price from f64 (convenience method)
     pub fn starting_price_f64(mut self, price: f64) -> Self {
-        self.config.starting_price = Decimal::from_f64(price).unwrap_or_else(|| Decimal::from_f64(100.0).unwrap());
+        self.config.starting_price = Decimal::from_f64(price)
+            .unwrap_or_else(|_| Decimal::from_f64(100.0).expect("100.0 should always convert to Decimal"));
         self
     }
 
@@ -277,8 +278,10 @@ impl ConfigBuilder {
 
     /// Sets the price boundaries from f64 (convenience method)
     pub fn price_range_f64(mut self, min: f64, max: f64) -> Self {
-        self.config.min_price = Decimal::from_f64(min).unwrap_or_else(|| Decimal::from_f64(1.0).unwrap());
-        self.config.max_price = Decimal::from_f64(max).unwrap_or_else(|| Decimal::from_f64(1e15).unwrap());
+        self.config.min_price = Decimal::from_f64(min)
+            .unwrap_or_else(|_| Decimal::from_f64(1.0).expect("1.0 should always convert to Decimal"));
+        self.config.max_price = Decimal::from_f64(max)
+            .unwrap_or_else(|_| Decimal::from_f64(1e15).expect("1e15 should always convert to Decimal"));
         self
     }
 
@@ -304,7 +307,8 @@ impl ConfigBuilder {
 
     /// Sets the volatility from f64 (convenience method)
     pub fn volatility_f64(mut self, volatility: f64) -> Self {
-        self.config.volatility = Decimal::from_f64(volatility).unwrap_or_else(|| Decimal::from_f64(0.02).unwrap());
+        self.config.volatility = Decimal::from_f64(volatility)
+            .unwrap_or_else(|_| Decimal::from_f64(0.02).expect("0.02 should always convert to Decimal"));
         self
     }
 
@@ -372,7 +376,7 @@ impl GeneratorConfig {
     /// Creates a configuration for a volatile market
     pub fn volatile() -> Self {
         Self {
-            volatility: Decimal::from_f64(0.05).unwrap(), // 5% volatility
+            volatility: Decimal::from_f64(0.05).expect("0.05 should always convert to Decimal"), // 5% volatility
             volume_volatility: 0.5, // 50% volume volatility
             ..Self::default()
         }
@@ -381,7 +385,7 @@ impl GeneratorConfig {
     /// Creates a configuration for a stable market
     pub fn stable() -> Self {
         Self {
-            volatility: Decimal::from_f64(0.005).unwrap(), // 0.5% volatility
+            volatility: Decimal::from_f64(0.005).expect("0.005 should always convert to Decimal"), // 0.5% volatility
             volume_volatility: 0.1, // 10% volume volatility
             ..Self::default()
         }
@@ -391,8 +395,8 @@ impl GeneratorConfig {
     pub fn bull_market() -> Self {
         Self {
             trend_direction: TrendDirection::Bullish,
-            trend_strength: Decimal::from_f64(0.002).unwrap(), // 0.2% per period
-            volatility: Decimal::from_f64(0.02).unwrap(),
+            trend_strength: Decimal::from_f64(0.002).expect("0.002 should always convert to Decimal"), // 0.2% per period
+            volatility: Decimal::from_f64(0.02).expect("0.02 should always convert to Decimal"),
             ..Self::default()
         }
     }
@@ -401,8 +405,8 @@ impl GeneratorConfig {
     pub fn bear_market() -> Self {
         Self {
             trend_direction: TrendDirection::Bearish,
-            trend_strength: Decimal::from_f64(0.002).unwrap(), // 0.2% per period
-            volatility: Decimal::from_f64(0.03).unwrap(), // Slightly higher volatility in bear markets
+            trend_strength: Decimal::from_f64(0.002).expect("0.002 should always convert to Decimal"), // 0.2% per period
+            volatility: Decimal::from_f64(0.03).expect("0.03 should always convert to Decimal"), // Slightly higher volatility in bear markets
             ..Self::default()
         }
     }

@@ -190,7 +190,7 @@ pub fn to_csv_string_ohlc(data: &[OHLC]) -> ExportResult<String> {
             .from_writer(&mut buffer);
         
         writer.write_record(["timestamp", "open", "high", "low", "close", "volume"])
-            .map_err(|e| ExportError::WriteFailed(e.to_string()))?;
+            .map_err(ExportError::Csv)?;
         
         for ohlc in data {
             writer.write_record(&[
@@ -201,15 +201,15 @@ pub fn to_csv_string_ohlc(data: &[OHLC]) -> ExportResult<String> {
                 ohlc.close.to_string(),
                 ohlc.volume.value.to_string(),
             ])
-            .map_err(|e| ExportError::WriteFailed(e.to_string()))?;
+            .map_err(ExportError::Csv)?;
         }
         
         writer.flush()
-            .map_err(|e| ExportError::WriteFailed(e.to_string()))?;
+            .map_err(ExportError::Csv)?;
     }
     
     String::from_utf8(buffer)
-        .map_err(|e| ExportError::WriteFailed(e.to_string()))
+        .map_err(|e| ExportError::Io(std::io::Error::new(std::io::ErrorKind::InvalidData, e)))
 }
 
 /// Convenience function to export OHLC data to JSON
@@ -271,7 +271,7 @@ pub fn to_couchdb_ticks_env(data: &[Tick]) -> ExportResult<()> {
 pub fn to_png_ohlc<P: AsRef<Path>>(data: &[OHLC], path: P) -> ExportResult<()> {
     let exporter = ChartExporter::default();
     exporter.export_ohlc(data, path).map_err(|e| {
-        ExportError::Chart(format!("Failed to export OHLC chart: {e}"))
+        ExportError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!("Failed to export OHLC chart: {e}")))
     })
 }
 
@@ -280,7 +280,7 @@ pub fn to_png_ohlc<P: AsRef<Path>>(data: &[OHLC], path: P) -> ExportResult<()> {
 pub fn to_png_ticks<P: AsRef<Path>>(data: &[Tick], path: P) -> ExportResult<()> {
     let exporter = ChartExporter::default();
     exporter.export_ticks(data, path).map_err(|e| {
-        ExportError::Chart(format!("Failed to export tick chart: {e}"))
+        ExportError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!("Failed to export tick chart: {e}")))
     })
 }
 
@@ -293,7 +293,7 @@ pub fn to_png_ohlc_with_builder<P: AsRef<Path>>(
 ) -> ExportResult<()> {
     let exporter = ChartExporter::with_builder(builder);
     exporter.export_ohlc(data, path).map_err(|e| {
-        ExportError::Chart(format!("Failed to export OHLC chart: {e}"))
+        ExportError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!("Failed to export OHLC chart: {e}")))
     })
 }
 
@@ -306,6 +306,6 @@ pub fn to_png_ticks_with_builder<P: AsRef<Path>>(
 ) -> ExportResult<()> {
     let exporter = ChartExporter::with_builder(builder);
     exporter.export_ticks(data, path).map_err(|e| {
-        ExportError::Chart(format!("Failed to export tick chart: {e}"))
+        ExportError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!("Failed to export tick chart: {e}")))
     })
 }
