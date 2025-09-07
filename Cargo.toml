@@ -117,7 +117,7 @@ tokio = { version = "1.47.1", features = ["full"] }
 [lib]
 name = "market_data_source"
 path = "src/lib.rs"
-# crate-type = ["rlib", "cdylib"]
+crate-type = ["rlib", "cdylib"]
 
 [[bin]]
 name = "market-data-server"
