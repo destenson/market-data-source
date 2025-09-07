@@ -20,5 +20,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 market-data-source = { path = "..", features = ["synthetic"] }
-pyo3 = { version = "0.23", features = ["extension-module", "chrono"] }
+pyo3 = { version = "0.24.2", features = ["extension-module", "chrono"] }
 rust_decimal = { workspace = true }
