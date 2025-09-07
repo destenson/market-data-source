@@ -63,7 +63,7 @@ jobs:
       - name: Install package
         run: |
           uv pip install --system dist/market_data_source*.whl --force-reinstall
-      
+
       - name: Run Python tests
         run: |
           python -c "import market_data_source; print(f'Version: {market_data_source.__version__}')"
@@ -130,7 +130,7 @@ jobs:
       
       - name: Test maturin develop
         run: |
-          uv run maturin develop
+          maturin develop
           python -c "import market_data_source; print(market_data_source.__version__)"
   
   wheel-build:
