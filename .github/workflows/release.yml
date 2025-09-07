@@ -1,0 +1,249 @@
+name: Release Validation
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  validate-version:
+    name: Validate Version Consistency
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get tag version
+        id: tag
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+      - name: Check Cargo.toml version
+        run: |
+          cargo_version=$(grep "^version" Cargo.toml | head -1 | cut -d'"' -f2)
+          tag_version="${{ steps.tag.outputs.version }}"
+          tag_version=${tag_version#v}  # Remove 'v' prefix if present
+          
+          if [ "$cargo_version" != "$tag_version" ]; then
+            echo "Version mismatch: Cargo.toml has $cargo_version but tag is $tag_version"
+            exit 1
+          fi
+          echo "Version check passed: $cargo_version"
+      
+      - name: Check pyproject.toml version
+        run: |
+          py_version=$(grep "^version" pyproject.toml | head -1 | cut -d'"' -f2)
+          tag_version="${{ steps.tag.outputs.version }}"
+          tag_version=${tag_version#v}  # Remove 'v' prefix if present
+          
+          if [ "$py_version" != "$tag_version" ]; then
+            echo "Version mismatch: pyproject.toml has $py_version but tag is $tag_version"
+            exit 1
+          fi
+          echo "Python version check passed: $py_version"
+  
+  full-test-suite:
+    name: Complete Test Suite
+    needs: validate-version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - uses: Swatinem/rust-cache@v2
+      
+      - name: Run all tests
+        run: cargo test --all-features --verbose
+        env:
+          CARGO_BUILD_JOBS: ${{ runner.os == 'Windows' && '1' || '4' }}
+      
+      - name: Run benchmarks (smoke test)
+        run: cargo bench --no-run --all-features
+  
+  quality-gates:
+    name: Quality Gates
+    needs: validate-version
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      
+      - name: Run clippy
+        run: cargo clippy --all-features --all-targets -- -D warnings
+      
+      - name: Build documentation
+        run: cargo doc --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: -D warnings
+  
+  build-artifacts:
+    name: Build Release Artifacts
+    needs: [full-test-suite, quality-gates]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      
+      - name: Build release binary
+        run: cargo build --release --all-features --target ${{ matrix.target }}
+      
+      - name: Package binary
+        run: |
+          cd target/${{ matrix.target }}/release
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            7z a ../../../market-data-source-${{ matrix.target }}.zip market_data_source.exe
+          else
+            tar czf ../../../market-data-source-${{ matrix.target }}.tar.gz market_data_source
+          fi
+        shell: bash
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: binaries-${{ matrix.target }}
+          path: |
+            market-data-source-*.tar.gz
+            market-data-source-*.zip
+  
+  build-python-wheels:
+    name: Build Python Wheels
+    needs: [full-test-suite, quality-gates]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install maturin
+        run: pip install maturin
+      
+      - name: Build wheels
+        run: maturin build --release --out dist
+      
+      - name: Test wheel installation
+        run: |
+          pip install dist/*.whl
+          python -c "import market_data_source; print(market_data_source.__version__)"
+      
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-wheels-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: dist/*.whl
+  
+  dry-run-publish:
+    name: Dry Run Publication
+    needs: [build-artifacts, build-python-wheels]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Check crates.io publish (dry run)
+        run: cargo publish --dry-run --all-features
+      
+      - name: Download Python wheels
+        uses: actions/download-artifact@v3
+        with:
+          pattern: python-wheels-*
+          merge-multiple: true
+          path: dist/
+      
+      - name: Check wheel contents
+        run: |
+          pip install twine
+          twine check dist/*.whl
+      
+      - name: List publishable artifacts
+        run: |
+          echo "=== Rust Package ==="
+          cargo package --list
+          echo ""
+          echo "=== Python Wheels ==="
+          ls -la dist/
+  
+  create-release-notes:
+    name: Generate Release Notes
+    needs: dry-run-publish
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Get version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+      - name: Extract changelog entry
+        id: changelog
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          version=${version#v}  # Remove 'v' prefix if present
+          
+          # Extract the section for this version from CHANGELOG.md
+          awk -v ver="$version" '
+            /^## \[.*\]/ {
+              if (found) exit
+              if (index($0, ver) > 0) found=1
+              next
+            }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+          
+          if [ ! -s release_notes.md ]; then
+            echo "No release notes found for version $version"
+            echo "This is release $version of market-data-source." > release_notes.md
+          fi
+      
+      - name: Upload release notes
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-notes
+          path: release_notes.md
