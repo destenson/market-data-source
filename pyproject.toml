@@ -1,0 +1,54 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "market-data-source"
+version = "0.2.0"
+description = "High-performance synthetic market data generation library"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Market Data Source Contributors" }
+]
+maintainers = [
+    { name = "Market Data Source Contributors" }
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Rust",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = [
+    "market-data",
+    "synthetic-data",
+    "financial-data",
+    "trading",
+    "backtesting",
+    "quantitative-finance",
+    "ohlc",
+    "tick-data"
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/market-data-source"
+Documentation = "https://github.com/yourusername/market-data-source#readme"
+Repository = "https://github.com/yourusername/market-data-source"
+Issues = "https://github.com/yourusername/market-data-source/issues"
+
+[tool.maturin]
+features = ["python"]
+python-source = "python"
+module-name = "market_data_source._market_data_source"

@@ -51,6 +51,10 @@ pub use export::{to_csv_ohlc, to_csv_ticks};
 // Module for algorithms (internal for now)
 mod algorithms;
 
+// Python bindings module (conditional on feature flag)
+#[cfg(feature = "python")]
+mod python;
+
 #[cfg(test)]
 mod tests {
     use super::*;
