@@ -93,9 +93,16 @@
 #### Long-term Roadmap (v0.4.0+)
 3. [ ] **Market regime changes** - Dynamic bull/bear/sideways transitions
 4. [ ] **Live parameter updates** - Runtime configuration without restart  
-5. [ ] **Factor model integration** - Fama-French, CAPM, APT models
-6. [ ] **Advanced algorithms** - GARCH, mean reversion, jump diffusion
-7. [ ] **Real data sources** - Yahoo Finance, Alpha Vantage integrations
+
+#### Long-term Roadmap (v0.5.0+)
+1. [ ] **Factor model integration** - Fama-French, CAPM, APT models
+2. [ ] **Advanced algorithms** - GARCH, mean reversion, jump diffusion
+3. [ ] **Real data sources** - Yahoo Finance, Alpha Vantage integrations
+
+#### Long-term Roadmap (v1.0.0+)
+1. [ ] **High-frequency data** - Tick-level generation and processing
+2. [ ] **Multi-asset support** - Bonds, commodities, FX data generation
+3. [ ] **Trading Universe Models** - Sector rotation, market breadth simulations, GDP correlations, regime shifts, industry cycles
 
 ## 📊 Current Architecture Status
 
