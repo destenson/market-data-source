@@ -23,7 +23,8 @@
 - **No TODO/FIXME comments found** in codebase (clean implementation)
 - **Dead Code**: Unused methods `current_price()` and `set_price()` in RandomWalkGenerator (src/algorithms/random_walk.rs:101-108)
 - **String Errors**: 3 functions returning `Result<_, String>` should use proper error types
-- **Unwrap Usage**: 74 `unwrap()`/`expect()` calls in src/ (mostly in tests, but some in production code)
+- **Unwrap Usage**: 202 `unwrap()`/`expect()` calls across 12 files (mostly in tests, but some in production code)
+- **Placeholder Parameters**: CouchDB module has incomplete builder methods with unused `_timeout` and `_auto_create` parameters (src/export/couchdb.rs:429-441)
 - **Internal module**: algorithms module marked as internal "for now" (potential for public API)
 - **Font Rendering**: PNG chart tests fail in headless environments due to font rendering limitations
 
@@ -76,11 +77,12 @@ The primary focus of v0.1.0 is providing best-in-class synthetic market data gen
 
 ### Critical Bug Fixes & Improvements  
 1. ✅ **Error Handling**: Replace String errors with proper error enum - **COMPLETED** (ExportError implemented in PRP-16)
-2. [ ] **Dead Code Cleanup**: Remove unused `current_price()` and `set_price()` methods 
-3. [ ] **Unwrap Reduction**: Replace unwrap() calls in production code with proper error handling
-4. [ ] **CouchDB Dependency**: Update to couch_rs 0.10+ or remove problematic dependency
-5. [ ] **Public API**: Consider making algorithms module public
-6. [ ] **Font Rendering**: Fix PNG chart tests for headless environments
+2. [ ] **Dead Code Cleanup**: Remove unused `current_price()` and `set_price()` methods (src/algorithms/random_walk.rs:101-108)
+3. [ ] **Unwrap Reduction**: Replace 202 unwrap() calls in production code with proper error handling
+4. [ ] **CouchDB Builder Methods**: Complete placeholder builder methods `timeout_seconds()` and `auto_create_database()` (src/export/couchdb.rs:429-441)
+5. [ ] **CouchDB Dependency**: Update to couch_rs 0.10+ or remove problematic dependency
+6. [ ] **Public API**: Consider making algorithms module public (currently internal "for now")
+7. [ ] **Font Rendering**: Fix PNG chart tests for headless environments
 
 ## 🚀 Next Priority - Enhanced Realism
 
