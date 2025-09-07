@@ -99,10 +99,13 @@
 2. [ ] **Advanced algorithms** - GARCH, mean reversion, jump diffusion
 3. [ ] **Real data sources** - Yahoo Finance, Alpha Vantage integrations
 
-#### Long-term Roadmap (v1.0.0+)
+#### Long-term Roadmap (v0.6.0+)
 1. [ ] **High-frequency data** - Tick-level generation and processing
 2. [ ] **Multi-asset support** - Bonds, commodities, FX data generation
-3. [ ] **Trading Universe Models** - Sector rotation, market breadth simulations, GDP correlations, regime shifts, industry cycles
+3. [ ] **Trading Universe Models** - Sector rotation, market breadth simulations, GDP correlations, regime shifts, industry cycles, interest rates, international market segments
+4. [ ] **Options Data** - Implied volatility surfaces, Greeks, option pricing models
+5. [ ] **Commodities Markets** - Futures curves, seasonality patterns, storage costs
+6. [ ] **Cryptocurrency Markets** - High volatility, 24/7 trading, unique market dynamics
 
 ## 📊 Current Architecture Status
 
