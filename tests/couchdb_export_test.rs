@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! Integration tests for CouchDB export functionality
 
 #[cfg(feature = "couchdb")]

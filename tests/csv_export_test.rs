@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! Integration tests for CSV export functionality
 
 #![cfg(feature = "csv_export")]

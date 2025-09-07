@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! Integration tests for JSON export functionality
 
 #[cfg(feature = "json_export")]

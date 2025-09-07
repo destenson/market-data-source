@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! Integration tests for PNG chart export functionality
 
 #[cfg(feature = "png_export")]

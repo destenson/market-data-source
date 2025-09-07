@@ -1,3 +1,4 @@
+#![allow(unused)]
 //! Comprehensive integration tests for all export functionality
 //!
 //! This file contains end-to-end integration tests that verify the complete
