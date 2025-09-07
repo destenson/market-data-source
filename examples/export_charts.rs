@@ -53,7 +53,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n3. Creating custom styled candlestick chart...");
     
     use market_data_source::export::{to_png_ohlc_with_builder, ChartExporter};
-    use plotters::prelude::RGBColor;
     // Create custom chart builder with styling
     let custom_builder = ChartBuilder::new()
         .title("Market Data - Custom Styled Chart")
@@ -137,7 +136,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Create different datasets for comparison
     let short_term = generator.generate_series(20);
-    let medium_term = generator.generate_series(50);
+    let _medium_term = generator.generate_series(50);
     let long_term = generator.generate_series(100);
     
     // Short term chart
@@ -172,7 +171,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let chart_exporter = ChartExporter::with_builder(exporter_builder);
     let direct_export_file = "direct_exporter_chart.png";
     
-    use market_data_source::export::DataExporter;
     chart_exporter.export_ohlc(&ohlc_data, direct_export_file)?;
     println!("   ✓ Created chart using direct exporter: {}", direct_export_file);
     
