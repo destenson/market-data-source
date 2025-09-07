@@ -436,6 +436,142 @@ Test the publishing configuration without releasing:
 
 For more details, see [.github/PUBLISHING.md](.github/PUBLISHING.md).
 
+## Release Process
+
+### Automated Release Pipeline
+
+Market Data Source uses a fully automated release pipeline that publishes to both crates.io and PyPI. The release process is triggered by git tags and ensures consistency across both package ecosystems.
+
+#### Quick Release
+
+For maintainers, the simplest way to create a release:
+
+```bash
+# Prepare a patch release (e.g., 0.3.0 -> 0.3.1)
+python scripts/prepare-release.py --bump patch
+
+# Or prepare a specific version
+python scripts/prepare-release.py --version 0.4.0
+
+# Review and update CHANGELOG.md with actual changes
+$EDITOR CHANGELOG.md
+
+# Commit and push the tag
+git add -A
+git commit -m "chore: prepare release v0.3.1"
+git push origin main
+git push origin v0.3.1  # This triggers the automated release
+```
+
+#### Release Scripts
+
+The project includes helper scripts for managing releases:
+
+1. **Version Synchronization** (`scripts/sync-version.py`)
+   - Ensures version consistency between Cargo.toml and pyproject.toml
+   - Uses Cargo.toml as the single source of truth
+   ```bash
+   # Check version consistency
+   python scripts/sync-version.py --check
+   
+   # Sync versions (Cargo.toml -> pyproject.toml)
+   python scripts/sync-version.py
+   
+   # Set a specific version
+   python scripts/sync-version.py --set-version 0.3.1
+   ```
+
+2. **Release Preparation** (`scripts/prepare-release.py`)
+   - Automates the entire release preparation process
+   - Runs quality checks, updates versions, and creates git tags
+   ```bash
+   # Dry run to see what would happen
+   python scripts/prepare-release.py --bump patch --dry-run
+   
+   # Prepare a minor release
+   python scripts/prepare-release.py --bump minor
+   
+   # Prepare a specific version
+   python scripts/prepare-release.py --version 0.4.0
+   ```
+
+#### Release Workflow
+
+The automated release pipeline (`release-automation.yml`) performs these steps:
+
+1. **Pre-flight Validation**
+   - Version format validation
+   - Version consistency check across all files
+   - Changelog extraction
+
+2. **Quality Gates**
+   - Runs on Ubuntu, Windows, and macOS
+   - Format checking with rustfmt
+   - Linting with clippy
+   - Full test suite execution
+   - Documentation building
+
+3. **Build Artifacts**
+   - Rust binaries for multiple platforms
+   - Python wheels for multiple Python versions
+
+4. **Publication**
+   - Publishes to crates.io using OIDC trusted publishing
+   - Publishes to PyPI using OIDC trusted publishing
+   - Creates GitHub release with all assets
+
+5. **Post-Release**
+   - Automatically bumps version for next development cycle
+   - Creates PR for version bump
+   - Generates release summary
+
+#### Manual Release Process
+
+If you need to release manually:
+
+```bash
+# 1. Ensure versions are synchronized
+python scripts/sync-version.py --check
+
+# 2. Run all quality checks
+cargo fmt --all -- --check
+cargo clippy --all-features --all-targets -- -D warnings
+cargo test --all-features
+cargo doc --no-deps --all-features
+
+# 3. Build and test Python package
+cd market-data-source-python
+maturin build --release
+pip install ../target/wheels/*.whl
+python -c "import market_data_source; print(market_data_source.__version__)"
+cd ..
+
+# 4. Create and push tag
+git tag -a v0.3.1 -m "Release version 0.3.1"
+git push origin v0.3.1
+
+# The automated workflow will handle the rest
+```
+
+#### Version Management
+
+- Versions follow semantic versioning (MAJOR.MINOR.PATCH)
+- Cargo.toml is the single source of truth for versions
+- The CI automatically checks version consistency on every push
+- Pre-release versions are supported (e.g., 0.3.1-alpha.1)
+
+#### Troubleshooting Releases
+
+If a release fails:
+
+1. Check the GitHub Actions logs for specific errors
+2. Ensure OIDC trusted publishing is configured for both crates.io and PyPI
+3. Verify version consistency: `python scripts/sync-version.py --check`
+4. Run quality checks locally: `cargo test --all-features`
+5. Try a dry run first: `python scripts/prepare-release.py --dry-run`
+
+For rollback procedures, see the release workflow documentation in `.github/workflows/`.
+
 ## Contributing
 
 Contributions are welcome! If you'd like to contribute to Market Data Source, please fork the repository and submit a pull request.

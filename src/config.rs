@@ -450,8 +450,10 @@ mod tests {
     #[test]
     fn test_config_validation() {
         // Invalid starting price
-        let mut config = GeneratorConfig::default();
-        config.starting_price = Decimal::from_f64(-10.0).unwrap();
+        let config = GeneratorConfig {
+            starting_price: Decimal::from_f64(-10.0).unwrap(),
+            ..Default::default()
+        };
         assert!(config.validate().is_err());
 
         // Invalid price range
