@@ -139,6 +139,8 @@ jobs:
       
       - name: Test maturin develop
         run: |
+          uv venv .venv
+          source .venv/bin/activate
           maturin develop
           python -c "import market_data_source; print(market_data_source.__version__)"
   
