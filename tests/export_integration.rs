@@ -453,7 +453,7 @@ mod error_handling_tests {
 
 /// Integration test runner that provides a summary
 #[test]
-#[cfg(any(feature = "csv_export", feature = "json_export", feature = "png_export", feature = "couchdb_export"))]
+#[cfg(any(feature = "csv_export", feature = "json_export", feature = "png_export", feature = "couchdb"))]
 fn test_export_integration_summary() {
     println!("Running Export Integration Test Summary");
     println!("=====================================");
@@ -491,7 +491,7 @@ fn test_export_integration_summary() {
 }
 
 #[test]
-#[cfg(not(any(feature = "csv_export", feature = "json_export", feature = "png_export", feature = "couchdb_export")))]
+#[cfg(not(any(feature = "csv_export", feature = "json_export", feature = "png_export", feature = "couchdb")))]
 fn test_no_export_features() {
     println!("Running with no export features enabled");
     println!("This is valid for the base library configuration");

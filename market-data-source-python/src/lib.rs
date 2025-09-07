@@ -5,54 +5,42 @@ use pyo3::exceptions::PyValueError;
 use pyo3::types::{PyDict, PyString};
 use rust_decimal::prelude::*;
 
-use crate::{
+use market_data_source::{
     MarketDataGenerator, GeneratorConfig, ConfigBuilder, OHLC, Tick, TimeInterval,
     export::{DataExporter, CsvExporter, JsonExporter, json::JsonOptions, chart::{ChartExporter, ChartBuilder}}
 };
 
-// Automated conversion trait for OHLC to Python dict
-impl<'py> IntoPyObject<'py> for OHLC {
-    type Target = PyDict;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-    
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let dict = PyDict::new(py);
-        dict.set_item("timestamp", self.timestamp)?;
-        dict.set_item("open", self.open.to_f64().unwrap_or(0.0))?;
-        dict.set_item("high", self.high.to_f64().unwrap_or(0.0))?;
-        dict.set_item("low", self.low.to_f64().unwrap_or(0.0))?;
-        dict.set_item("close", self.close.to_f64().unwrap_or(0.0))?;
-        dict.set_item("volume", self.volume.value())?;
-        Ok(dict)
-    }
+// Helper function to convert OHLC to Python dict
+fn ohlc_to_dict(ohlc: OHLC, py: Python<'_>) -> PyResult<Bound<'_, PyDict>> {
+    let dict = PyDict::new(py);
+    dict.set_item("timestamp", ohlc.timestamp)?;
+    dict.set_item("open", ohlc.open.to_f64().unwrap_or(0.0))?;
+    dict.set_item("high", ohlc.high.to_f64().unwrap_or(0.0))?;
+    dict.set_item("low", ohlc.low.to_f64().unwrap_or(0.0))?;
+    dict.set_item("close", ohlc.close.to_f64().unwrap_or(0.0))?;
+    dict.set_item("volume", ohlc.volume.value())?;
+    Ok(dict)
 }
 
-// Automated conversion trait for Tick to Python dict
-impl<'py> IntoPyObject<'py> for Tick {
-    type Target = PyDict;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
+// Helper function to convert Tick to Python dict
+fn tick_to_dict(tick: Tick, py: Python<'_>) -> PyResult<Bound<'_, PyDict>> {
+    let dict = PyDict::new(py);
+    dict.set_item("timestamp", tick.timestamp)?;
+    dict.set_item("price", tick.price.to_f64().unwrap_or(0.0))?;
     
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let dict = PyDict::new(py);
-        dict.set_item("timestamp", self.timestamp)?;
-        dict.set_item("price", self.price.to_f64().unwrap_or(0.0))?;
-        
-        // Handle optional bid/ask
-        if let (Some(bid), Some(ask)) = (self.bid, self.ask) {
-            dict.set_item("bid", bid.to_f64().unwrap_or(0.0))?;
-            dict.set_item("ask", ask.to_f64().unwrap_or(0.0))?;
-            dict.set_item("spread", (ask - bid).to_f64().unwrap_or(0.0))?;
-        } else {
-            dict.set_item("bid", self.price.to_f64().unwrap_or(0.0))?;
-            dict.set_item("ask", self.price.to_f64().unwrap_or(0.0))?;
-            dict.set_item("spread", 0.0)?;
-        }
-        
-        dict.set_item("volume", self.volume.value())?;
-        Ok(dict)
+    // Handle optional bid/ask
+    if let (Some(bid), Some(ask)) = (tick.bid, tick.ask) {
+        dict.set_item("bid", bid.to_f64().unwrap_or(0.0))?;
+        dict.set_item("ask", ask.to_f64().unwrap_or(0.0))?;
+        dict.set_item("spread", (ask - bid).to_f64().unwrap_or(0.0))?;
+    } else {
+        dict.set_item("bid", tick.price.to_f64().unwrap_or(0.0))?;
+        dict.set_item("ask", tick.price.to_f64().unwrap_or(0.0))?;
+        dict.set_item("spread", 0.0)?;
     }
+    
+    dict.set_item("volume", tick.volume.value())?;
+    Ok(dict)
 }
 
 // Automated conversion for TimeInterval

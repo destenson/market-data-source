@@ -51,10 +51,6 @@ pub use export::{to_csv_ohlc, to_csv_ticks};
 // Module for algorithms (internal implementation details)
 mod algorithms;
 
-// Python bindings module (conditional on feature flag)
-#[cfg(feature = "python")]
-mod python;
-
 // Server module (conditional on feature flag)
 #[cfg(feature = "api-server")]
 pub mod server;

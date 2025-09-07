@@ -1756,7 +1756,6 @@ dependencies = [
  "futures",
  "image 0.25.8",
  "plotters",
- "pyo3",
  "rand 0.8.5",
  "rand_distr",
  "reqwest",
@@ -1772,6 +1771,14 @@ dependencies = [
  "tracing-subscriber",
  "utoipa",
  "utoipa-swagger-ui",
+]
+
+[[package]]
+name = "market-data-source-python"
+version = "0.3.0"
+dependencies = [
+ "market-data-source",
+ "pyo3",
 ]
 
 [[package]]

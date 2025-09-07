@@ -73,7 +73,7 @@ jobs:
           - "csv_export"
           - "json_export"
           - "png_export"
-          - "couchdb_export"
+          - "couchdb"
           - "api-server"
           - "python"
           - "synthetic,csv_export,json_export"
