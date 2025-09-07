@@ -61,8 +61,17 @@ jobs:
           maturin build --release --out ../dist
       
       - name: Install package
+        shell: bash
         run: |
-          uv pip install --system dist/market_data_source*.whl --force-reinstall
+          # Find the wheel file (works on all platforms)
+          WHEEL_FILE=$(ls dist/market_data_source*.whl 2>/dev/null | head -n 1)
+          if [ -z "$WHEEL_FILE" ]; then
+            echo "No wheel file found in dist/"
+            ls -la dist/
+            exit 1
+          fi
+          echo "Installing wheel: $WHEEL_FILE"
+          uv pip install --system "$WHEEL_FILE" --force-reinstall
 
       - name: Run Python tests
         run: |
