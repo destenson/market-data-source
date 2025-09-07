@@ -9,11 +9,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 cargo build
 ```
 
-### Build in release mode
-```bash
-cargo build --release
-```
-
 ### Run the project
 ```bash
 cargo run
@@ -43,6 +38,8 @@ cargo fmt
 ```bash
 cargo clippy
 ```
+
+Always prefer to use the Cargo MCP tool instead of bash commands directly when possible.
 
 ## Architecture Overview
 
