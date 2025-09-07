@@ -97,8 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-*This project is under active development. For the latest updates, see the [GitHub repository](https://github.com/yourusername/market-data-source).*
+*This project is under active development. For the latest updates, see the [GitHub repository](https://github.com/destenson/market-data-source).*
 
-[0.3.0]: https://github.com/yourusername/market-data-source/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/yourusername/market-data-source/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/yourusername/market-data-source/releases/tag/v0.1.0
+[0.3.0]: https://github.com/destenson/market-data-source/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/destenson/market-data-source/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/destenson/market-data-source/releases/tag/v0.1.0

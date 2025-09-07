@@ -270,5 +270,5 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Links" >> $GITHUB_STEP_SUMMARY
           echo "- [crates.io](https://crates.io/crates/market-data-source)" >> $GITHUB_STEP_SUMMARY
-          echo "- [PyPI](https://pypi.org/project/market-data-source/)" >> $GITHUB_STEP_SUMMARY
+          echo "- [PyPI](https://pypi.org/project/market_data_source/)" >> $GITHUB_STEP_SUMMARY
           echo "- [GitHub Releases](https://github.com/${{ github.repository }}/releases)" >> $GITHUB_STEP_SUMMARY

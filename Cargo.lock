@@ -1743,16 +1743,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "market-data-source-python"
-version = "0.3.0"
-dependencies = [
- "market_data_source",
- "pyo3",
- "rust_decimal",
-]
-
-[[package]]
-name = "market_data_source"
+name = "market-data-source"
 version = "0.3.0"
 dependencies = [
  "axum",
@@ -1780,6 +1771,15 @@ dependencies = [
  "tracing-subscriber",
  "utoipa",
  "utoipa-swagger-ui",
+]
+
+[[package]]
+name = "market-data-source-python"
+version = "0.3.0"
+dependencies = [
+ "market-data-source",
+ "pyo3",
+ "rust_decimal",
 ]
 
 [[package]]

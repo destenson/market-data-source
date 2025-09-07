@@ -14,7 +14,7 @@ Thank you for your interest in contributing to Market Data Source! This document
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/deste128/market-data-source.git
+git clone https://github.com/destenson/market-data-source.git
 cd market-data-source
 ```
 

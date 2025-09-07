@@ -11,7 +11,7 @@ publish = false  # This crate is not published to crates.io
 
 [features]
 default = ["python", "synthetic"]
-synthetic = ["market_data_source/synthetic"]
+synthetic = ["market-data-source/synthetic"]
 python = []  # Python bindings feature
 
 [lib]
@@ -19,6 +19,6 @@ name = "market_data_source"
 crate-type = ["cdylib"]
 
 [dependencies]
-market_data_source = { workspace = true, features = ["synthetic"] }
+market-data-source = { path = "..", features = ["synthetic"] }
 pyo3 = { version = "0.23", features = ["extension-module", "chrono"] }
 rust_decimal = { workspace = true }

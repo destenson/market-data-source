@@ -58,11 +58,11 @@ jobs:
       - name: Build Python package
         run: |
           cd market-data-source-python
-          uv run maturin build --release --out ../dist
+          maturin build --release --out ../dist
       
       - name: Install package
         run: |
-          uv pip install --system dist/*.whl --force-reinstall
+          uv pip install --system dist/*-*.whl --force-reinstall
       
       - name: Run Python tests
         run: |

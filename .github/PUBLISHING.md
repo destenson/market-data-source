@@ -34,10 +34,10 @@ After the initial manual publication to establish ownership:
 
 Configure trusted publishing on PyPI:
 
-1. Visit https://pypi.org/manage/project/market-data-source/settings/publishing/
+1. Visit https://pypi.org/manage/project/market_data_source/settings/publishing/
 2. Add GitHub repository:
    - Owner: `destenson`
-   - Repository: `market-data-source`
+   - Repository: `market_data_source`
    - Workflow: `publish.yml`
    - Environment: `release` (optional)
 
@@ -45,7 +45,7 @@ Configure trusted publishing on PyPI:
 
 For testing before production:
 
-1. Visit https://test.pypi.org/manage/project/market-data-source/settings/publishing/
+1. Visit https://test.pypi.org/manage/project/market_data_source/settings/publishing/
 2. Configure same settings as production PyPI
 3. Test with `dry-run: true` in workflow dispatch
 
@@ -120,7 +120,7 @@ Add these workflows as required status checks:
 1. Watch workflow runs: https://github.com/destenson/market-data-source/actions
 2. Monitor package pages:
    - https://crates.io/crates/market-data-source
-   - https://pypi.org/project/market-data-source/
+   - https://pypi.org/project/market_data_source/
 
 ### Failure Recovery
 
