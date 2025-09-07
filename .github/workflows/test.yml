@@ -20,7 +20,7 @@ jobs:
         rust: [stable, beta]
         include:
           - os: ubuntu-latest
-            rust: 1.75.0  # MSRV
+            rust: 1.88.0  # MSRV
     
     steps:
       - uses: actions/checkout@v4

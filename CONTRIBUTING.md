@@ -6,7 +6,7 @@ Thank you for your interest in contributing to Market Data Source! This document
 
 ### Prerequisites
 
-- Rust 1.75.0 or later
+- Rust 1.88.0 or later
 - Python 3.8+ (for Python bindings)
 - Git
 

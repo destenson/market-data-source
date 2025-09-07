@@ -112,7 +112,7 @@ jobs:
       
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.75.0  # MSRV from Cargo.toml
+          toolchain: 1.88.0  # MSRV from Cargo.toml
       
       - name: Install system dependencies
         run: |
