@@ -25,7 +25,25 @@ pub async fn create_symbol(
     State(state): State<AppState>,
     Json(req): Json<CreateSymbolRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
-    let config = req.config.unwrap_or_default();
+    let mut config = req.config.unwrap_or_default();
+    
+    // Apply smart defaults based on what was provided
+    config.apply_smart_defaults();
+    
+    // Validate the configuration
+    if let Err(e) = config.validate() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: format!("Invalid configuration: {}", e),
+                code: 400,
+                details: Some(serde_json::json!({
+                    "validation_error": e.to_string(),
+                    "config": config
+                })),
+            })
+        ));
+    }
     
     state.create_generator_with_config(&req.symbol, config.clone()).await;
     

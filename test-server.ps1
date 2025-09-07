@@ -126,28 +126,58 @@ try {
     Write-Host ""
     Start-Sleep -Seconds $TestDelay
     
-    # Test 5: Create Symbol
+    # Test 5: Create Symbol with partial config
     $createBody = @{
         symbol = "BTCUSD"
         config = @{
             starting_price = "50000.0"
-            min_price = "200.0"
-            max_price = "200000.0"
+            trend_direction = "up"
             volatility = "0.05"
-            drift = "0.0002"
         }
     } | ConvertTo-Json
     
-    $newSymbol = Test-Endpoint -Method "POST" -Url "$apiUrl/symbols" -Body $createBody -Description "Create Symbol (BTCUSD)"
+    $newSymbol = Test-Endpoint -Method "POST" -Url "$apiUrl/symbols" -Body $createBody -Description "Create Symbol (BTCUSD with partial config)"
     if ($newSymbol) {
         Write-Host "  Symbol: $($newSymbol.symbol)" -ForegroundColor Gray
         Write-Host "  Active: $($newSymbol.active)" -ForegroundColor Gray
+        Write-Host "  Applied smart defaults for min/max prices" -ForegroundColor DarkGray
         $testsPassed++
     } else { $testsFailed++ }
     Write-Host ""
     Start-Sleep -Seconds $TestDelay
     
-    # Test 6: Generate Data
+    # Test 6: Create Symbol with minimal config (only starting price)
+    $minimalBody = @{
+        symbol = "ETHUSD"
+        config = @{
+            starting_price = "3000.0"
+        }
+    } | ConvertTo-Json
+    
+    $minimalSymbol = Test-Endpoint -Method "POST" -Url "$apiUrl/symbols" -Body $minimalBody -Description "Create Symbol (ETHUSD minimal config)"
+    if ($minimalSymbol) {
+        Write-Host "  Symbol: $($minimalSymbol.symbol)" -ForegroundColor Gray
+        Write-Host "  All defaults applied based on price" -ForegroundColor DarkGray
+        $testsPassed++
+    } else { $testsFailed++ }
+    Write-Host ""
+    Start-Sleep -Seconds $TestDelay
+    
+    # Test 7: Create Symbol with NO config (complete defaults)
+    $noConfigBody = @{
+        symbol = "DEFAULT"
+    } | ConvertTo-Json
+    
+    $defaultSymbol = Test-Endpoint -Method "POST" -Url "$apiUrl/symbols" -Body $noConfigBody -Description "Create Symbol (DEFAULT no config)"
+    if ($defaultSymbol) {
+        Write-Host "  Symbol: $($defaultSymbol.symbol)" -ForegroundColor Gray
+        Write-Host "  Using complete defaults" -ForegroundColor DarkGray
+        $testsPassed++
+    } else { $testsFailed++ }
+    Write-Host ""
+    Start-Sleep -Seconds $TestDelay
+    
+    # Test 8: Generate Data
     $generateBody = @{
         count = 5
         format = "ohlc"
@@ -165,7 +195,7 @@ try {
     Write-Host ""
     Start-Sleep -Seconds $TestDelay
     
-    # Test 7: Get Historical Data
+    # Test 9: Get Historical Data
     $historical = Test-Endpoint -Method "GET" -Url "$apiUrl/historical/BTCUSD?limit=3" -Description "Get Historical Data"
     if ($historical) {
         Write-Host "  Retrieved: $($historical.count) candles" -ForegroundColor Gray
@@ -174,7 +204,7 @@ try {
     Write-Host ""
     Start-Sleep -Seconds $TestDelay
     
-    # Test 8: List Algorithms
+    # Test 10: List Algorithms
     $algorithms = Test-Endpoint -Method "GET" -Url "$apiUrl/algorithms" -Description "List Algorithms"
     if ($algorithms) {
         Write-Host "  Available: $($algorithms.algorithms.Count) algorithm(s)" -ForegroundColor Gray
@@ -184,7 +214,7 @@ try {
     Write-Host ""
     Start-Sleep -Seconds $TestDelay
     
-    # Test 9: List Presets
+    # Test 11: List Presets
     $presets = Test-Endpoint -Method "GET" -Url "$apiUrl/presets" -Description "List Presets"
     if ($presets) {
         $presetNames = $presets.presets | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name

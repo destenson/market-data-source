@@ -40,10 +40,13 @@ where
 #[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 #[cfg_attr(feature = "api-server", derive(ToSchema))]
 pub enum TrendDirection {
+    #[serde(alias = "up")]
     /// Upward trend (bullish)
     Bullish,
+    #[serde(alias = "down")]
     /// Downward trend (bearish)
     Bearish,
+    #[serde(alias = "flat")]
     /// No clear trend (sideways/ranging)
     Sideways,
 }
@@ -51,48 +54,101 @@ pub enum TrendDirection {
 /// Configuration for market data generation
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(default))]
 #[cfg_attr(feature = "api-server", derive(ToSchema))]
 pub struct GeneratorConfig {
     /// Starting price for generation
+    #[cfg_attr(feature = "serde", serde(default = "default_starting_price"))]
     pub starting_price: Decimal,
     /// Minimum price boundary
+    #[cfg_attr(feature = "serde", serde(default = "default_min_price"))]
     pub min_price: Decimal,
     /// Maximum price boundary
+    #[cfg_attr(feature = "serde", serde(default = "default_max_price"))]
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_decimal_inf"))]
     #[cfg_attr(feature = "serde", serde(deserialize_with = "deserialize_decimal_inf"))]
     pub max_price: Decimal,
     /// Trend direction
+    #[cfg_attr(feature = "serde", serde(default = "default_trend_direction"))]
     pub trend_direction: TrendDirection,
     /// Trend strength as percentage per period (e.g., 0.01 = 1% per period)
+    #[cfg_attr(feature = "serde", serde(default = "default_trend_strength"))]
     pub trend_strength: Decimal,
     /// Volatility (standard deviation of price changes)
+    #[cfg_attr(feature = "serde", serde(default = "default_volatility"))]
     pub volatility: Decimal,
     /// Time interval for each data point
+    #[cfg_attr(feature = "serde", serde(default = "default_time_interval"))]
     pub time_interval: TimeInterval,
     /// Number of data points to generate
+    #[cfg_attr(feature = "serde", serde(default = "default_num_points"))]
     pub num_points: usize,
     /// Random seed for reproducibility
+    #[cfg_attr(feature = "serde", serde(default))]
     pub seed: Option<u64>,
     /// Base volume for generation
+    #[cfg_attr(feature = "serde", serde(default = "default_base_volume"))]
     pub base_volume: u64,
     /// Volume volatility (standard deviation)
+    #[cfg_attr(feature = "serde", serde(default = "default_volume_volatility"))]
     pub volume_volatility: f64,
+}
+
+// Default value functions for serde
+fn default_starting_price() -> Decimal {
+    Decimal::from_f64(100.0).unwrap()
+}
+
+fn default_min_price() -> Decimal {
+    Decimal::from_f64(1.0).unwrap()
+}
+
+fn default_max_price() -> Decimal {
+    Decimal::from_f64(1e15).unwrap()
+}
+
+fn default_trend_direction() -> TrendDirection {
+    TrendDirection::Sideways
+}
+
+fn default_trend_strength() -> Decimal {
+    Decimal::ZERO
+}
+
+fn default_volatility() -> Decimal {
+    Decimal::from_f64(0.02).unwrap()
+}
+
+fn default_time_interval() -> TimeInterval {
+    TimeInterval::OneMinute
+}
+
+fn default_num_points() -> usize {
+    100
+}
+
+fn default_base_volume() -> u64 {
+    100000
+}
+
+fn default_volume_volatility() -> f64 {
+    0.3
 }
 
 impl Default for GeneratorConfig {
     fn default() -> Self {
         Self {
-            starting_price: Decimal::from_f64(100.0).unwrap(),
-            min_price: Decimal::from_f64(1.0).unwrap(),
-            max_price: Decimal::from_f64(1e15).unwrap(), // Very large number as "infinity"
-            trend_direction: TrendDirection::Sideways,
-            trend_strength: Decimal::ZERO,
-            volatility: Decimal::from_f64(0.02).unwrap(), // 2% volatility
-            time_interval: TimeInterval::OneMinute,
-            num_points: 100,
+            starting_price: default_starting_price(),
+            min_price: default_min_price(),
+            max_price: default_max_price(),
+            trend_direction: default_trend_direction(),
+            trend_strength: default_trend_strength(),
+            volatility: default_volatility(),
+            time_interval: default_time_interval(),
+            num_points: default_num_points(),
             seed: None,
-            base_volume: 100000,
-            volume_volatility: 0.3, // 30% volume volatility (keep as f64 for now)
+            base_volume: default_base_volume(),
+            volume_volatility: default_volume_volatility(),
         }
     }
 }
@@ -106,6 +162,48 @@ impl GeneratorConfig {
     /// Creates a builder for fluent configuration
     pub fn builder() -> ConfigBuilder {
         ConfigBuilder::new()
+    }
+
+    /// Smart defaults: adjusts configuration based on provided values
+    /// This ensures reasonable defaults when only partial config is provided
+    pub fn apply_smart_defaults(&mut self) {
+        // If min_price is still at default but starting_price is high, adjust min_price
+        if self.min_price == default_min_price() && self.starting_price > Decimal::from(1000) {
+            self.min_price = self.starting_price * Decimal::from_f64(0.01).unwrap(); // 1% of starting price
+        }
+        
+        // If max_price is still at default but starting_price is set, adjust max_price
+        if self.max_price == default_max_price() && self.starting_price != default_starting_price() {
+            self.max_price = self.starting_price * Decimal::from(100); // 100x starting price
+        }
+        
+        // Ensure min < starting < max
+        if self.min_price >= self.starting_price {
+            self.min_price = self.starting_price * Decimal::from_f64(0.5).unwrap();
+        }
+        if self.max_price <= self.starting_price {
+            self.max_price = self.starting_price * Decimal::from(2);
+        }
+        
+        // Adjust volatility based on asset type (inferred from price)
+        if self.volatility == default_volatility() {
+            if self.starting_price > Decimal::from(10000) {
+                // Likely crypto (BTC, ETH)
+                self.volatility = Decimal::from_f64(0.05).unwrap(); // 5% volatility
+            } else if self.starting_price < Decimal::from(10) {
+                // Likely forex or penny stocks
+                self.volatility = Decimal::from_f64(0.005).unwrap(); // 0.5% volatility
+            }
+        }
+        
+        // If trend direction is up/down but strength is zero, set a reasonable strength
+        if self.trend_strength == Decimal::ZERO {
+            match self.trend_direction {
+                TrendDirection::Bullish => self.trend_strength = Decimal::from_f64(0.0001).unwrap(),
+                TrendDirection::Bearish => self.trend_strength = Decimal::from_f64(-0.0001).unwrap(),
+                TrendDirection::Sideways => {}
+            }
+        }
     }
 
     /// Validates the configuration
