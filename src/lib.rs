@@ -51,6 +51,18 @@ pub use export::{to_csv_ohlc, to_csv_ticks};
 // Module for algorithms (internal implementation details)
 mod algorithms;
 
+// Regime detection module (conditional on feature flag)
+#[cfg(feature = "regimes")]
+pub mod regimes;
+
+// Re-export regime types when feature is enabled
+#[cfg(feature = "regimes")]
+pub use regimes::{MarketRegime, RegimeController, RegimeSchedule, RegimeSegment, ScheduleInfo};
+
+// Re-export generator regime types when feature is enabled
+#[cfg(feature = "regimes")]
+pub use generator::{RegimeOHLC, ControlledRegimeOHLC};
+
 // Server module (conditional on feature flag)
 #[cfg(feature = "api-server")]
 pub mod server;
