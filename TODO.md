@@ -109,7 +109,7 @@ generator.to_csv("output.csv", count=1000)
 4. [ ] **Make algorithms public** - Remove "internal for now" (src/lib.rs:51)
 
 ### High Priority - Export Infrastructure ✅ **COMPLETED**
-1. ⚠️ **Skip PRP-14**: CouchDB export blocked by dependency issue (packed_simd_2 requires nightly Rust)
+1. ⚠️ **Skip PRP-14**: CouchDB export blocked by dependency issue (currently fixed by commenting out simd feature)
 2. ✅ **Execute PRP-15**: PNG chart generation capabilities - **COMPLETED**
 3. ✅ **Execute PRP-16**: Refactor export module structure - **COMPLETED**
 4. ✅ **Execute PRP-17**: Create comprehensive export examples - **COMPLETED**  
