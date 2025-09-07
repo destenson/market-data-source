@@ -3,23 +3,23 @@
 use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
 use rust_decimal::Decimal;
-use std::str::FromStr;
+use rust_decimal::prelude::*;
 
 use crate::{
-    MarketDataGenerator, GeneratorConfig, ConfigBuilder, OHLC, Tick, TimeInterval,
-    export::{DataExporter, CSVExporter, JSONExporter, PNGExporter}
+    MarketDataGenerator, GeneratorConfig, ConfigBuilder, OHLC, Tick, TimeInterval, Volume,
+    export::{DataExporter, CsvExporter, JsonExporter, chart::ChartExporter}
 };
 
 // Automated conversion trait for OHLC to Python dict
 impl IntoPy<PyObject> for OHLC {
     fn into_py(self, py: Python) -> PyObject {
         let dict = pyo3::types::PyDict::new(py);
-        dict.set_item("timestamp", self.timestamp.timestamp()).unwrap();
+        dict.set_item("timestamp", self.timestamp).unwrap();
         dict.set_item("open", self.open.to_f64().unwrap_or(0.0)).unwrap();
         dict.set_item("high", self.high.to_f64().unwrap_or(0.0)).unwrap();
         dict.set_item("low", self.low.to_f64().unwrap_or(0.0)).unwrap();
         dict.set_item("close", self.close.to_f64().unwrap_or(0.0)).unwrap();
-        dict.set_item("volume", self.volume.to_f64().unwrap_or(0.0)).unwrap();
+        dict.set_item("volume", self.volume.value()).unwrap();
         dict.into()
     }
 }
@@ -28,11 +28,21 @@ impl IntoPy<PyObject> for OHLC {
 impl IntoPy<PyObject> for Tick {
     fn into_py(self, py: Python) -> PyObject {
         let dict = pyo3::types::PyDict::new(py);
-        dict.set_item("timestamp", self.timestamp.timestamp()).unwrap();
-        dict.set_item("bid", self.bid.to_f64().unwrap_or(0.0)).unwrap();
-        dict.set_item("ask", self.ask.to_f64().unwrap_or(0.0)).unwrap();
-        dict.set_item("spread", self.spread.to_f64().unwrap_or(0.0)).unwrap();
-        dict.set_item("volume", self.volume.to_f64().unwrap_or(0.0)).unwrap();
+        dict.set_item("timestamp", self.timestamp).unwrap();
+        dict.set_item("price", self.price.to_f64().unwrap_or(0.0)).unwrap();
+        
+        // Handle optional bid/ask
+        if let (Some(bid), Some(ask)) = (self.bid, self.ask) {
+            dict.set_item("bid", bid.to_f64().unwrap_or(0.0)).unwrap();
+            dict.set_item("ask", ask.to_f64().unwrap_or(0.0)).unwrap();
+            dict.set_item("spread", (ask - bid).to_f64().unwrap_or(0.0)).unwrap();
+        } else {
+            dict.set_item("bid", self.price.to_f64().unwrap_or(0.0)).unwrap();
+            dict.set_item("ask", self.price.to_f64().unwrap_or(0.0)).unwrap();
+            dict.set_item("spread", 0.0).unwrap();
+        }
+        
+        dict.set_item("volume", self.volume.value()).unwrap();
         dict.into()
     }
 }
@@ -48,25 +58,13 @@ impl IntoPy<PyObject> for TimeInterval {
             TimeInterval::OneHour => "1h",
             TimeInterval::FourHours => "4h",
             TimeInterval::OneDay => "1d",
+            TimeInterval::Custom(seconds) => return format!("{}s", seconds).into_py(py),
         }.into_py(py)
     }
 }
 
-// Helper macro to generate Python wrapper methods
-macro_rules! py_export_method {
-    ($name:ident, $exporter_type:ty, $method:ident) => {
-        fn $name(&mut self, path: &str, count: usize) -> PyResult<()> {
-            let data = self.generator.generate_series(count);
-            let exporter = <$exporter_type>::new();
-            exporter.$method(&data, path)
-                .map_err(|e| PyValueError::new_err(format!("Export failed: {}", e)))?;
-            Ok(())
-        }
-    };
-}
-
 /// Python wrapper for GeneratorConfig with automatic getters
-#[pyclass(name = "GeneratorConfig")]
+#[pyclass(name = "GeneratorConfig", get_all)]
 #[derive(Clone)]
 pub struct PyGeneratorConfig {
     inner: GeneratorConfig,
@@ -195,7 +193,8 @@ impl PyMarketDataGenerator {
         }
         
         let config = builder.build();
-        let generator = MarketDataGenerator::new(config);
+        let generator = MarketDataGenerator::with_config(config)
+            .map_err(|e| PyValueError::new_err(format!("Failed to create generator: {}", e)))?;
         Ok(PyMarketDataGenerator { generator })
     }
     
@@ -205,41 +204,44 @@ impl PyMarketDataGenerator {
     }
     
     /// Generate tick data - returns list of dicts
-    fn generate_ticks(&mut self, count: usize, spread: Option<f64>) -> Vec<Tick> {
-        let spread_decimal = spread
-            .map(|s| Decimal::from_f64_retain(s).unwrap_or(Decimal::new(1, 2)))
-            .unwrap_or(Decimal::new(1, 2));
-        self.generator.generate_ticks(count, spread_decimal)
+    fn generate_ticks(&mut self, count: usize) -> Vec<Tick> {
+        self.generator.generate_ticks(count)
     }
     
     /// Generate data between timestamps
     fn generate_series_between(&mut self, start: i64, end: i64) -> PyResult<Vec<OHLC>> {
-        use chrono::{DateTime, Utc, TimeZone};
-        
-        let start_dt = Utc.timestamp_opt(start, 0)
+        let start_dt = pyo3::chrono::Utc.timestamp_opt(start, 0)
             .single()
             .ok_or_else(|| PyValueError::new_err("Invalid start timestamp"))?;
-        let end_dt = Utc.timestamp_opt(end, 0)
+        let end_dt = pyo3::chrono::Utc.timestamp_opt(end, 0)
             .single()
             .ok_or_else(|| PyValueError::new_err("Invalid end timestamp"))?;
         
         Ok(self.generator.generate_series_between(start_dt, end_dt))
     }
     
-    // Auto-generate export methods
-    py_export_method!(to_csv, CSVExporter, export_ohlc);
-    
-    fn to_json(&mut self, path: &str, count: usize, lines: Option<bool>) -> PyResult<()> {
+    /// Export data to CSV file
+    fn to_csv(&mut self, path: &str, count: usize) -> PyResult<()> {
         let data = self.generator.generate_series(count);
-        let exporter = JSONExporter::new(lines.unwrap_or(false));
+        let exporter = CsvExporter::new();
         exporter.export_ohlc(&data, path)
             .map_err(|e| PyValueError::new_err(format!("Export failed: {}", e)))?;
         Ok(())
     }
     
+    /// Export data to JSON file
+    fn to_json(&mut self, path: &str, count: usize, lines: Option<bool>) -> PyResult<()> {
+        let data = self.generator.generate_series(count);
+        let exporter = JsonExporter::new(lines.unwrap_or(false));
+        exporter.export_ohlc(&data, path)
+            .map_err(|e| PyValueError::new_err(format!("Export failed: {}", e)))?;
+        Ok(())
+    }
+    
+    /// Export data to PNG chart
     fn to_png(&mut self, path: &str, count: usize, kwargs: Option<&pyo3::types::PyDict>) -> PyResult<()> {
         let data = self.generator.generate_series(count);
-        let mut exporter = PNGExporter::new();
+        let mut exporter = ChartExporter::new();
         
         // Auto-extract PNG parameters from kwargs
         if let Some(dict) = kwargs {
@@ -269,15 +271,12 @@ impl PyMarketDataGenerator {
         }
     }
     
-    /// Set new seed
-    fn set_seed(&mut self, seed: u64) {
-        self.generator.set_seed(seed);
-    }
-    
-    /// Reset generator
-    fn reset(&mut self) {
+    /// Reset generator with new config
+    fn reset(&mut self) -> PyResult<()> {
         let config = self.generator.config().clone();
-        self.generator = MarketDataGenerator::new(config);
+        self.generator = MarketDataGenerator::with_config(config)
+            .map_err(|e| PyValueError::new_err(format!("Failed to reset: {}", e)))?;
+        Ok(())
     }
     
     fn __repr__(&self) -> String {
@@ -303,10 +302,11 @@ fn parse_interval(s: &str) -> PyResult<TimeInterval> {
 macro_rules! preset_function {
     ($name:ident, $config_method:ident) => {
         #[pyfunction]
-        fn $name() -> PyMarketDataGenerator {
-            PyMarketDataGenerator {
-                generator: MarketDataGenerator::new(GeneratorConfig::$config_method())
-            }
+        fn $name() -> PyResult<PyMarketDataGenerator> {
+            let config = GeneratorConfig::$config_method();
+            let generator = MarketDataGenerator::with_config(config)
+                .map_err(|e| PyValueError::new_err(format!("Failed to create generator: {}", e)))?;
+            Ok(PyMarketDataGenerator { generator })
         }
     };
 }
@@ -331,7 +331,7 @@ fn _market_data_source(m: &Bound<'_, PyModule>) -> PyResult<()> {
     
     // Add module metadata
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    m.add("__author__", env!("CARGO_PKG_AUTHORS"))?;
+    m.add("__author__", "")?;  // Empty string if not set
     
     Ok(())
 }
