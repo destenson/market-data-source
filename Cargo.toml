@@ -4,7 +4,7 @@ members = [".", "market-data-source-python"]
 resolver = "2"
 
 [workspace.package]
-version = "0.3.0"
+version = "0.3.0-dev"
 edition = "2021"
 repository = "https://github.com/destenson/market-data-source"
 authors = ["Market Data Source Contributors"]
