@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "market-data-source-python"]
+members = ["market-data-source", "market-data-source-python"]
 resolver = "3"
 
 [workspace.package]
@@ -23,122 +23,15 @@ tracing = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 
 # Internal dependencies
-market-data-source = { path = "." }
+market-data-source = { path = "./market-data-source" }
 
-[package]
-name = "market-data-source"
-version.workspace = true
-edition.workspace = true
-repository.workspace = true
-authors.workspace = true
-license.workspace = true
-description = "High-performance synthetic market data generator with financial precision. Generate unlimited OHLC candles, tick data, and realistic trading scenarios for backtesting and research."
-documentation = "https://docs.rs/market-data-source"
-homepage = "https://github.com/destenson/market-data-source"
-readme = "README.md"
-keywords = ["market-data", "synthetic-data", "trading", "finance", "backtesting"]
-categories = ["finance", "simulation", "api-bindings"]
-
-[features]
-default = ["std", "synthetic", "serde"]
-std = [
-    "serde?/std",
-    "serde_json?/std",
-]
-alloc = [
-    "serde?/alloc",
-    "serde_json?/alloc",
-]
-std_math = ["rand_distr/std_math"]
-serde = ["dep:serde"]
-couchdb = ["dep:couch_rs", "tokio", "serde", "serde_json"]
-serde_json = ["dep:serde_json"]
-csv_export = ["dep:csv", "serde"]
-json_export = ["serde", "serde_json"]
-tokio = ["dep:tokio"]
-dotenvy = ["dep:dotenvy"]
-png_export = ["plotters", "plotters-bitmap", "plotters-ttf", "image"]
-image = ["dep:image"]
-plotters = ["dep:plotters"]
-plotters-bitmap = ["plotters?/bitmap_backend"]
-plotters-svg = ["plotters?/plotters-svg", "plotters?/svg_backend"]
-plotters-errorbar = ["plotters?/errorbar"]
-plotters-image = ["plotters?/image"]
-plotters-ttf = ["plotters?/ttf"]
-synthetic = []  # Default synthetic data generation
-live = []  # Live data API emulation features
-api-server = [
-    "dep:axum",
-    "dep:axum-extra",
-    "dep:clap",
-    "dep:futures",
-    "dep:tokio-tungstenite",
-    "dep:tower",
-    "dep:tower-http",
-    "dep:tracing",
-    "dep:tracing-subscriber",
-    "dep:utoipa",
-    "dep:utoipa-swagger-ui",
-    "tokio",
-    "serde",
-    "serde_json",
-]
-api-bridge = ["api-server"]
-api-bridge-yfinance = ["api-bridge"]
-api-bridge-tdameritrade = ["api-bridge"]
-api-emulator = []
-api-emulator-yfinance = ["api-emulator"]
-api-emulator-tdameritrade = ["api-emulator"]
-# api-emulator-alpha-vantage = ["api-emulator"]
-# api-emulator-iex-cloud = ["api-emulator"]
-# api-emulator-twelve-data = ["api-emulator"]
-# api-emulator-finnhub = ["api-emulator"]
-# api-emulator-coin-gecko = ["api-emulator"]
-# api-emulator-coin-market-cap = ["api-emulator"]
-# api-emulator-crypto-compare = ["api-emulator"]
-# api-emulator-binance = ["api-emulator"]
-# api-emulator-kraken = ["api-emulator"]
-# api-emulator-coinbase = ["api-emulator"]
-# api-emulator-bitstamp = ["api-emulator"]
-# api-emulator-bitfinex = ["api-emulator"]
-
-[dependencies]
-axum = { version = "0.8.4", features = ["ws"], optional = true }
-axum-extra = { version = "0.10.1", features = ["typed-header"], optional = true }
-chrono = { workspace = true, features = ["serde"] }
-clap = { version = "4.5.47", features = ["derive", "env"], optional = true }
-couch_rs = { version = "0.12.1", optional = true }
-csv = { version = "1.3.1", optional = true }
-dotenvy = { version = "0.15.7", optional = true }
-futures = { version = "0.3.31", optional = true }
-image = { version = "0.25.8", optional = true }
-plotters = { version = "0.3.7", default-features = false, features = ["line_series", "histogram"], optional = true }
-rand = { workspace = true }
-rand_distr = { workspace = true }
-rust_decimal = { workspace = true, features = ["serde", "macros"] }
-serde = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time"], optional = true }
-tokio-tungstenite = { workspace = true, optional = true }
-tower = { version = "0.5.2", optional = true }
-tower-http = { version = "0.6.6", features = ["cors", "fs"], optional = true }
-tracing = { workspace = true, optional = true }
-tracing-subscriber = { workspace = true, features = ["env-filter"], optional = true }
-utoipa = { version = "5.4.0", features = ["axum_extras", "chrono", "decimal"], optional = true }
-utoipa-swagger-ui = { version = "9.0.2", features = ["axum"], optional = true }
-
-[dev-dependencies]
-tempfile = "3.21.0"
-serde_json = { workspace = true }
-reqwest = { version = "0.12.23", features = ["json"] }
-tokio = { version = "1.47.1", features = ["full"] }
-
-[lib]
-name = "market_data_source"
-path = "src/lib.rs"
-crate-type = ["rlib"]
-
-[[bin]]
-name = "market-data-server"
-path = "src/bin/server.rs"
-required-features = ["api-server"]
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+overflow-checks = true
+debug = false
+incremental = false
+rpath = false
