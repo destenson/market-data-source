@@ -22,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_env_filter("market_data_server=info,tower_http=info")
         .init();
     
-    println!("🚀 Starting Market Data Source Server Demo");
+    println!("Starting Market Data Source Server Demo");
     println!("==========================================\n");
     
     // Configure the server
@@ -34,14 +34,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     };
     
-    println!("📍 Server Configuration:");
+    println!("Server Configuration:");
     println!("   Host: {}", config.host);
     println!("   Port: {}", config.port);
-    println!("   WebSocket: {}", if config.enable_websocket { "✅ Enabled" } else { "❌ Disabled" });
-    println!("   Swagger UI: {}", if config.enable_swagger { "✅ Enabled" } else { "❌ Disabled" });
+    println!("   WebSocket: {}", if config.enable_websocket { "Enabled" } else { "Disabled" });
+    println!("   Swagger UI: {}", if config.enable_swagger { "Enabled" } else { "Disabled" });
     println!();
     
-    println!("📚 Available Endpoints:");
+    println!("Available Endpoints:");
     println!("   Home:           http://{}:{}/", config.host, config.port);
     println!("   Health:         http://{}:{}/health", config.host, config.port);
     println!("   API Discovery:  http://{}:{}/api", config.host, config.port);
@@ -56,16 +56,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     
     println!();
-    println!("🔥 Server Features:");
-    println!("   ✅ Runtime API discovery");
-    println!("   ✅ Multiple symbol support");
-    println!("   ✅ Real-time WebSocket streaming");
-    println!("   ✅ Configurable data generators");
-    println!("   ✅ Multiple export formats (JSON, CSV, PNG)");
-    println!("   ✅ OpenAPI documentation");
+    println!("Server Features:");
+    println!("   - Runtime API discovery");
+    println!("   - Multiple symbol support");
+    println!("   - Real-time WebSocket streaming");
+    println!("   - Configurable data generators");
+    println!("   - Multiple export formats (JSON, CSV, PNG)");
+    println!("   - OpenAPI documentation");
     println!();
     
-    println!("📝 Example API Calls:");
+    println!("Example API Calls:");
     println!("   Create symbol:  curl -X POST http://localhost:8080/api/v1/symbols \\");
     println!("                     -H 'Content-Type: application/json' \\");
     println!("                     -d '{{\"symbol\":\"BTCUSD\",\"config\":{{\"initial_price\":\"50000\"}}}}'");
@@ -77,13 +77,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Stream data:    curl http://localhost:8080/api/v1/stream/BTCUSD");
     println!();
     
-    println!("🔌 WebSocket Example:");
+    println!("WebSocket Example:");
     println!("   Connect:        wscat -c ws://localhost:8080/ws");
     println!("   Subscribe:      {{\"type\":\"Subscribe\",\"payload\":{{\"symbol\":\"BTCUSD\",\"interval\":1000}}}}");
     println!("   Unsubscribe:    {{\"type\":\"Unsubscribe\",\"payload\":{{\"symbol\":\"BTCUSD\"}}}}");
     println!();
     
-    println!("⚡ Starting server...");
+    println!("Starting server...");
     println!("Press Ctrl+C to stop\n");
     
     // Run the server

@@ -17,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let base_url = "http://localhost:8080";
     let client = reqwest::Client::new();
     
-    println!("🔍 Testing Market Data Source Server API\n");
+    println!("Testing Market Data Source Server API\n");
     
     // 1. Check server health
     println!("1. Checking server health...");
@@ -148,7 +148,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("    WebSocket test would connect to ws://localhost:8080/ws");
     println!("    and subscribe to real-time market data streams\n");
     
-    println!("✅ All API tests completed successfully!");
+    println!("All API tests completed successfully!");
     
     Ok(())
 }

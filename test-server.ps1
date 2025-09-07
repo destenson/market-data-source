@@ -39,11 +39,11 @@ function Test-Endpoint {
             $response = Invoke-RestMethod -Uri $Url -Method $Method -Headers $headers -Body $Body -TimeoutSec 5
         }
         
-        Write-Host "  ✓ Success" -ForegroundColor Green
+        Write-Host "  [OK] Success" -ForegroundColor Green
         return $response
     }
     catch {
-        Write-Host "  ✗ Failed: $_" -ForegroundColor Red
+        Write-Host "  [FAIL] Failed: $_" -ForegroundColor Red
         return $null
     }
 }
@@ -216,7 +216,7 @@ try {
         }
         catch {
             if ($_.Exception.Response.StatusCode -eq 426 -or $_.Exception.Response.StatusCode -eq 101) {
-                Write-Host "  ✓ WebSocket endpoint available" -ForegroundColor Green
+                Write-Host "  [OK] WebSocket endpoint available" -ForegroundColor Green
                 $testsPassed++
             } else {
                 throw
@@ -224,7 +224,7 @@ try {
         }
     }
     catch {
-        Write-Host "  ✗ WebSocket check failed" -ForegroundColor Red
+        Write-Host "  [FAIL] WebSocket check failed" -ForegroundColor Red
         $testsFailed++
     }
     Write-Host ""
@@ -235,6 +235,30 @@ try {
         Write-Host "  Symbol deleted successfully" -ForegroundColor Gray
         $testsPassed++
     } else { $testsFailed++ }
+    Write-Host ""
+    
+    # Test 13: Control Endpoint - Status Command
+    $statusBody = @{
+        command = "status"
+    } | ConvertTo-Json
+    
+    Write-Host "Testing: Control Endpoint (status command)" -ForegroundColor Yellow
+    Write-Host "  URL: $baseUrl/control" -ForegroundColor Gray
+    try {
+        $controlResponse = Invoke-RestMethod -Uri "$baseUrl/control" -Method POST -Headers @{"Content-Type"="application/json"} -Body $statusBody -TimeoutSec 5
+        if ($controlResponse.status -eq "success") {
+            Write-Host "  [OK] Success" -ForegroundColor Green
+            Write-Host "  Server version: $($controlResponse.server.version)" -ForegroundColor Gray
+            $testsPassed++
+        } else {
+            Write-Host "  [FAIL] Failed" -ForegroundColor Red
+            $testsFailed++
+        }
+    }
+    catch {
+        Write-Host "  [FAIL] Failed: $_" -ForegroundColor Red
+        $testsFailed++
+    }
     Write-Host ""
     
 }
@@ -267,4 +291,31 @@ finally {
         if ($serverProcess.HasExited) {
             Write-Host "Server stopped successfully" -ForegroundColor Green
         } else {
-           
+            # Force kill if still running
+            Stop-Process -Id $serverProcess.Id -Force -ErrorAction SilentlyContinue
+            Write-Host "Server force stopped" -ForegroundColor Yellow
+        }
+    }
+    catch {
+        Write-Host "Failed to stop server via API, forcing shutdown..." -ForegroundColor Yellow
+        try {
+            Stop-Process -Id $serverProcess.Id -Force -ErrorAction SilentlyContinue
+            Write-Host "Server force stopped" -ForegroundColor Yellow
+        }
+        catch {
+            Write-Host "Failed to stop server" -ForegroundColor Red
+        }
+    }
+    
+    # Clean up any remaining cargo processes
+    Get-Process | Where-Object { $_.ProcessName -like "*cargo*" -or $_.ProcessName -like "*market-data-server*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+    
+    Write-Host ""
+    if ($testsFailed -eq 0) {
+        Write-Host "All tests passed!" -ForegroundColor Green
+        exit 0
+    } else {
+        Write-Host "Some tests failed!" -ForegroundColor Red
+        exit 1
+    }
+}

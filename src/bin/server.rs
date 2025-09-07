@@ -62,16 +62,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             server_config.enable_swagger = !cli.no_swagger;
             server_config.log_level = cli.log_level;
             
-            println!("🚀 Market Data Source Server v{}", env!("CARGO_PKG_VERSION"));
-            println!("📍 Starting server on http://{}:{}", server_config.host, server_config.port);
-            println!("📊 API Discovery: http://{}:{}/api", server_config.host, server_config.port);
+            println!("Market Data Source Server v{}", env!("CARGO_PKG_VERSION"));
+            println!("Starting server on http://{}:{}", server_config.host, server_config.port);
+            println!("API Discovery: http://{}:{}/api", server_config.host, server_config.port);
             
             if server_config.enable_swagger {
-                println!("📚 Swagger UI: http://{}:{}/swagger-ui", server_config.host, server_config.port);
+                println!("Swagger UI: http://{}:{}/swagger-ui", server_config.host, server_config.port);
             }
             
             if server_config.enable_websocket {
-                println!("🔌 WebSocket: ws://{}:{}/ws", server_config.host, server_config.port);
+                println!("WebSocket: ws://{}:{}/ws", server_config.host, server_config.port);
             }
             
             println!("\nPress Ctrl+C to stop the server\n");
@@ -81,12 +81,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(Commands::Info) | None => {
             println!("Market Data Source Server v{}", env!("CARGO_PKG_VERSION"));
             println!("\nFeatures:");
-            println!("  ✅ REST API with runtime discovery");
-            println!("  ✅ WebSocket streaming");
-            println!("  ✅ Multiple symbol support");
-            println!("  ✅ Configurable data generators");
-            println!("  ✅ Export to multiple formats");
-            println!("  ✅ OpenAPI/Swagger documentation");
+            println!("  - REST API with runtime discovery");
+            println!("  - WebSocket streaming");
+            println!("  - Multiple symbol support");
+            println!("  - Configurable data generators");
+            println!("  - Export to multiple formats");
+            println!("  - OpenAPI/Swagger documentation");
             println!("\nUsage:");
             println!("  market-data-server --port 8080");
             println!("  market-data-server start --config config.json");
